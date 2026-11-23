@@ -8,8 +8,6 @@
 mod font_context {
     use std::collections::HashMap;
     use std::ffi::OsStr;
-    use std::fs::File;
-    use std::io::Read;
     use std::path::PathBuf;
     use std::sync::Arc;
     use std::sync::atomic::{AtomicI32, Ordering};
@@ -19,7 +17,7 @@ mod font_context {
     use fonts::{
         FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
         FontIdentifier, FontSearchScope, FontTemplate, FontTemplateDescriptor, FontTemplates,
-        LocalFontIdentifier, SystemFontServiceMessage, SystemFontServiceProxy,
+        LocalFontIdentifier, SkrifaFont, SystemFontServiceMessage, SystemFontServiceProxy,
         SystemFontServiceProxySender, fallback_font_families,
     };
     use icu_locale_core::subtags::Language;
@@ -28,7 +26,6 @@ mod font_context {
     use parking_lot::Mutex;
     use servo_arc::Arc as ServoArc;
     use servo_base::generic_channel::{self, GenericReceiver};
-    use skrifa::Font as SkrifaFont;
     use skrifa::font::Blob;
     use style::ArcSlice;
     use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
@@ -44,7 +41,7 @@ mod font_context {
     struct TestContext {
         context: FontContext,
         system_font_service: Arc<MockSystemFontService>,
-        system_font_service_proxy: SystemFontServiceProxy,
+        system_font_service_proxy: Arc<SystemFontServiceProxy>,
     }
 
     impl TestContext {
@@ -54,9 +51,12 @@ mod font_context {
             let mock_resource_threads = ResourceThreads::new(core_sender);
             let mock_paint_api = CrossProcessPaintApi::dummy();
 
-            let proxy_clone = Arc::new(system_font_service_proxy.to_sender().to_proxy());
             Self {
-                context: FontContext::new(proxy_clone, mock_paint_api, mock_resource_threads),
+                context: FontContext::new(
+                    system_font_service_proxy.clone(),
+                    mock_paint_api,
+                    mock_resource_threads,
+                ),
                 system_font_service,
                 system_font_service_proxy,
             }
@@ -86,7 +86,7 @@ mod font_context {
     }
 
     impl MockSystemFontService {
-        fn spawn() -> (Arc<MockSystemFontService>, SystemFontServiceProxy) {
+        fn spawn() -> (Arc<MockSystemFontService>, Arc<SystemFontServiceProxy>) {
             let (sender, receiver) = generic_channel::channel().unwrap();
             let system_font_service = Arc::new(Self::new());
 
@@ -97,7 +97,7 @@ mod font_context {
                 .expect("Thread spawning failed");
             (
                 system_font_service,
-                SystemFontServiceProxySender(sender).to_proxy(),
+                SystemFontServiceProxy::new(&SystemFontServiceProxySender(sender)),
             )
         }
 
@@ -187,7 +187,7 @@ mod font_context {
                 named_instance_index: 0,
             };
 
-            let mut bytes = std::fs::read(&path).unwrap();
+            let bytes = std::fs::read(&path).unwrap();
             let skrifa_font = SkrifaFont::new(Blob::Shared(Arc::new(bytes)), 0).unwrap();
             let descriptor = FontTemplateDescriptor::from_skrifa_font(&skrifa_font);
 

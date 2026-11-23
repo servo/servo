@@ -7,8 +7,7 @@ use std::io::prelude::*;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use fonts::FontTemplateDescriptor;
-use skrifa::Font as SkrifaFont;
+use fonts::{FontTemplateDescriptor, SkrifaFont};
 use skrifa::font::Blob;
 use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
 

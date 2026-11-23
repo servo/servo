@@ -15,8 +15,8 @@ use bitflags::bitflags;
 use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use font_types::{BigEndian, NameId};
-use fonts_traits::FontDescriptor;
 use fonts_traits::tag::{CBDT, COLR, GPOS, GSUB, ITAL, KERN, SBIX, SLNT, WDTH, WGHT};
+use fonts_traits::{FontDescriptor, SkrifaFont};
 use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
@@ -29,7 +29,6 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
-use skrifa::Font as SkrifaFont;
 use skrifa::font::Variation;
 use skrifa::font::attribute::Weight;
 use smallvec::SmallVec;
@@ -103,7 +102,7 @@ pub trait PlatformFontMethods: Sized {
     /// Create a [`skrifa::Font`] for this `PlatformFont`. Generally, this should not be
     /// used and you should try to retrieve the cached version of the [`SkrifaFont`] from
     /// the `FontContext`.
-    fn create_skrifa_font(&self) -> Option<SkrifaFont>;
+    fn create_skrifa_font(&self) -> Option<Arc<SkrifaFont>>;
 
     /// Create a platform font with the given variations from an existing font.
     ///
@@ -221,7 +220,11 @@ pub struct Font {
 
     /// A `skrifa` `Font` instance for this [`Font`] used to access table data in
     /// a platform-independent way.
-    skrifa_font: SkrifaFont,
+    skrifa_font: Arc<SkrifaFont>,
+
+    /// The original [`SkrifaFont`] for when this [`Font`] was created with variations. This
+    /// keeps the original font alive in the shared cache.
+    _original_skrifa_font: Option<Arc<SkrifaFont>>,
 
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
@@ -311,16 +314,21 @@ impl Font {
         // Either apply variations or font synthesis, but not both. Variable fonts do not
         // count as font synthesis and their use is not affected by the font-synthesis
         // property. See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>.
+        let mut original_skrifa_font = None;
         if variation_axes.contains(VariationAxes::IS_VARIABLE) {
             let used_variations = compute_variations(&descriptor, &template, variation_axes);
             handle = handle.copy_with_variations(&template.identifier(), &used_variations)?;
-            skrifa_font = skrifa_font
-                .instance_builder()
-                .variations(used_variations.iter().map(|variation| Variation {
-                    tag: Tag::from_u32(variation.tag),
-                    value: variation.value,
-                }))
-                .build();
+            original_skrifa_font = Some(skrifa_font.clone());
+            skrifa_font = Arc::new(
+                skrifa_font
+                    .instance_builder()
+                    .variations(used_variations.iter().map(|variation| Variation {
+                        tag: Tag::from_u32(variation.tag),
+                        value: variation.value,
+                    }))
+                    .build()
+                    .into(),
+            );
         } else {
             let template_descriptor = template.descriptor();
             let apply_synthetic_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD &&
@@ -339,6 +347,7 @@ impl Font {
             descriptor,
             data_and_index,
             skrifa_font,
+            _original_skrifa_font: original_skrifa_font,
             shaper: OnceLock::new(),
             cached_shape_data: Default::default(),
             font_instance_key: Default::default(),
@@ -359,7 +368,7 @@ impl Font {
     }
 
     /// Return a reference to the [`SkrifaFont`] for this [`Font`].
-    pub(crate) fn skrifa_font(&self) -> &SkrifaFont {
+    pub(crate) fn skrifa_font(&self) -> &Arc<SkrifaFont> {
         &self.skrifa_font
     }
 

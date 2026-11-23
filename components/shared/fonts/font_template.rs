@@ -10,7 +10,6 @@ use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
-use skrifa::Font as SkrifaFont;
 use skrifa::font::attribute::Style;
 use style::computed_values::font_style::T as FontStyle;
 use style::computed_values::font_width::T as FontWidth;
@@ -18,7 +17,7 @@ use style::font_face::{ComputedFontStyleRange, ComputedFontWeightRange, Computed
 use style::values::computed::font::FontWeight;
 
 use crate::tag::{WDTH, WGHT};
-use crate::{CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier};
+use crate::{CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier, SkrifaFont};
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 #[derive(Clone, Debug, MallocSizeOf)]

@@ -13,7 +13,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{Sender, select, unbounded};
-use fonts::FontContext;
+use fonts::{FontContext, SystemFontServiceProxy};
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use servo_base::generic_channel::{self, GenericCallback, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineNamespace, ServiceWorkerId, ServiceWorkerRegistrationId};
@@ -894,7 +894,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
             .send(CoreResourceMsg::NetworkMediator(resource_chan, origin));
 
         let font_context = Arc::new(FontContext::new(
-            Arc::new(system_font_service_sender.to_proxy()),
+            SystemFontServiceProxy::new(&system_font_service_sender),
             paint_api,
             resource_threads,
         ));

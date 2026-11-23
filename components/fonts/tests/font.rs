@@ -36,7 +36,7 @@ fn make_font(path: PathBuf) -> Font {
 
     let identifier = FontIdentifier::Web(ServoUrl::from_file_path(path).unwrap());
     let skrifa_font = SkrifaFont::new(Blob::Shared(Arc::new(data.clone())), 0).unwrap();
-    let descriptor = FontTemplateDescriptor::from_skrifa_font(&skrifa_font);
+    let descriptor = FontTemplateDescriptor::from_skrifa_font(&(skrifa_font.into()));
     let template = FontTemplate::new(identifier, descriptor, None);
     let descriptor = FontDescriptor {
         weight: FontWeight::normal(),

@@ -602,6 +602,47 @@ where
     }
 }
 
+impl<K, V> MallocSizeOf for hashlink::LruCache<K, V>
+where
+    K: Eq + Hash + MallocSizeOf,
+    V: MallocSizeOf,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // LruCache is a wrapper around LinkedHashMap, which unfortunately does not expose capacity.
+        let pointer_size = size_of::<*const ()>();
+        self.iter()
+            .map(|(key, value)| {
+                // We estimate the size here by assuming that each LinkedHashMap entry costs the
+                // slot itself plus one pointers for each of the two links, and then the size of the
+                // key and value.
+                (3 * pointer_size) + size_of::<(K, V)>() + key.size_of(ops) + value.size_of(ops)
+            })
+            .sum()
+    }
+}
+
+impl<K, V> MallocConditionalSizeOf for hashlink::LruCache<K, V>
+where
+    K: Eq + Hash + MallocConditionalSizeOf,
+    V: MallocConditionalSizeOf,
+{
+    fn conditional_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // LruCache is a wrapper around LinkedHashMap, which unfortunately does not expose capacity.
+        let pointer_size = size_of::<*const ()>();
+        self.iter()
+            .map(|(key, value)| {
+                // We estimate the size here by assuming that each LinkedHashMap entry costs the
+                // slot itself plus one pointers for each of the two links, and then the size of the
+                // key and value.
+                (3 * pointer_size) +
+                    size_of::<(K, V)>() +
+                    key.conditional_size_of(ops) +
+                    value.conditional_size_of(ops)
+            })
+            .sum()
+    }
+}
+
 // PhantomData is always 0.
 impl<T> MallocSizeOf for std::marker::PhantomData<T> {
     fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {

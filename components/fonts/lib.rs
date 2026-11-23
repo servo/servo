@@ -13,6 +13,7 @@ mod glyph;
 pub mod platform; // Public because integration tests need this
 mod shapers;
 mod system_font_service;
+mod system_font_service_proxy;
 
 // These items are not meant to be part of the public API but are used for integration tests
 pub use font::{
@@ -31,6 +32,7 @@ use icu_locale_core::subtags::Language;
 pub use platform::font_list::fallback_font_families;
 pub(crate) use shapers::*;
 pub use system_font_service::SystemFontService;
+pub use system_font_service_proxy::SystemFontServiceProxy;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
 
 /// Whether or not font fallback selection prefers the emoji or text representation

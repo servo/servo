@@ -36,7 +36,6 @@ use servo_arc::Arc as ServoArc;
 use servo_base::id::{PainterId, WebViewId};
 use servo_config::pref;
 use servo_url::ServoUrl;
-use skrifa::Font as SkrifaFont;
 use skrifa::font::Blob;
 use style::Atom;
 use style::computed_values::font_variant_caps::T as FontVariantCaps;
@@ -63,7 +62,8 @@ use crate::font_feature_values::{
     ResolvedFontVariantAlternates,
 };
 use crate::font_store::{CrossThreadFontStore, FontStore};
-use crate::{FontData, LowercaseFontFamilyName, SystemFontServiceProxy};
+use crate::system_font_service_proxy::SystemFontServiceProxy;
+use crate::{FontData, LowercaseFontFamilyName, SkrifaFont};
 
 static SMALL_CAPS_SCALE_FACTOR: f32 = 0.8; // Matches FireFox (see gfxFont.h)
 
@@ -78,23 +78,36 @@ pub(crate) struct FontParameters {
 
 pub type FontGroupRef = Arc<FontGroup>;
 
-/// A cache of [`SkrifaFont`] so that all fonts that share an identifier in a [`FontContext`]
-/// can share table data. This explicitly caches [`None`] when font creation fails to avoid
-/// trying to create a font over and over again in failure cases.
+/// A cache of [`SkrifaFont`] so that all fonts that share an identifier can share table data. This
+/// explicitly caches [`None`] when font creation fails to avoid trying to create a font over and
+/// over again in failure cases. Web fonts are cached per [`FontContext`] and system fonts are cached
+/// per `ScriptThread`.
 #[derive(Default, MallocSizeOf)]
-pub struct SkrifaFontCache(RwLock<HashMap<FontIdentifier, Option<SkrifaFont>>>);
+pub struct SkrifaFontCache {
+    #[conditional_malloc_size_of]
+    web_fonts: RwLock<HashMap<FontIdentifier, Option<Arc<SkrifaFont>>>>,
+    #[conditional_malloc_size_of]
+    system_font_service_proxy: Option<Arc<SystemFontServiceProxy>>,
+}
 
 impl SkrifaFontCache {
     pub fn get(
         &self,
         font_identifier: &FontIdentifier,
-        create_function: impl FnOnce() -> Option<SkrifaFont>,
-    ) -> Option<SkrifaFont> {
-        if let Some(font) = self.0.read().get(font_identifier) {
+        create_function: impl FnOnce() -> Option<Arc<SkrifaFont>>,
+    ) -> Option<Arc<SkrifaFont>> {
+        if let FontIdentifier::Local(..) = font_identifier {
+            return self
+                .system_font_service_proxy
+                .as_ref()?
+                .skrifa_font(font_identifier, create_function);
+        }
+
+        if let Some(font) = self.web_fonts.read().get(font_identifier) {
             return font.clone();
         }
 
-        let mut fonts = self.0.write();
+        let mut fonts = self.web_fonts.write();
         if let Some(font) = fonts.get(font_identifier) {
             return font.clone();
         }
@@ -231,7 +244,7 @@ impl FontContext {
         core_resource_thread: CoreResourceThread,
     ) -> Self {
         Self {
-            system_font_service_proxy,
+            system_font_service_proxy: system_font_service_proxy.clone(),
             resource_threads: Mutex::new(core_resource_thread),
             paint_api: Mutex::new(paint_api),
             fonts: Default::default(),
@@ -241,7 +254,10 @@ impl FontContext {
             webrender_font_instance_keys: RwLock::default(),
             have_removed_web_fonts: AtomicBool::new(false),
             font_data: RwLock::default(),
-            skrifa_font_cache: Default::default(),
+            skrifa_font_cache: SkrifaFontCache {
+                web_fonts: Default::default(),
+                system_font_service_proxy: Some(system_font_service_proxy),
+            },
             currently_downloading_fonts: Default::default(),
             known_font_face_rules: Default::default(),
             font_feature_value_map: Default::default(),
@@ -352,6 +368,17 @@ impl FontContext {
             return font;
         }
 
+        // Use a shared system font cache, but only when this `FontTemplate` doesn't have a font-face
+        // rule (isn't a `font-face: local()` font).
+        let is_shareable_system_font =
+            matches!(&*font_template.identifier(), FontIdentifier::Local(..)) &&
+                font_template.borrow().font_face_rule.is_none();
+        let system_font_cache = self.system_font_service_proxy.system_font_cache();
+        if is_shareable_system_font && let Some(font) = system_font_cache.lock().get(&cache_key) {
+            fonts.insert(cache_key, font.clone());
+            return font.clone();
+        }
+
         // TODO: Inserting `None` into the cache here is a bit bogus. Instead we should somehow
         // mark this template as invalid so it isn't tried again.
         let font = self
@@ -361,6 +388,17 @@ impl FontContext {
                 synthesized_small_caps_font,
             )
             .ok();
+
+        let font = if is_shareable_system_font {
+            system_font_cache
+                .lock()
+                .entry(cache_key.clone())
+                .or_insert_with(|| font.clone())
+                .clone()
+        } else {
+            font
+        };
+
         fonts.insert(cache_key, font.clone());
         font
     }
@@ -944,7 +982,7 @@ impl FontContext {
         let mut font_data = self.font_data.write();
         let _fonts = self.fonts.write();
         let _font_groups = self.resolved_font_groups.write();
-        let mut skrifa_font_cache = self.skrifa_font_cache.0.write();
+        let mut skrifa_web_font_cache = self.skrifa_font_cache.web_fonts.write();
         let mut webrender_font_keys = self.webrender_font_keys.write();
         let mut webrender_font_instance_keys = self.webrender_font_instance_keys.write();
 
@@ -957,7 +995,7 @@ impl FontContext {
         }
 
         font_data.retain(|font_identifier, _| !unused_identifiers.contains(font_identifier));
-        skrifa_font_cache
+        skrifa_web_font_cache
             .retain(|font_identifier, _| !unused_identifiers.contains(font_identifier));
 
         self.have_removed_web_fonts.store(false, Ordering::Relaxed);
@@ -1508,8 +1546,8 @@ impl RemoteWebFontDownloader {
     }
 }
 
-#[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
-struct FontCacheKey {
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+pub(crate) struct FontCacheKey {
     font_identifier: FontIdentifier,
     font_descriptor: FontDescriptor,
 }
