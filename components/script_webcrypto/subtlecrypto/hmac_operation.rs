@@ -25,10 +25,10 @@ use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
 pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result<Vec<u8>, Error> {
-    // Step 1. Let mac be the result of performing the MAC Generation operation described in
-    // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
-    // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
-    // and message as the input data text.
+    // Step 1. Let mac be the result of performing the HMAC function described in Section 2 of
+    // [NIST-SP800-224] using the key represented by the [[handle]] internal slot of key, the hash
+    // function identified by the hash attribute of the [[algorithm]] internal slot of key and
+    // message as the message M.
     // Step 2. Return mac.
     match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
@@ -72,12 +72,14 @@ pub(crate) fn verify<D: Equivalence>(
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
-    // Step 1. Let mac be the result of performing the MAC Generation operation described in
-    // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
-    // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
-    // and message as the input data text.
+    // Step 1. Let mac be the result of performing the HMAC function described in Section 2 of
+    // [NIST-SP800-224] using the key represented by the [[handle]] internal slot of key, the hash
+    // function identified by the hash attribute of the [[algorithm]] internal slot of key and
+    // message as the message M.
     // Step 2. Return true if mac is equal to signature and false otherwise. This comparison must
     // be performed in constant-time.
+    //
+    // NOTE:
     // [[verify_slice]] performs the comparison in constant time.
     match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
@@ -128,21 +130,17 @@ pub(crate) fn generate_key<D: Equivalence>(
     usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2.
+    // If the length member of normalizedAlgorithm is not present:
+    //     Let length be the block size in bits of the hash function identified by the hash member
+    //     of normalizedAlgorithm as specified by Table 2 of [NIST-SP800-224], or 512 for SHA-1.
+    // Otherwise, if the length member of normalizedAlgorithm is non-zero:
+    //     Let length be equal to the length member of normalizedAlgorithm.
+    // Otherwise:
+    //     throw an OperationError.
     let length = match normalized_algorithm.length {
-        // If the length member of normalizedAlgorithm is not present:
-        None => {
-            // Let length be the block size in bits of the hash function identified by the
-            // hash member of normalizedAlgorithm.
-            hash_function_block_size_in_bits(normalized_algorithm.hash.name())?
-        },
-        // Otherwise, if the length member of normalizedAlgorithm is non-zero:
-        Some(length) if length != 0 => {
-            // Let length be equal to the length member of normalizedAlgorithm.
-            length
-        },
-        // Otherwise:
+        None => hash_function_block_size_in_bits(normalized_algorithm.hash.name())?,
+        Some(length) if length != 0 => length,
         _ => {
-            // throw an OperationError.
             return Err(Error::Operation(Some(
                 "The length member of normalizedAlgorithm is zero".into(),
             )));
@@ -475,22 +473,20 @@ pub(crate) fn get_key_length(
     normalized_derived_key_algorithm: &HmacImportParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1.
+    // If the length member of normalizedAlgorithm is not present:
+    //     Let length be the block size in bits of the hash function identified by the hash member
+    //     of normalizedAlgorithm as specified by Table 2 of [NIST-SP800-224], or 512 for SHA-1.
+    // Otherwise, if the length member of normalizedAlgorithm is non-zero:
+    //     Let length be equal to the length member of normalizedAlgorithm.
+    // Otherwise:
+    //     throw an OperationError.
     let length = match normalized_derived_key_algorithm.length {
-        // If the length member of normalizedDerivedKeyAlgorithm is not present:
-        None => {
-            // Let length be the block size in bits of the hash function identified by the hash
-            // member of normalizedDerivedKeyAlgorithm.
-            hash_function_block_size_in_bits(normalized_derived_key_algorithm.hash.name())?
-        },
-        // Otherwise, if the length member of normalizedDerivedKeyAlgorithm is non-zero:
-        Some(length) if length != 0 => {
-            // Let length be equal to the length member of normalizedDerivedKeyAlgorithm.
-            length
-        },
-        // Otherwise:
+        None => hash_function_block_size_in_bits(normalized_derived_key_algorithm.hash.name())?,
+        Some(length) if length != 0 => length,
         _ => {
-            // throw a TypeError.
-            return Err(Error::Type(c"[[length]] must not be zero".to_owned()));
+            return Err(Error::Operation(Some(
+                "The length member of normalizedAlgorithm is zero".into(),
+            )));
         },
     };
 
@@ -498,16 +494,15 @@ pub(crate) fn get_key_length(
     Ok(Some(length))
 }
 
-/// Return the block size in bits of a hash function, according to Figure 1 of
-/// <https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf>.
+/// Return the block size in bits of the hash function as specified by Table 2 of [NIST-SP800-224],
+/// or 512 for SHA-1.
+/// <https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-224.ipd.pdf>
 fn hash_function_block_size_in_bits(hash: CryptoAlgorithm) -> Result<u32, Error> {
     match hash {
         CryptoAlgorithm::Sha1 => Ok(512),
         CryptoAlgorithm::Sha256 => Ok(512),
         CryptoAlgorithm::Sha384 => Ok(1024),
         CryptoAlgorithm::Sha512 => Ok(1024),
-        _ => Err(Error::NotSupported(Some(
-            "Unidentified hash member".to_string(),
-        ))),
+        _ => Err(Error::NotSupported(Some("Unidentified hash member".into()))),
     }
 }
