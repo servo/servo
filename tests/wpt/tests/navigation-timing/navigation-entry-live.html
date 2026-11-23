@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation timing entry reflects timing updates</title>
+<link rel="author" title="Shubham Gupta" href="mailto:shubhamg13.work@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const early_entry = performance.getEntriesByType("navigation")[0];
+
+  promise_test(async () => {
+    await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+
+    const current_entry = performance.getEntriesByType("navigation")[0];
+    assert_equals(current_entry, early_entry,
+                  "the navigation timing entry keeps its identity");
+    assert_greater_than(early_entry.responseEnd, 0,
+                        "timing received after creation is visible on the original entry");
+  }, "navigation timing entry is updated in place");
+</script>

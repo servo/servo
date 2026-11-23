@@ -4,10 +4,9 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use script_bindings::reflector::reflect_dom_object;
 
-use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
+use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming, TimingSourceRef};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::{
     NavigationTimingType, PerformanceNavigationTimingMethods,
@@ -34,10 +33,7 @@ impl PerformanceNavigationTiming {
             performanceresourcetiming: PerformanceResourceTiming::new_inherited(
                 document.url(),
                 InitiatorType::Navigation,
-                document
-                    .resource_fetch_timing()
-                    .as_ref()
-                    .unwrap_or(&ResourceFetchTiming::new(ResourceTimingType::None)),
+                TimingSourceRef::Document(document),
             ),
             document: Dom::from_ref(document),
             nav_type: NavigationTimingType::Navigate,

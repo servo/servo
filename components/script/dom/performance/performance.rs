@@ -350,10 +350,10 @@ impl Performance {
     }
 
     /// Add the current document's navigation timing entry to the performance
-    /// entry buffer without notifying observers, and return its buffer index.
+    /// entry buffer without notifying observers.
     ///
     /// <https://w3c.github.io/navigation-timing/#dfn-create-the-navigation-timing-entry>
-    pub(crate) fn add_navigation_entry(&self, entry: &PerformanceEntry) -> usize {
+    pub(crate) fn add_navigation_entry(&self, entry: &PerformanceEntry) {
         debug_assert!(entry.entry_type() == EntryType::Navigation);
 
         let index = {
@@ -364,18 +364,6 @@ impl Performance {
 
         self.navigation_entry_index.set(Some(index));
         self.navigation_entry_queued.set(false);
-        index
-    }
-
-    /// Replace the navigation timing entry at `index` in the performance entry
-    /// buffer with an updated one. This does not notify observers.
-    pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
-        debug_assert!(entry.entry_type() == EntryType::Navigation);
-
-        if let Some(entry_at_index) = self.buffer.borrow_mut().entries.get_mut(index) {
-            debug_assert!(entry_at_index.entry_type() == EntryType::Navigation);
-            *entry_at_index = Dom::from_ref(entry);
-        }
     }
 
     /// Queue the document's navigation timing entry for observers.
