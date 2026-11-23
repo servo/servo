@@ -510,4 +510,24 @@ pub(crate) trait PlatformWindow {
     }
 
     fn notify_accessibility_tree_update(&self, _: WebView, _: accesskit::TreeUpdate) {}
+
+    fn lock_pointer(&self, _unadjusted_movement: bool) -> bool {
+        true
+    }
+
+    fn unlock_pointer(&self) -> bool {
+        true
+    }
+
+    fn get_pointerlock(&self) -> bool {
+        false
+    }
+
+    fn set_pointerlock(&self, _state: bool) {}
+
+    fn get_use_device_motion(&self) -> bool {
+        false
+    }
+
+    fn set_use_device_motion(&self, _value: bool) {}
 }

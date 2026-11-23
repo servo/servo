@@ -264,6 +264,33 @@ impl ApplicationHandler<AppEvent> for App {
         }
         self.state = AppState::ShuttingDown;
     }
+
+    fn device_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _device_id: winit::event::DeviceId,
+        event: winit::event::DeviceEvent,
+    ) {
+        let AppState::Running(state) = &self.state else {
+            return;
+        };
+        let Some(focused_window) = state.focused_window() else {
+            return;
+        };
+        let id = focused_window.id();
+        if let Some(window) = state.window(id) &&
+            let Some(headed_window) = window.platform_window().as_headed_window()
+        {
+            headed_window.handle_winit_device_event(state.clone(), event);
+        }
+
+        if !self.pump_servo_event_loop(event_loop.into()) {
+            event_loop.exit();
+        }
+
+        // Block until the window gets an event
+        event_loop.set_control_flow(ControlFlow::Wait);
+    }
 }
 
 fn load_userscripts(userscripts_directory: Option<&Path>) -> std::io::Result<Vec<UserScript>> {

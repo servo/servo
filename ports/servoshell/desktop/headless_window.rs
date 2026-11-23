@@ -32,6 +32,7 @@ pub struct HeadlessWindow {
     // virtual top-left position of the window in device pixels.
     window_position: Cell<Point2D<i32, DevicePixel>>,
     rendering_context: Rc<SoftwareRenderingContext>,
+    pointerlock: Cell<bool>,
 }
 
 impl HeadlessWindow {
@@ -66,6 +67,7 @@ impl HeadlessWindow {
             screen_size,
             window_position: Cell::new(Point2D::zero()),
             rendering_context: Rc::new(rendering_context),
+            pointerlock: Cell::new(false),
         };
 
         Rc::new(window)
@@ -176,5 +178,24 @@ impl PlatformWindow for HeadlessWindow {
     fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {
         println!("{message}");
         log::log!(level.into(), "{message}");
+    }
+
+    fn get_pointerlock(&self) -> bool {
+        self.pointerlock.get()
+    }
+
+    fn set_pointerlock(&self, state: bool) {
+        self.pointerlock.set(state);
+    }
+
+    fn lock_pointer(&self, _unadjusted_movement: bool) -> bool {
+        // Treat headless pointer lock requests as no-op successes
+        self.set_pointerlock(true);
+        true
+    }
+
+    fn unlock_pointer(&self) -> bool {
+        self.set_pointerlock(false);
+        true
     }
 }
