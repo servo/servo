@@ -4857,7 +4857,7 @@ impl ScriptThread {
                     // > 6.3.1.1.1 Fire an event named pointerlockerror at this's node document.
                     trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
                     // > 6.3.1.1.2 Reject promise with a "NotSupportedError" DOMException.
-                    trusted_promise.root(cx).reject_error(cx, Error::NotSupported(None));
+                    trusted_promise.root(cx).reject_error(cx, Error::NotSupported(Some("Failed to acquire pointer lock from embedder".to_string())));
                 }));
         // > 6.3.2 If the lock request succeed:
         // > 6.3.2.1 Enter pointer lock state by performing the following:
