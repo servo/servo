@@ -19,10 +19,11 @@ use dwrote::{
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontData, LocalFontIdentifier, SkrifaFont};
 use log::debug;
+use read_fonts::collections::int_set::Domain;
 use skrifa::Tag;
-use skrifa::font::{Blob, TableFunction};
+use skrifa::font::{Blob, TableFunction, Variation};
 use style::Zero;
-use webrender_api::{FontInstanceFlags, FontVariation};
+use webrender_api::FontInstanceFlags;
 use winapi::shared::minwindef::{BOOL, FALSE};
 
 use crate::font::{FontTableMethods, FractionalPixel};
@@ -58,7 +59,6 @@ pub struct PlatformFont {
     em_size: f32,
     du_to_px: f32,
     scaled_du_to_px: f32,
-    variations: Vec<FontVariation>,
 }
 
 // Based on information from the Skia codebase, it seems that DirectWrite APIs from
@@ -84,11 +84,7 @@ impl<T> Deref for Nondebug<T> {
 }
 
 impl PlatformFont {
-    fn new(
-        font_face: FontFace,
-        pt_size: Option<Au>,
-        variations: Vec<FontVariation>,
-    ) -> Result<Self, &'static str> {
+    fn new(font_face: FontFace, pt_size: Option<Au>) -> Result<Self, &'static str> {
         let pt_size = pt_size.unwrap_or(au_from_pt(12.));
         let du_per_em = font_face.metrics().metrics0().designUnitsPerEm as f32;
 
@@ -103,26 +99,21 @@ impl PlatformFont {
             em_size,
             du_to_px: design_units_to_pixels,
             scaled_du_to_px: scaled_design_units_to_pixels,
-            variations,
         })
     }
 
     fn new_with_variations(
         font_face: FontFace,
         pt_size: Option<Au>,
-        variations: &[FontVariation],
+        variations: &[Variation],
     ) -> Result<Self, &'static str> {
-        // On FreeType and CoreText platforms, the platform layer is able to read the minimum, maximum,
-        // and default values of each axis. This doesn't seem possible here and it seems that Gecko
-        // also just sets the value of the axis based on the values from the style as well.
-        //
-        // dwrote (and presumably the Windows APIs) accept a reversed version of the table
-        // tag bytes, which means that `u32::swap_bytes` must be called here in order to
-        // use a byte order compatible with the rest of Servo.
         let variations: Vec<_> = variations
             .into_iter()
             .map(|variation| DWRITE_FONT_AXIS_VALUE {
-                axisTag: variation.tag.swap_bytes(),
+                // dwrote (and presumably the Windows APIs) accept a reversed version of the table
+                // tag bytes, which means that `u32::swap_bytes` must be called here in order to use
+                // a byte order compatible with the rest of Servo.
+                axisTag: variation.tag.to_u32().swap_bytes(),
                 value: variation.value,
             })
             .collect();
@@ -133,16 +124,7 @@ impl PlatformFont {
             return Err("Could not adapt FontFace to given variations");
         };
 
-        let variations = font_face.variations().unwrap_or_default();
-        let variations = variations
-            .iter()
-            .map(|dwrote_variation| FontVariation {
-                tag: dwrote_variation.axisTag.swap_bytes(),
-                value: dwrote_variation.value,
-            })
-            .collect();
-
-        Self::new(font_face, pt_size, variations)
+        Self::new(font_face, pt_size)
     }
 
     fn uses_synthetic_bold(&self) -> bool {
@@ -163,7 +145,7 @@ impl PlatformFontMethods for PlatformFont {
             .ok_or("Could not create FontFile")?
             .create_face(0 /* face_index */, DWRITE_FONT_SIMULATIONS_NONE)
             .map_err(|_| "Could not create FontFace")?;
-        Self::new(font_face, pt_size, vec![])
+        Self::new(font_face, pt_size)
     }
 
     fn new_from_local_font_identifier(
@@ -187,10 +169,10 @@ impl PlatformFontMethods for PlatformFont {
             font_face = font_face.create_font_face_with_simulations(DWRITE_FONT_SIMULATIONS_NONE);
         }
 
-        Self::new(font_face, pt_size, vec![])
+        Self::new(font_face, pt_size)
     }
 
-    fn copy_with_variations(self, variations: &[FontVariation]) -> Result<Self, &'static str> {
+    fn copy_with_variations(self, variations: &[Variation]) -> Result<Self, &'static str> {
         Self::new_with_variations(
             self.face.0.clone(),
             Some(Au::from_f32_px(self.em_size * 16.)),
@@ -203,7 +185,7 @@ impl PlatformFontMethods for PlatformFont {
             .face
             .0
             .create_font_face_with_simulations(DWRITE_FONT_SIMULATIONS_BOLD);
-        Self::new(font_face, Some(Au::from_f32_px(self.em_size * 16.)), vec![])
+        Self::new(font_face, Some(Au::from_f32_px(self.em_size * 16.)))
     }
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId> {
@@ -331,10 +313,6 @@ impl PlatformFontMethods for PlatformFont {
             Point2D::new(left_side_bearing, y_offset),
             Size2D::new(width, height),
         )
-    }
-
-    fn variations(&self) -> &[FontVariation] {
-        &self.variations
     }
 
     fn create_skrifa_font(&self) -> Option<Arc<SkrifaFont>> {

@@ -21,16 +21,15 @@ use objc2_core_graphics::CGGlyph;
 use objc2_core_text::{
     CTFont, CTFontDescriptor, CTFontManagerCreateFontDescriptorFromData, CTFontOrientation,
     CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag, kCTFontSlantTrait,
-    kCTFontSymbolicTrait, kCTFontURLAttribute, kCTFontVariationAttribute,
-    kCTFontVariationAxisDefaultValueKey, kCTFontVariationAxisIdentifierKey,
-    kCTFontVariationAxisMaximumValueKey, kCTFontVariationAxisMinimumValueKey, kCTFontWeightTrait,
+    kCTFontSymbolicTrait, kCTFontURLAttribute, kCTFontVariationAttribute, kCTFontWeightTrait,
     kCTFontWidthTrait,
 };
+use read_fonts::collections::int_set::Domain;
 use skrifa::Tag;
-use skrifa::font::{Blob, TableFunction};
+use skrifa::font::{Blob, TableFunction, Variation};
 use style::font_face::{FontStyle, FontWidth};
 use style::values::computed::FontWeight;
-use webrender_api::{FontInstanceFlags, FontVariation};
+use webrender_api::FontInstanceFlags;
 
 use crate::font::{FontTableMethods, FractionalPixel, map_platform_values_to_style_values};
 use crate::platform::font_list::font_template_for_local_font_descriptor;
@@ -58,7 +57,6 @@ impl FontTableMethods for FontTable {
 #[derive(Clone, Debug)]
 pub struct PlatformFont {
     pub(crate) ctfont: CFRetained<CTFont>,
-    variations: Vec<FontVariation>,
     pub(crate) synthetic_bold: bool,
 }
 
@@ -75,16 +73,8 @@ unsafe impl Send for PlatformFont {}
 
 impl PlatformFont {
     pub(crate) fn new_with_ctfont(ctfont: CFRetained<CTFont>) -> Self {
-        Self::new_with_ctfont_and_variations(ctfont, vec![])
-    }
-
-    pub(crate) fn new_with_ctfont_and_variations(
-        ctfont: CFRetained<CTFont>,
-        variations: Vec<FontVariation>,
-    ) -> PlatformFont {
         Self {
             ctfont,
-            variations,
             synthetic_bold: false,
         }
     }
@@ -137,29 +127,6 @@ impl PlatformFont {
         Ok(PlatformFont::new_with_ctfont(ctfont))
     }
 
-    fn variation_axis_information(&self) -> Option<Vec<VariationAxisInformation>> {
-        let variation_axes = unsafe { self.ctfont.variation_axes()? };
-        let traits = unsafe { variation_axes.cast_unchecked::<CFDictionary<CFString, CFNumber>>() };
-
-        Some(
-            traits
-                .iter()
-                .filter_map(|axes| {
-                    let tag = unsafe { axes.get(kCTFontVariationAxisIdentifierKey) }?;
-                    let max_value = unsafe { axes.get(kCTFontVariationAxisMaximumValueKey) }?;
-                    let min_value = unsafe { axes.get(kCTFontVariationAxisMinimumValueKey) }?;
-                    let default_value = unsafe { axes.get(kCTFontVariationAxisDefaultValueKey) }?;
-                    Some(VariationAxisInformation {
-                        tag: tag.as_i64()?,
-                        max_value: max_value.as_f64()?,
-                        min_value: min_value.as_f64()?,
-                        default_value: default_value.as_f64()?,
-                    })
-                })
-                .collect(),
-        )
-    }
-
     // This is adapted from WebRender glyph rasterizer for macos.
     // <https://github.com/servo/webrender/blob/main/wr_glyph_rasterizer/src/rasterizer.rs#L1006>
     fn get_extra_strikes(&self, strike_scale: f64) -> usize {
@@ -173,14 +140,6 @@ impl PlatformFont {
             0
         }
     }
-}
-
-#[derive(Clone, Default, Debug)]
-struct VariationAxisInformation {
-    tag: i64,
-    max_value: f64,
-    min_value: f64,
-    default_value: f64,
 }
 
 impl PlatformFontMethods for PlatformFont {
@@ -201,51 +160,13 @@ impl PlatformFontMethods for PlatformFont {
 
     fn copy_with_variations(
         self,
-        specified_variations: &[FontVariation],
+        specified_variations: &[Variation],
     ) -> Result<Self, &'static str> {
-        if specified_variations.is_empty() {
-            return Ok(self);
-        }
-
-        let pt_size = unsafe { self.ctfont.size() };
-        let Some(variations) = self.variation_axis_information() else {
-            return Ok(self);
-        };
-
-        let mut modified_variations = false;
-        let variations: Vec<_> = variations
+        let variation_keys: Vec<_> = specified_variations
             .iter()
-            .map(|variation| {
-                let value = specified_variations
-                    .iter()
-                    .find_map(|specified_variation| {
-                        if variation.tag == specified_variation.tag as i64 {
-                            Some(specified_variation.value as f64)
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or(variation.default_value)
-                    .clamp(variation.min_value, variation.max_value);
-                if value != variation.default_value {
-                    modified_variations = true;
-                }
-                FontVariation {
-                    tag: variation.tag as u32,
-                    value: value as f32,
-                }
-            })
+            .map(|variation| CFNumber::new_i64(variation.tag.to_u32() as i64))
             .collect();
-
-        if !modified_variations {
-            return Ok(self);
-        }
-
-        let variation_keys: Vec<_> = variations
-            .iter()
-            .map(|variation| CFNumber::new_i64(variation.tag as i64))
-            .collect();
-        let variation_values: Vec<_> = variations
+        let variation_values: Vec<_> = specified_variations
             .iter()
             .map(|variation| CFNumber::new_f32(variation.value))
             .collect();
@@ -270,10 +191,11 @@ impl PlatformFontMethods for PlatformFont {
                 .copy_with_attributes(attributes.as_opaque())
         };
 
+        let pt_size = unsafe { self.ctfont.size() };
         let ctfont = unsafe {
             CTFont::with_font_descriptor(&descriptor_with_variations, pt_size, std::ptr::null())
         };
-        Ok(Self::new_with_ctfont_and_variations(ctfont, variations))
+        Ok(Self::new_with_ctfont(ctfont))
     }
 
     fn copy_with_synthetic_bold(mut self) -> Result<Self, &'static str> {
@@ -445,10 +367,6 @@ impl PlatformFontMethods for PlatformFont {
             Point2D::new(rect.origin.x as f32, rect.origin.y as f32),
             Size2D::new(rect.size.width as f32, rect.size.height as f32),
         )
-    }
-
-    fn variations(&self) -> &[FontVariation] {
-        &self.variations
     }
 
     fn create_skrifa_font(&self) -> Option<Arc<SkrifaFont>> {

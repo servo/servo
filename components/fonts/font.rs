@@ -108,7 +108,7 @@ pub trait PlatformFontMethods: Sized {
     /// `self` is consumed to work around platform differences. On some platforms, changing the
     /// variations requires creating an entirely new font face, whereas on others the returned
     /// font is `self`.
-    fn copy_with_variations(self, variations: &[FontVariation]) -> Result<Self, &'static str>;
+    fn copy_with_variations(self, variations: &[Variation]) -> Result<Self, &'static str>;
 
     /// Create a platform font with synthetic bold from an existing font.
     ///
@@ -131,9 +131,6 @@ pub trait PlatformFontMethods: Sized {
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
         Default::default()
     }
-
-    /// Return all the variation values that the font was instantiated with.
-    fn variations(&self) -> &[FontVariation];
 }
 
 // Used to abstract over the shaper's choice of fixed int representation.
@@ -220,6 +217,9 @@ pub struct Font {
     /// keeps the original font alive in the shared cache.
     _original_skrifa_font: Option<Arc<SkrifaFont>>,
 
+    /// The set of [`Variation`]s applied to this [`Font`].
+    variations: Vec<Variation>,
+
     shaper: OnceLock<Shaper>,
     cached_shape_data: RwLock<CachedShapeData>,
     font_instance_key: RwLock<FxHashMap<PainterId, FontInstanceKey>>,
@@ -301,20 +301,20 @@ impl Font {
         // count as font synthesis and their use is not affected by the font-synthesis
         // property. See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>.
         let mut original_skrifa_font = None;
+        let mut variations = Vec::new();
         if variation_axes.contains(VariationAxes::IS_VARIABLE) {
-            let used_variations = compute_variations(&descriptor, &template, variation_axes);
-            handle = handle.copy_with_variations(&used_variations)?;
-            original_skrifa_font = Some(skrifa_font.clone());
-            skrifa_font = Arc::new(
-                skrifa_font
-                    .instance_builder()
-                    .variations(used_variations.iter().map(|variation| Variation {
-                        tag: Tag::from_u32(variation.tag),
-                        value: variation.value,
-                    }))
-                    .build()
-                    .into(),
-            );
+            variations = compute_variations(&descriptor, &template, variation_axes, &skrifa_font);
+            if !variations.is_empty() {
+                handle = handle.copy_with_variations(&variations)?;
+                original_skrifa_font = Some(skrifa_font.clone());
+                skrifa_font = Arc::new(
+                    skrifa_font
+                        .instance_builder()
+                        .variations(variations.clone())
+                        .build()
+                        .into(),
+                );
+            }
         } else {
             let template_descriptor = template.descriptor();
             let apply_synthetic_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD &&
@@ -332,6 +332,7 @@ impl Font {
             metrics: OnceLock::new(),
             descriptor,
             data_and_index,
+            variations,
             skrifa_font,
             _original_skrifa_font: original_skrifa_font,
             shaper: OnceLock::new(),
@@ -399,8 +400,19 @@ impl Font {
         Ok(data_and_index)
     }
 
-    pub(crate) fn variations(&self) -> &[FontVariation] {
-        self.handle.variations()
+    pub(crate) fn webrender_variations(&self) -> Vec<FontVariation> {
+        self.variations
+            .iter()
+            .map(|variation| FontVariation {
+                tag: variation.tag.to_u32(),
+                value: variation.value,
+            })
+            .collect()
+    }
+
+    #[cfg(feature = "harfbuzz")]
+    pub(crate) fn variations(&self) -> &[Variation] {
+        &self.variations
     }
 }
 
@@ -1090,46 +1102,59 @@ fn compute_variations(
     descriptor: &FontDescriptor,
     template: &FontTemplateRef,
     variation_axes: VariationAxes,
-) -> Vec<FontVariation> {
+    skrifa_font: &SkrifaFont,
+) -> Vec<Variation> {
     let font_face_rule = template.font_face_rule();
 
-    // The steps in this algorithm are inverted order because they are listed in ascending order of precedence.
-    let mut variations: Vec<FontVariation> = vec![];
+    // The steps in this algorithm are inverted order because they are listed in ascending order of
+    // precedence.
+    let mut variations: Vec<Variation> = vec![];
 
-    let mut add_variation = |variation: FontVariation| {
-        if !variations
+    let axes = skrifa_font.axes();
+    let mut add_variation = |mut variation: Variation| {
+        if variations
             .iter()
             .any(|existing_variation| existing_variation.tag == variation.tag)
         {
-            variations.push(variation);
+            return;
         }
+
+        let Some(axis) = axes.get_by_tag(variation.tag) else {
+            return;
+        };
+
+        variation.value = variation.value.min(axis.max_value()).max(axis.min_value());
+        variations.push(variation);
     };
 
     // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
     // These values should be clamped to the values that are supported by the font.
-    // NOTE: Clamping happens inside the PlatformFont.
-    descriptor
-        .variation_settings
-        .iter()
-        .copied()
-        .for_each(&mut add_variation);
+    //
+    // Note: Clamping happens inside `add_variation`.
+    for variation in descriptor.variation_settings.iter() {
+        add_variation(Variation {
+            tag: Tag::from_u32(variation.tag),
+            value: variation.value,
+        })
+    }
 
     // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
-    // NOTE The precise behaviour of font-optical-sizing:auto is not defined.
-    // We choose to set "opsz" to the font size if it's not already set elsewhere. This is the easiest
-    // at the end of this function, so we move this step down.
+    //
+    // Note: The precise behaviour of font-optical-sizing:auto is not defined. We choose to set
+    // "opsz" to the font size if it's not already set elsewhere. This is the easiest to do at the
+    // end of this function, so we move this step down.
 
     if let Some(font_face_rule) = &font_face_rule {
-        // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
-        // descriptor in the @font-face rule are applied.
+        // Step 6. If the font is defined via an @font-face rule, the font variations implied by the
+        // font-variation-settings descriptor in the @font-face rule are applied.
         if let Some(variation_settings) =
             font_face_rule.descriptors.font_variation_settings.as_ref()
         {
             variation_settings
                 .0
                 .iter()
-                .map(|variation| FontVariation {
-                    tag: variation.tag.0,
+                .map(|variation| Variation {
+                    tag: Tag::from_u32(variation.tag.0),
                     value: variation.value.get().expect(
                         "The value is enforced to be resolvable at parse time \
                         (see FontVariationSettings::parse_for_font_face_rule).",
@@ -1141,21 +1166,24 @@ fn compute_variations(
 
     // Step 2. Font variations as enabled by the font-weight, font-width, and font-style properties are applied.
     //
-    // The application of the value enabled by font-style is affected by font selection, because this property might
-    // select an italic or an oblique font. The value applied is the closest matching value as determined by the font
-    // matching algorithm. User agents must apply at most one value due to the font-style property; both "ital" and
-    // "slnt" values must not be set together.
+    // The application of the value enabled by font-style is affected by font selection, because
+    // this property might select an italic or an oblique font. The value applied is the closest
+    // matching value as determined by the font matching algorithm. User agents must apply at most
+    // one value due to the font-style property; both "ital" and "slnt" values must not be set
+    // together.
     //
-    // If the selected font is defined in an @font-face rule, then the values applied at this step should be clamped
-    // to the value of the font-weight, font-width, and font-style descriptors in that @font-face rule.
+    // If the selected font is defined in an @font-face rule, then the values applied at this step
+    // should be clamped to the value of the font-weight, font-width, and font-style descriptors in
+    // that @font-face rule.
+    //
     // TODO: Clamp weight/width to the descriptors from the @font-face rule, if any
-    add_variation(FontVariation {
-        tag: WGHT.to_u32(),
+    add_variation(Variation {
+        tag: WGHT,
         value: descriptor.weight.value(),
     });
 
-    add_variation(FontVariation {
-        tag: WDTH.to_u32(),
+    add_variation(Variation {
+        tag: WDTH,
         value: descriptor.width.0.to_float(),
     });
 
@@ -1195,21 +1223,21 @@ fn compute_variations(
             clamped_font_style == FontStyle::ITALIC) ||
             !variation_axes.contains(VariationAxes::SLNT);
         if use_ital_axis {
-            add_variation(FontVariation {
-                tag: ITAL.to_u32(),
+            add_variation(Variation {
+                tag: ITAL,
                 value: (clamped_font_style != FontStyle::NORMAL) as u32 as f32,
             });
         } else {
             // Note: CSS and OpenType measure slnt in opposite directions, so we need to negate the
             // angles.
             if clamped_font_style == FontStyle::ITALIC {
-                add_variation(FontVariation {
-                    tag: SLNT.to_u32(),
+                add_variation(Variation {
+                    tag: SLNT,
                     value: (-FontStyle::DEFAULT_OBLIQUE_DEGREES) as f32,
                 });
             } else {
-                add_variation(FontVariation {
-                    tag: SLNT.to_u32(),
+                add_variation(Variation {
+                    tag: SLNT,
                     value: -clamped_font_style.oblique_degrees(),
                 });
             }
@@ -1218,12 +1246,18 @@ fn compute_variations(
 
     // This is the implementation for Step 9. Refer to the note on Step 9 for an explanation of why it's here.
     if descriptor.optical_sizing == FontOpticalSizing::Auto {
-        add_variation(FontVariation {
-            tag: Tag::new(b"opsz").to_u32(),
+        add_variation(Variation {
+            tag: Tag::new(b"opsz"),
             value: descriptor.pt_size.to_f32_px(),
         });
     }
 
+    variations.retain(|variation| {
+        let Some(axis) = axes.get_by_tag(variation.tag) else {
+            return false;
+        };
+        variation.value != axis.default_value()
+    });
     variations
 }
 
