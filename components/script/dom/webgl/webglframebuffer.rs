@@ -495,8 +495,7 @@ impl WebGLFramebuffer {
             constants::RGBA,
             constants::RGBA4,
         ][..];
-        // The color-renderable formats of OpenGL ES 3.0.6 table 3.13, plus those of
-        // EXT_color_buffer_float.
+        // The color-renderable formats of OpenGL ES 3.0.6 table 3.13.
         let webgl2_color_constraints = &[
             constants::R8,
             constants::R8I,
@@ -523,23 +522,22 @@ impl WebGLFramebuffer {
             constants::RGBA16UI,
             constants::RGBA32I,
             constants::RGBA32UI,
-            // TODO: gate these behind EXT_color_buffer_float once Servo exposes it.
-            constants::R16F,
-            constants::RG16F,
-            constants::RGBA16F,
-            constants::R32F,
-            constants::RG32F,
-            constants::RGBA32F,
-            constants::R11F_G11F_B10F,
         ][..];
         let empty_color_constrains = &[][..];
         let extra_color_constraints = match self.webgl_version {
             WebGLVersion::WebGL1 => empty_color_constrains,
             WebGLVersion::WebGL2 => webgl2_color_constraints,
         };
+        let float_color_constraints = self
+            .upcast()
+            .context()
+            .map_or(empty_color_constrains, |context| {
+                context.extension_manager().color_buffer_float_formats()
+            });
         let color_constraints = webgl1_color_constraints
             .iter()
-            .chain(extra_color_constraints.iter());
+            .chain(extra_color_constraints.iter())
+            .chain(float_color_constraints.iter());
 
         let has_c = self.colors.iter().any(|att| att.borrow().is_some());
         for attachment in self.colors.iter() {
