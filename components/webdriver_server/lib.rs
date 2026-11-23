@@ -1260,6 +1260,7 @@ impl Handler {
         self.send_message_to_embedder(WebDriverCommandMsg::NewWindow(type_hint, sender))?;
 
         if let Ok(webview_id) = receiver.recv() {
+            // The embedder creates the `WebView` before its top-level browsing context.
             self.wait_until_browsing_context_is_open(BrowsingContextId::from(webview_id))?;
             let handle = self
                 .get_window_handle(webview_id)
@@ -1367,6 +1368,10 @@ impl Handler {
                 "No such window while switching to window",
             ));
         };
+
+        // The embedder creates the `WebView` before its top-level browsing context.
+        // Even if the `webview_id` exists, browsing context may not activate yet.
+        self.wait_until_browsing_context_is_open(BrowsingContextId::from(webview_id))?;
 
         let session = self.session_mut()?;
         session.set_webview_id(webview_id);
