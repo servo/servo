@@ -20,6 +20,7 @@ use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::refcounted::Trusted;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
@@ -30,6 +31,7 @@ use style::animation::{
 };
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
+use stylo_atoms::Atom;
 use timers::TimerId;
 
 use crate::dom::NodeFlags;
@@ -609,7 +611,7 @@ impl AnimationManager {
                 event_type,
                 node: key.node,
                 pseudo_element: key.pseudo_element,
-                property_or_animation_name: animation.name.to_string(),
+                property_or_animation_name: animation.name.clone(),
                 elapsed_time,
             });
     }
@@ -671,7 +673,7 @@ impl AnimationManager {
             };
 
             let property_or_animation_name =
-                DOMString::from(event.property_or_animation_name.clone());
+                TracedDOMString::from(event.property_or_animation_name).root();
             let pseudo_element = event
                 .pseudo_element
                 .map_or_else(DOMString::new, |pseudo_element| {
@@ -769,7 +771,8 @@ pub(crate) struct TransitionOrAnimationEvent {
     pub(crate) pseudo_element: Option<PseudoElement>,
     /// The name of the property that is transitioning (in the case of a transition)
     /// or the name of the animation (in the case of an animation).
-    pub(crate) property_or_animation_name: String,
+    #[no_trace]
+    pub(crate) property_or_animation_name: Atom,
     /// The elapsed time property to send with this transition event.
     pub(crate) elapsed_time: f64,
 }
