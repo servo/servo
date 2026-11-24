@@ -476,7 +476,7 @@ impl Preferences {
             dom_geolocation_test_speed: 0.0,
             dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
-            dom_intersection_observer_enabled: false,
+            dom_intersection_observer_enabled: true,
             dom_microdata_testing_enabled: false,
             dom_navigator_protocol_handlers_enabled: false,
             dom_notification_enabled: false,

@@ -723,6 +723,12 @@ impl IntersectionObserver {
         root_bounds: Option<Rect<Au, CSSPixel>>,
     ) {
         for target in &*self.observation_targets.borrow() {
+            // For an implicit-root observer, observations are driven by the target's document;
+            // skip targets whose document is not fully active (e.g. detached documents).
+            if self.root.is_none() && !target.owner_document().is_fully_active() {
+                continue;
+            }
+
             // Step 1
             // > Let registration be the IntersectionObserverRegistration record in target’s internal
             // > [[RegisteredIntersectionObservers]] slot whose observer property is equal to observer.
@@ -733,7 +739,7 @@ impl IntersectionObserver {
             if time - registration.last_update_time.get() <
                 Duration::from_millis(self.delay.get().max(0) as u64)
             {
-                return;
+                continue;
             }
 
             // Step 3
@@ -957,12 +963,22 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-rootmargin> &&
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-scrollmargin>
     // > ... defaulting to "0px".
-    let value = match value {
-        Some(str) => &str.str(),
-        _ => "0px",
+    let raw = match value {
+        Some(str) => str.str(),
+        _ => return parse_margin_str("0px"),
     };
 
-    // Create necessary style ParserContext and utilize stylo's IntersectionObserverMargin
+    // Fast path: try stylo's parser directly (handles `px` and `%`).
+    if let Ok(margin) = parse_margin_str(&raw) {
+        return Ok(margin);
+    }
+
+    // Spec also permits CSS absolute length units (cm, mm, q, in, pt, pc), which normalize to px.
+    let normalized = normalize_absolute_margin_units(&raw)?;
+    parse_margin_str(&normalized)
+}
+
+fn parse_margin_str(value: &str) -> Result<IntersectionObserverMargin, ()> {
     let mut parser = Parser::new(value);
 
     let context = parser_context_for_anonymous_content(
@@ -974,6 +990,41 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     parser
         .parse_entirely(|p| IntersectionObserverMargin::parse(&context, p))
         .map_err(|_| ())
+}
+
+fn normalize_absolute_margin_units(value: &str) -> Result<String, ()> {
+    let mut parser = Parser::new(value);
+    let mut parts = Vec::new();
+    while !parser.is_exhausted() {
+        let token = parser.next().map_err(|_| ())?;
+        match token {
+            cssparser::Token::Dimension { value, unit, .. } => {
+                let factor = match unit.to_ascii_lowercase().as_str() {
+                    "px" => {
+                        parts.push(format!("{}px", value));
+                        continue;
+                    },
+                    "in" => 96.0_f64,
+                    "cm" => 96.0_f64 / 2.54_f64,
+                    "mm" => 96.0_f64 / 25.4_f64,
+                    "q" => 96.0_f64 / 101.6_f64,
+                    "pt" => 96.0_f64 / 72.0_f64,
+                    "pc" => 96.0_f64 / 6.0_f64,
+                    _ => return Err(()),
+                };
+                let px = (*value as f64 * factor).trunc() as i64;
+                parts.push(format!("{}px", px));
+            },
+            cssparser::Token::Percentage { unit_value, .. } => {
+                parts.push(format!("{}%", unit_value * 100.0));
+            },
+            _ => return Err(()),
+        }
+    }
+    if parts.is_empty() {
+        return Err(());
+    }
+    Ok(parts.join(" "))
 }
 
 /// In terms of intersection observer, we consider zero-area rectangles as long as the area is not negative.
@@ -1030,6 +1081,11 @@ fn compute_the_intersection(
                     let viewport_rect = f32_rect_to_au_rect(Rect::from_size(
                         containing_document.window().viewport_details().size,
                     ));
+                    let viewport_margin = IntersectionObserver::resolve_percentages_with_basis(
+                        scroll_margin,
+                        viewport_rect,
+                    );
+                    let viewport_rect = viewport_rect.outer_rect(viewport_margin);
 
                     intersection_rect = intersect_rectangle(&intersection_rect, &viewport_rect)?;
 
@@ -1104,7 +1160,23 @@ fn compute_the_intersection(
 
     // Step 5
     // > Update intersectionRect by intersecting it with the root intersection rectangle.
-    intersection_rect = intersect_rectangle(&intersection_rect, &root_bounds)?;
+    // If root is a scroll container (including a Document viewport), also apply scrollMargin.
+    let root_clip_rect = match root {
+        ElementOrDocument::Document(_) => {
+            let margin =
+                IntersectionObserver::resolve_percentages_with_basis(scroll_margin, root_bounds);
+            root_bounds.outer_rect(margin)
+        },
+        ElementOrDocument::Element(element)
+            if element.establishes_scroll_container_without_reflow() =>
+        {
+            let margin =
+                IntersectionObserver::resolve_percentages_with_basis(scroll_margin, root_bounds);
+            root_bounds.outer_rect(margin)
+        },
+        ElementOrDocument::Element(_) => root_bounds,
+    };
+    intersection_rect = intersect_rectangle(&intersection_rect, &root_clip_rect)?;
 
     // Step 6
     // > Map intersectionRect to the coordinate space of the viewport of the document containing target.
