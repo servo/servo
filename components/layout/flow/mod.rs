@@ -531,7 +531,6 @@ impl BlockFormattingContext {
         containing_block: &ContainingBlock,
         lazy_block_size: &LazySize,
         base: Option<&LayoutBoxBase>,
-        preferred_aspect_ratio: Option<AspectRatio>,
     ) -> IndependentFormattingContextLayoutResult {
         let mut sequential_layout_state =
             if self.contains_floats || !layout_context.allow_parallel_layout {
@@ -579,11 +578,6 @@ impl BlockFormattingContext {
             .as_ref()
             .and_then(|textarea_size| {
                 textarea_size.effective_block_size(&base?.style, &layout_context.font_context)
-            })
-            .or_else(|| {
-                preferred_aspect_ratio.map(|ratio| {
-                    ratio.compute_dependent_size(LogicalAxis::Block, containing_block.inline_size())
-                })
             })
             .unwrap_or(content_block_size);
 

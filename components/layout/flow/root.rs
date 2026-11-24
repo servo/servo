@@ -296,7 +296,6 @@ impl BoxTree {
             &(&initial_containing_block).into(),
             &initial_containing_block.size.block.into(),
             None,
-            None,
         );
 
         let root_fragments = independent_layout.fragments;

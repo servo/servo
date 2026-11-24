@@ -503,7 +503,6 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 lazy_block_size,
                 Some(&self.base),
-                preferred_aspect_ratio,
             ),
             IndependentFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,
