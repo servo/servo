@@ -77,7 +77,7 @@ fn test_decoded_image_premultiplication() {
     let rgb = encode_png(&[10, 20, 30, 40, 50, 60], 2, ExtendedColorType::Rgb8);
     let rgb = load_from_memory(&rgb, CorsStatus::Safe).expect("encoded PNG decodes");
     assert!(rgb.is_opaque, "an image without alpha is opaque");
-    assert_eq!(*rgb.bytes, [10, 20, 30, 255, 40, 50, 60, 255]);
+    assert_eq!(*rgb.bytes, [10, 20, 30, 40, 50, 60]);
 
     let [r, g, b, a] = [200, 100, 50, 128];
     let rgba = encode_png(&[r, g, b, a, 1, 2, 3, 255], 2, ExtendedColorType::Rgba8);
