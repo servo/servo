@@ -339,7 +339,7 @@ impl TextControlElement for HTMLTextAreaElement {
         self.Value()
     }
 
-    fn read_only_or_disabled(&self) -> bool {
+    fn is_read_only_or_disabled(&self) -> bool {
         self.ReadOnly() || self.Disabled()
     }
 

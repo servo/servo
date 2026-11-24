@@ -1833,7 +1833,13 @@ pub(crate) fn handle_get_url(
 /// <https://w3c.github.io/webdriver/#dfn-mutable-form-control-element>
 fn element_is_mutable_form_control(element: &Element) -> bool {
     if let Some(input_element) = element.downcast::<HTMLInputElement>() {
-        input_element.is_mutable() &&
+        // https://w3c.github.io/webdriver/#dfn-read-only
+        // > An element is to be considered read only if it is
+        // > an input element whose readonly attribute is set.
+        //
+        // That's why we don't use `is_mutable` here, since that also takes into
+        // account whether readonly applies, which webdriver should not consider.
+        !(input_element.ReadOnly() || input_element.is_form_element_disabled()) &&
             matches!(
                 *input_element.input_type(),
                 InputType::Text(_) |
