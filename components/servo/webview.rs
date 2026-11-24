@@ -1079,7 +1079,9 @@ impl WebView {
     }
 
     pub(crate) fn request_pointer_lock(&self, use_unadjusted: bool) {
-        let result = self.delegate().try_lock_pointer(self.clone(), use_unadjusted);
+        let result = self
+            .delegate()
+            .try_lock_pointer(self.clone(), use_unadjusted);
         self.servo().constellation_proxy().send(
             EmbedderToConstellationMessage::RequestPointerLockResult(self.id(), result),
         );

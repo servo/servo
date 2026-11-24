@@ -10,7 +10,11 @@ use std::sync::atomic::AtomicU64;
 use euclid::Scale;
 use log::warn;
 use servo::{
-    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel, CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId, InputEventResult, MouseMovementSource, PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder, WebViewId,
+    AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel,
+    CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
+    DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId,
+    InputEventResult, MouseMovementSource, PermissionRequest, RenderingContext, ScreenGeometry,
+    WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
 
