@@ -30,29 +30,30 @@ pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result
     // function identified by the hash attribute of the [[algorithm]] internal slot of key and
     // message as the message M.
     // Step 2. Return mac.
+    let Handle::HmacKey(hmac_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not a HMAC key".into(),
+        )));
+    };
     match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
             CryptoAlgorithm::Sha1 => {
-                let mut hmac =
-                    <hmac::Hmac<sha1::Sha1> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha1::Sha1> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(HmacImpl::finalize(hmac).to_vec())
             },
             CryptoAlgorithm::Sha256 => {
-                let mut hmac =
-                    <hmac::Hmac<sha2::Sha256> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha2::Sha256> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(HmacImpl::finalize(hmac).to_vec())
             },
             CryptoAlgorithm::Sha384 => {
-                let mut hmac =
-                    <hmac::Hmac<sha2::Sha384> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha2::Sha384> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(HmacImpl::finalize(hmac).to_vec())
             },
             CryptoAlgorithm::Sha512 => {
-                let mut hmac =
-                    <hmac::Hmac<sha2::Sha512> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha2::Sha512> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(HmacImpl::finalize(hmac).to_vec())
             },
@@ -81,29 +82,30 @@ pub(crate) fn verify<D: Equivalence>(
     //
     // NOTE:
     // [[verify_slice]] performs the comparison in constant time.
+    let Handle::HmacKey(hmac_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not a HMAC key".into(),
+        )));
+    };
     match key.algorithm() {
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algo) => match algo.hash.name() {
             CryptoAlgorithm::Sha1 => {
-                let mut hmac =
-                    <hmac::Hmac<sha1::Sha1> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha1::Sha1> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(hmac.verify_slice(signature).is_ok())
             },
             CryptoAlgorithm::Sha256 => {
-                let mut hmac =
-                    <hmac::Hmac<sha2::Sha256> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha2::Sha256> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(hmac.verify_slice(signature).is_ok())
             },
             CryptoAlgorithm::Sha384 => {
-                let mut hmac =
-                    <hmac::Hmac<sha2::Sha384> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha2::Sha384> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(hmac.verify_slice(signature).is_ok())
             },
             CryptoAlgorithm::Sha512 => {
-                let mut hmac =
-                    <hmac::Hmac<sha2::Sha512> as HmacImpl>::new_from_slice(key.handle().as_bytes());
+                let mut hmac = <hmac::Hmac<sha2::Sha512> as HmacImpl>::new_from_slice(hmac_key);
                 HmacImpl::update(&mut hmac, message);
                 Ok(hmac.verify_slice(signature).is_ok())
             },
@@ -179,7 +181,7 @@ pub(crate) fn generate_key<D: Equivalence>(
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages.normalized_value(),
-        Handle::Hmac(key_data.into()),
+        Handle::HmacKey(key_data.into()),
     );
 
     // Step 16. Return key.
@@ -380,7 +382,7 @@ pub(crate) fn import_key<D: Equivalence>(
         extractable,
         KeyAlgorithmAndDerivatives::HmacKeyAlgorithm(algorithm),
         usages.normalized_value(),
-        Handle::Hmac(truncated_data.into()),
+        Handle::HmacKey(truncated_data.into()),
     );
 
     // Step 16. Return key.
@@ -392,13 +394,26 @@ pub(crate) fn export_key<D: Equivalence>(
     format: KeyFormat,
     key: &CryptoKey<D>,
 ) -> Result<ExportedKey, Error> {
-    match format {
-        KeyFormat::Raw | KeyFormat::Raw_secret => match key.handle() {
-            Handle::Hmac(key_data) => Ok(ExportedKey::new_bytes(key_data.as_slice().to_vec())),
-            _ => Err(Error::Operation(Some(
-                "The key handle is not representing an HMAC key".into(),
-            ))),
+    // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
+    // slot of key cannot be accessed, then throw an OperationError.
+    // Step 2. Let bits be the raw bits of the key represented by the [[handle]] internal slot of
+    // key.
+    // Step 3. Let data be a byte sequence containing bits.
+    // NOTE: We already store the byte sequence containing bits, in the key.
+    let Handle::HmacKey(data) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "[[handle]] internal slot of key is not a HMAC key".into(),
+        )));
+    };
+
+    // Step 4.
+    let result = match format {
+        // If format is "raw":
+        KeyFormat::Raw | KeyFormat::Raw_secret => {
+            // Step 4.1. Let result be data.
+            ExportedKey::new_bytes(data.to_vec())
         },
+        // If format is "jwk":
         KeyFormat::Jwk => {
             // Step 4.1. Let jwk be a new JsonWebKey dictionary.
             let mut jwk = JsonWebKey::default();
@@ -406,10 +421,9 @@ pub(crate) fn export_key<D: Equivalence>(
             // Step 4.2. Set the kty attribute of jwk to the string "oct".
             jwk.kty = Some(DOMString::from_static("oct"));
 
-            // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded according
-            // to Section 6.4 of JSON Web Algorithms [JWA].
-            let key_data = key.handle().as_bytes();
-            jwk.encode_string_field(JwkStringField::K, key_data);
+            // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded
+            // according to Section 6.4 of JSON Web Algorithms [JWA].
+            jwk.encode_string_field(JwkStringField::K, data);
 
             // Step 4.4. Let algorithm be the [[algorithm]] internal slot of key.
             // Step 4.5. Let hash be the hash attribute of algorithm.
@@ -456,16 +470,19 @@ pub(crate) fn export_key<D: Equivalence>(
             jwk.ext = Some(key.Extractable());
 
             // Step 4.9. Let result be jwk.
-            Ok(ExportedKey::new_jwk(jwk))
+            ExportedKey::new_jwk(jwk)
         },
         // Otherwise:
         _ => {
             // throw a NotSupportedError.
-            Err(Error::NotSupported(Some(
+            return Err(Error::NotSupported(Some(
                 "Unsupported export key format for HMAC key".into(),
-            )))
+            )));
         },
-    }
+    };
+
+    // Step 5. Return result.
+    Ok(result)
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-get-key-length>
