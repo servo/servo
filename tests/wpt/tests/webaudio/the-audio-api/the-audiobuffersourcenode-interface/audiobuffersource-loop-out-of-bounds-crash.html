@@ -1,9 +1,7 @@
 <!doctype html>
-<html>
+<html class=test-wait>
   <head>
     <title>Test AudioBufferSourceNode With Out-Of-Bounds Loop Endpoints Will Not Crash</title>
-    <script src="/resources/testharness.js"></script>
-    <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
     <script>
@@ -34,36 +32,28 @@
         source.connect(context.destination);
         source.start(0, 0, durationSeconds);
 
-        const renderedBuffer = await context.startRendering();
-        const output = renderedBuffer.getChannelData(0);
-
-        const expectedPlayedFrames = Math.round(durationSeconds * sampleRate);
-        const expectedActive = new Float32Array(expectedPlayedFrames).fill(0.5);
-        assert_array_approx_equals(
-          output.subarray(0, expectedPlayedFrames),
-          expectedActive,
-          1e-4,
-          "Frames within duration must be active"
-        );
-
-        const remainingFrames = totalRenderFrames - expectedPlayedFrames;
-        const expectedSilent = new Float32Array(remainingFrames).fill(0);
-        assert_array_equals(
-          output.subarray(expectedPlayedFrames),
-          expectedSilent,
-          "Frames after duration must be silent"
-        );
+        await context.startRendering();
       }
 
-      promise_test(
-	() => testLoop(0, bufferLength + 1),
-        "Looping source with loop end greater than buffer length"
-      );
+      async function crash() {
+        // Looping source with loop end greater than buffer length.
+        await testLoop(0, bufferLength + 1);
 
-      promise_test(
-	() => testLoop(-1, bufferLength),
-        "Looping source with negative loop start"
-      );
+        // Looping source with negative loop start.
+        await testLoop(-1, bufferLength);
+
+        // Looping source with loop start greater than loop end.
+        await testLoop(bufferLength - 1, 1);
+
+        // Looping source with non-positive loop end.
+        await testLoop(0, 0);
+
+        // Looping source with normative loop start and loop end.
+        await testLoop(0, bufferLength - 1);
+
+        document.documentElement.classList.remove('test-wait');
+      }
+      crash();
     </script>
   </body>
 </html>

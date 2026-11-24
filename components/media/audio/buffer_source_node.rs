@@ -160,7 +160,7 @@ impl AudioNodeEngine for AudioBufferSourceNode {
         0
     }
 
-    // <https://webaudio.github.io/web-audio-api/#playback-AudioBufferSourceNode>
+    /// <https://webaudio.github.io/web-audio-api/#playback-AudioBufferSourceNode>
     fn process(&mut self, mut inputs: Chunk, info: &BlockInfo) -> Chunk {
         debug_assert!(inputs.is_empty());
 
