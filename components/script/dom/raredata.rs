@@ -6,6 +6,7 @@ use std::rc::Rc;
 
 use euclid::Rect;
 use html5ever::LocalName;
+use rustc_hash::FxBuildHasher;
 use script_bindings::cell::DomRefCell;
 use style::selector_parser::PseudoElement;
 use style_traits::CSSPixel;
@@ -13,6 +14,7 @@ use stylo_atoms::Atom;
 use uuid::Uuid;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
+use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::closewatcher::internalclosewatcher::InternalCloseWatcher;
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
@@ -128,4 +130,11 @@ pub(crate) struct ElementRareData {
     /// Only ever [`PopoverState::Auto`] or [`PopoverState::Hint`].
     #[no_trace]
     pub(crate) opened_in_popover_mode: Option<PopoverState>,
+
+    /// <https://html.spec.whatwg.org/multipage/#explicitly-set-attr-element>
+    ///
+    /// > Its reflected target has an explicitly set attr-element, which is a weak reference to an
+    /// > element or null. It is initially null.
+    pub(crate) explicitly_set_attr_elements:
+        HashMapTracedValues<LocalName, Dom<Element>, FxBuildHasher>,
 }

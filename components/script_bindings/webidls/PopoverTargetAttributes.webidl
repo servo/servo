@@ -4,6 +4,6 @@
 
 // https://html.spec.whatwg.org/multipage/#popovertargetattributes
 interface mixin PopoverTargetAttributes {
-  // [CEReactions, Reflect] attribute Element? popoverTargetElement;
+  [CEReactions] attribute Element? popoverTargetElement;
   [CEReactions] attribute DOMString popoverTargetAction;
 };

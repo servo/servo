@@ -12,7 +12,6 @@ use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use rustc_hash::FxHashSet;
 use script_bindings::callback::RootedCallback;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
-use script_bindings::codegen::GenericBindings::DocumentFragmentBinding::DocumentFragmentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
 use script_bindings::dom::UnrootedDom;
@@ -30,7 +29,6 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGOrMathMLElementBinding::FocusOptions;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -1055,22 +1053,9 @@ impl HTMLElement {
         }
 
         // 4. Let popoverElement be the result of running node's get the popovertarget-associated element.
-        let popover_target_value = self
+        let popover_element = self
             .upcast::<Element>()
-            .get_attribute_string_value(&local_name!("popovertarget"))?
-            .into();
-
-        let root_node = self
-            .upcast::<Node>()
-            .GetRootNode(&GetRootNodeOptions::empty());
-
-        let popover_element = if let Some(document) = root_node.downcast::<Document>() {
-            document.GetElementById(cx, popover_target_value)
-        } else if let Some(document_fragment) = root_node.downcast::<DocumentFragment>() {
-            document_fragment.GetElementById(cx, popover_target_value)
-        } else {
-            unreachable!("Element must be in a document or document fragment")
-        };
+            .get_attr_associated_element(cx, &local_name!("popovertarget"));
 
         // 5. If popoverElement is null, then return null.
         let popover_element = DomRoot::downcast::<HTMLElement>(popover_element?)?;
