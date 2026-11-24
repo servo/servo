@@ -849,6 +849,11 @@ impl Handler {
         if !self.navigating_webviews.contains(&webview_id) {
             return Ok(WebDriverResponse::Void);
         }
+        // A prompt pauses the document load and only a command can dismiss it, so
+        // waiting here would deadlock.
+        if self.current_user_prompt(webview_id)?.is_some() {
+            return Ok(WebDriverResponse::Void);
+        }
 
         // Step 2. If session's current browsing context is no longer open,
         // return success with data null.
