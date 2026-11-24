@@ -28,11 +28,14 @@ use style::font_face::Descriptors;
 use style::stylesheets::LockedFontFaceRule;
 pub use system_font_service_proxy::*;
 
-/// A data structure that holds a single [`skrifa::Font`]. Eventually this
-/// will hold the `ShapePlan` cache used by HarfRust.
+/// A data structure that holds a single [`skrifa::Font`].
 #[derive(MallocSizeOf)]
 pub struct SkrifaFont {
     font: skrifa::Font,
+    /// A cache of [`harfrust::ShapePlan`]s to avoid having to continually rebuild them.
+    #[ignore_malloc_size_of = "Conditional compilation makes this a bit annoying."]
+    #[cfg(feature = "harfrust")]
+    shape_plans: parking_lot::RwLock<Vec<Arc<harfrust::ShapePlan>>>,
 }
 
 impl SkrifaFont {
@@ -40,15 +43,47 @@ impl SkrifaFont {
         Some(
             Self {
                 font: skrifa::Font::new(source, index)?,
+                #[cfg(feature = "harfrust")]
+                shape_plans: Default::default(),
             }
             .into(),
         )
+    }
+
+    /// Return a cached `ShapePlan` for the given `ShapePlanKey` or create the `ShapePlan`
+    /// and add it to the cache, returning it.
+    #[cfg(feature = "harfrust")]
+    pub fn shape_plan(
+        &self,
+        key: harfrust::ShapePlanKey,
+        create_function: impl FnOnce() -> harfrust::ShapePlan,
+    ) -> Arc<harfrust::ShapePlan> {
+        if let Some(plan) = self
+            .shape_plans
+            .read()
+            .iter()
+            .find(|plan| key.matches(plan))
+        {
+            return plan.clone();
+        }
+
+        let plan = Arc::new(create_function());
+        let mut cache = self.shape_plans.write();
+        if let Some(plan) = cache.iter().find(|plan| key.matches(plan)) {
+            return plan.clone();
+        }
+        cache.push(plan.clone());
+        plan
     }
 }
 
 impl From<skrifa::Font> for SkrifaFont {
     fn from(font: skrifa::Font) -> Self {
-        Self { font }
+        Self {
+            font,
+            #[cfg(feature = "harfrust")]
+            shape_plans: Default::default(),
+        }
     }
 }
 

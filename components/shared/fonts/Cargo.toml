@@ -13,8 +13,12 @@ description.workspace = true
 name = "fonts_traits"
 path = "lib.rs"
 
+[features]
+harfrust = ["dep:harfrust"]
+
 [dependencies]
 atomic_refcell = { workspace = true }
+harfrust = { workspace = true, optional = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
