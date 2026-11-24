@@ -63,6 +63,15 @@ pub(crate) struct FontFaceSet {
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-status>
     status: Cell<FontFaceSetLoadStatus>,
+
+    /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-loadingfonts-slot>
+    loading_fonts: DomRefCell<Vec<Dom<FontFace>>>,
+
+    /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-loadedfonts-slot>
+    loaded_fonts: DomRefCell<Vec<Dom<FontFace>>>,
+
+    /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-failedfonts-slot>
+    failed_fonts: DomRefCell<Vec<Dom<FontFace>>>,
 }
 
 impl FontFaceSet {
@@ -75,6 +84,9 @@ impl FontFaceSet {
             // out pending, so start out as "loading" so that `status` is "loaded" exactly
             // when the ready promise is fulfilled.
             status: Cell::new(FontFaceSetLoadStatus::Loading),
+            loading_fonts: Default::default(),
+            loaded_fonts: Default::default(),
+            failed_fonts: Default::default(),
         }
     }
 
@@ -95,9 +107,29 @@ impl FontFaceSet {
     pub(super) fn handle_font_face_status_changed(&self, cx: &mut JSContext, font_face: &FontFace) {
         match font_face.Status() {
             FontFaceLoadStatus::Loading => {
-                self.switch_to_loading(cx);
+                // If the FontFaceSet’s [[LoadingFonts]] list is empty, switch the FontFaceSet to loading.
+                let was_empty = self.loading_fonts.borrow().is_empty();
+                if was_empty {
+                    self.switch_to_loading(cx);
+                }
+                // Append font face to the FontFaceSet’s [[LoadingFonts]] list.
+                self.loading_fonts
+                    .safe_borrow_mut(cx.no_gc())
+                    .push(Dom::from_ref(font_face));
             },
             FontFaceLoadStatus::Loaded => {
+                // Add font face to the FontFaceSet’s [[LoadedFonts]] list.
+                // Remove font face from the FontFaceSet’s [[LoadingFonts]] list.
+                //
+                // The font may not be in [[LoadingFonts]] if it was already loaded when it was
+                // added to this set, or if it was deleted from this set while loading. In those
+                // cases it did not finish loading as part of this set, so it is not reported.
+                if self.remove_from_loading_fonts(cx, font_face) {
+                    self.loaded_fonts
+                        .safe_borrow_mut(cx.no_gc())
+                        .push(Dom::from_ref(font_face));
+                }
+
                 let (family_name, template) = font_face
                     .template()
                     .expect("A loaded web font should have a template");
@@ -110,9 +142,30 @@ impl FontFaceSet {
                     None => self.maybe_switch_worker_set_to_loaded(cx),
                 }
             },
-            FontFaceLoadStatus::Error => self.maybe_switch_worker_set_to_loaded(cx),
+            FontFaceLoadStatus::Error => {
+                // Add font face to the FontFaceSet’s [[FailedFonts]] list.
+                // Remove font face from the FontFaceSet’s [[LoadingFonts]] list.
+                //
+                // See the comment in the `Loaded` case above for why the font may not be there.
+                if self.remove_from_loading_fonts(cx, font_face) {
+                    self.failed_fonts
+                        .safe_borrow_mut(cx.no_gc())
+                        .push(Dom::from_ref(font_face));
+                }
+                self.maybe_switch_worker_set_to_loaded(cx);
+            },
             _ => {},
         }
+    }
+
+    /// Removes a face from the [[LoadingFonts]] list, returning true if it was in the list.
+    fn remove_from_loading_fonts(&self, cx: &mut JSContext, target: &FontFace) -> bool {
+        let mut loading_fonts = self.loading_fonts.safe_borrow_mut(cx.no_gc());
+        let Some(index) = loading_fonts.iter().position(|face| &**face == target) else {
+            return false;
+        };
+        loading_fonts.remove(index);
+        true
     }
 
     /// Workers are never pending on the environment, so their font face set switches to
@@ -161,14 +214,27 @@ impl FontFaceSet {
                 // Step 5.2. Let failed fonts be the (possibly empty) contents of font face set’s
                 // [[FailedFonts]] slot.
                 // Step 5.3. Reset the [[LoadedFonts]] and [[FailedFonts]] slots to empty lists.
-                // TODO: Keep track of [[LoadedFonts]] and [[FailedFonts]].
+                let loaded_fonts: Vec<DomRoot<FontFace>> = this
+                    .loaded_fonts
+                    .safe_borrow_mut(cx.no_gc())
+                    .drain(..)
+                    .map(|font_face| font_face.as_rooted())
+                    .collect();
+                let failed_fonts: Vec<DomRoot<FontFace>> = this
+                    .failed_fonts
+                    .safe_borrow_mut(cx.no_gc())
+                    .drain(..)
+                    .map(|font_face| font_face.as_rooted())
+                    .collect();
 
                 // Step 5.4. Fire a font load event named loadingdone at font face set with loaded fonts.
-                this.fire_font_load_event(cx, Atom::from("loadingdone"), &[]);
+                this.fire_font_load_event(cx, Atom::from("loadingdone"), &loaded_fonts);
 
                 // Step 5.5. If font face set’s failed fonts is non-empty, fire a font load event
                 // named loadingerror at font face set with failed fonts.
-                // TODO: This requires keeping track of [[FailedFonts]].
+                if !failed_fonts.is_empty() {
+                    this.fire_font_load_event(cx, Atom::from("loadingerror"), &failed_fonts);
+                }
             }));
 
         true
@@ -421,18 +487,33 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-delete>
-    fn Delete(&self, to_delete: &FontFace) -> bool {
+    fn Delete(&self, cx: &mut JSContext, to_delete: &FontFace) -> bool {
         // Step 1. If font is CSS-connected, return false and exit this algorithm immediately.
         if to_delete.is_css_connected() {
             return false;
         }
 
         // Step 2. Let deleted be the result of removing font from the FontFaceSet’s set entries.
-        // TODO: Step 3. If font is present in the FontFaceSet’s [[LoadedFonts]], or [[FailedFonts]] lists, remove it.
-        // TODO: Step 4. If font is present in the FontFaceSet’s [[LoadingFonts]] list, remove it. If font was the last
+        let deleted = self.delete_face(to_delete);
+
+        // Step 3. If font is present in the FontFaceSet’s [[LoadedFonts]], or [[FailedFonts]] lists, remove it.
+        self.loaded_fonts
+            .safe_borrow_mut(cx.no_gc())
+            .retain(|face| &**face != to_delete);
+        self.failed_fonts
+            .safe_borrow_mut(cx.no_gc())
+            .retain(|face| &**face != to_delete);
+
+        // Step 4. If font is present in the FontFaceSet’s [[LoadingFonts]] list, remove it. If font was the last
         // item in that list (and so the list is now empty), switch the FontFaceSet to loaded.
+        let was_loading = self.remove_from_loading_fonts(cx, to_delete);
+        let now_empty = self.loading_fonts.borrow().is_empty();
+        if was_loading && now_empty {
+            self.maybe_switch_worker_set_to_loaded(cx);
+        }
+
         // Step 5. Return deleted.
-        self.delete_face(to_delete)
+        deleted
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-clear>
@@ -442,9 +523,16 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
         // Step 1. Remove all non-CSS-connected items from the FontFaceSet’s set entries,
         // its [[LoadedFonts]] list, and its [[FailedFonts]] list.
         self.set_entries.safe_borrow_mut(cx.no_gc()).clear();
+        self.loaded_fonts.safe_borrow_mut(cx.no_gc()).clear();
+        self.failed_fonts.safe_borrow_mut(cx.no_gc()).clear();
 
-        // TODO Step 2. If the FontFaceSet’s [[LoadingFonts]] list is non-empty, remove all items from it,
+        // Step 2. If the FontFaceSet’s [[LoadingFonts]] list is non-empty, remove all items from it,
         // then switch the FontFaceSet to loaded.
+        let was_loading = !self.loading_fonts.borrow().is_empty();
+        if was_loading {
+            self.loading_fonts.safe_borrow_mut(cx.no_gc()).clear();
+            self.maybe_switch_worker_set_to_loaded(cx);
+        }
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load>
