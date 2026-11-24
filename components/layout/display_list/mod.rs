@@ -13,6 +13,7 @@ use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Ve
 use fonts::{FontMetrics, ShapedTextSlice};
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
+use net_traits::image_cache::Image as CachedImage;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -2091,10 +2092,19 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let default_size: DeviceIntSize =
                         Size2D::new(size.width * scale, size.height * scale).to_i32();
                     let preferred_size = layer.as_ref().map(|layer| {
-                        DeviceIntSize::new(
-                            ((layer.tile_size.width * scale).ceil() as i32).max(1),
-                            ((layer.tile_size.height * scale).ceil() as i32).max(1),
-                        )
+                        let tile_size: units::DeviceSize = Size2D::new(
+                            layer.tile_size.width * scale,
+                            layer.tile_size.height * scale,
+                        );
+                        if matches!(&image, CachedImage::Encoded(_)) {
+                            // Keep subpixel tiles eligible for a raster decode.
+                            DeviceIntSize::new(
+                                (tile_size.width.ceil() as i32).max(1),
+                                (tile_size.height.ceil() as i32).max(1),
+                            )
+                        } else {
+                            tile_size.to_i32()
+                        }
                     });
 
                     let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
