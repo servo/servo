@@ -2060,7 +2060,13 @@ impl HTMLInputElement {
             .as_specific()
             .update_checkedness(cx, self, checked, previously_checked);
 
-        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+        // This explicitly restyles instead of calling `dirty()`. `dirty()` bumps the tree version
+        // which invalidates live collections. Live collections never depend on checkedness,
+        // so this is safe and is very important for performance.
+        if self.upcast::<Node>().is_connected() {
+            self.upcast::<Element>()
+                .restyle(cx.no_gc(), NodeDamage::Other);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#selector-checked>
