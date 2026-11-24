@@ -340,10 +340,6 @@ impl SameFormattingContextBlock {
             content_block_size += collapsible_margins_in_children.end.solve();
         }
 
-        let ratio_dependent_block_size = compute_ratio_dependent_block_size(
-            preferred_aspect_ratio,
-            containing_block_for_children.inline_size(),
-        );
         let block_size = block_sizes.resolve(
             LogicalAxis::Block,
             automatic_block_size,
@@ -351,7 +347,12 @@ impl SameFormattingContextBlock {
             block_stretch_size,
             || content_block_size.into(),
             false, /* is_table */
-            || ratio_dependent_block_size,
+            || {
+                compute_ratio_dependent_block_size(
+                    preferred_aspect_ratio,
+                    containing_block_for_children.inline_size(),
+                )
+            },
         );
 
         // If the final block size is different than the intrinsic size of the contents,
