@@ -2922,7 +2922,7 @@ fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Fon
 
     // In an offscreen canvas we have no document or quirks mode
     let parser_context = parser_context_for_anonymous_content(
-        CssRuleType::Style,
+        CssRuleType::FontFace,
         ParsingMode::DEFAULT,
         &urlextradata,
     );
