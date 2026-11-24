@@ -62,7 +62,6 @@ import org.servo.servoview.ServoNavigator
 class MainActivity : ComponentActivity(), Servo.Client {
     private val urlTextFieldState = TextFieldState()
     private var currentUrl: String? = null
-    private var currentTitle: String? = null
     private var alertMessage by mutableStateOf<String?>(null)
 
     private class Settings(preferences: SharedPreferences) {
@@ -230,6 +229,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     }
                 },
             ) { innerPadding ->
+                var title by remember { mutableStateOf<String?>(null) }
                 Servo(
                     experimentalModeEnabled = experimentalModeEnabled,
                     args = intent.getStringExtra("servoargs"),
@@ -237,15 +237,14 @@ class MainActivity : ComponentActivity(), Servo.Client {
                         if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                     logStr = intent.getStringExtra("servolog"),
                     onLoadingStateChange = { loadingState = it },
+                    onTitleChange = { title = it },
                     client = this,
                     navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
                 val historyManager = remember { HistoryManager(this) }
                 if (loadingState == LoadingState.Finished) {
-                    currentUrl?.let { currentUrl ->
-                        historyManager.addEntry(currentUrl, currentTitle)
-                    }
+                    currentUrl?.let { currentUrl -> historyManager.addEntry(currentUrl, title) }
                 }
                 LaunchedEffect(servoFocusRequester) { servoFocusRequester.requestFocus() }
                 alertMessage?.let { alertMessage ->
@@ -299,10 +298,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     override fun onAlert(message: String) {
         alertMessage = message
-    }
-
-    override fun onTitleChanged(title: String) {
-        currentTitle = title
     }
 
     override fun onUrlChanged(url: String) {
