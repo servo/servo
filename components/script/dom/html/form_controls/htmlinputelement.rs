@@ -2025,8 +2025,9 @@ impl HTMLInputElement {
             .as_specific()
             .update_checkedness(cx, self, checked, previously_checked);
 
-        // Calling dirty() here would make a live collection start over after every toggle.
-        // https://github.com/servo/servo/issues/50089
+        // This explicitly restyles instead of calling `dirty()`. `dirty()` bumps the tree version
+        // which invalidates live collections. Live collections never depend on checkedness,
+        // so this is safe and is very important for performance.
         if self.upcast::<Node>().is_connected() {
             self.upcast::<Element>()
                 .restyle(cx.no_gc(), NodeDamage::Other);
