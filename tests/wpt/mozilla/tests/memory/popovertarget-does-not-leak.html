@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>popoverTargetElement does not keep elements alive</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function setupPopovertarget() {
+  const button = document.createElement("button");
+  const target = document.createElement("div");
+  document.body.append(target);
+  button.popoverTargetElement = target;
+  target.remove();
+  return { button, target };
+}
+
+// Takes a callback so that no strong reference to the element exists
+async function assert_element_is_collected(createElement) {
+  const weakRef = new WeakRef(createElement());
+  await TestUtils.gc();
+  await TestUtils.gc();
+  assert_equals(weakRef.deref(), undefined);
+}
+
+promise_test(async () => {
+  await assert_element_is_collected(() => setupPopovertarget().button);
+}, "Button with a removed popover target can be garbage collected");
+
+promise_test(async () => {
+  await assert_element_is_collected(() => {
+    const { button, target } = setupPopovertarget();
+    document.body.append(button);
+    return target;
+  });
+}, "Removed popover target is not kept alive by the button referencing it");
+</script>
+</body>
