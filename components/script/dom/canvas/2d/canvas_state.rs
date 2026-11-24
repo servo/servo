@@ -44,7 +44,7 @@ use style::properties::shorthands::font;
 use style::properties::style_structs::Font;
 use style::stylesheets::CssRuleType;
 use style::values::computed::color::Color as ComputedColor;
-use style::values::computed::font::FontStyle;
+use style::values::computed::font::{FontStyle, GenericFontFamily};
 use style::values::computed::{
     CSSPixelLength, FontFeatureSettings, FontVariantEastAsian, FontVariantLigatures,
     FontVariantNumeric, NonNegativeLength, font as computed_font,
@@ -1559,8 +1559,6 @@ impl CanvasState {
                 CanvasContextState::DEFAULT_FONT_STYLE.into(),
             )
         }
-        // This may be `None` if if this is offscreen canvas, in which case just use
-        // the initial values for the text style.
         let size = self.font_style().font_size.computed_size().px() as f64;
 
         let Some((bounds, text_run)) = self.text_with_size(
@@ -1610,8 +1608,6 @@ impl CanvasState {
                 CanvasContextState::DEFAULT_FONT_STYLE.into(),
             )
         }
-        // This may be `None` if if this is offscreen canvas, in which case just use
-        // the initial values for the text style.
         let size = self.font_style().font_size.computed_size().px() as f64;
 
         let Some((bounds, text_run)) = self.text_with_size(
@@ -2946,6 +2942,9 @@ fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Fon
 
     let mut font = Font::initial_values();
 
+    // Monospace has a different default of 13px not 16px.
+    let font_generic = font_families.single_generic();
+
     font.set_font_family(computed_font::FontFamily {
         families: font_families,
         is_system_font: false,
@@ -2953,6 +2952,7 @@ fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Fon
     });
     font.set_font_size(calculate_derived_offscreen_font_size(
         font_shorthand.font_size,
+        font_generic,
     )?);
 
     font.set_font_weight(match font_shorthand.font_weight {
@@ -2989,11 +2989,18 @@ fn resolve_offscreen_font(base_url: ServoUrl, font: &str) -> Option<ServoArc<Fon
 /// `larger` keywords, percentages, `em`, `ex`, `ch`, `ic`).
 fn calculate_derived_offscreen_font_size(
     specified: specified_font::FontSize,
+    generic: Option<GenericFontFamily>,
 ) -> Option<computed_font::FontSize> {
     // Font size base for source objects that are not being rendered is 10px,
-    // but still 16px for keywords (like medium).
+    // but still use the pref for generic fonts and keywords.
     let relative_base = CSSPixelLength::new(CanvasContextState::DEFAULT_FONT_SIZE_PX);
-    let medium_size = CSSPixelLength::new(pref!(fonts_default_size) as f32);
+    // Imitates LayoutFontMetricsProvider::base_size_for_generic as we don't
+    // have a way to get that here (cleanly)
+    let medium_size = CSSPixelLength::new(match generic {
+        Some(GenericFontFamily::Monospace) => pref!(fonts_default_monospace_size) as f32,
+        _ => pref!(fonts_default_size) as f32,
+    })
+    .max(CSSPixelLength::new(0.0));
 
     let (size, keyword_info) = match specified {
         specified_font::FontSize::Keyword(info) => {
