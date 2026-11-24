@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Animations Test: animation-fill-mode: forwards end values survive a restyle after animationend</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-fill-mode"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes grow {
+  from { width: 0px; }
+  to { width: 500px; }
+}
+/* A class rule so that adding the class actually invalidates the element
+   and forces a full selector re-match. Without a matching rule, the class
+   change collects no self-invalidation and the element is never traversed. */
+.restyled {
+  background-color: blue;
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+// A finished CSS animation with `animation-fill-mode: forwards` must keep
+// applying its end values even after the element is restyled, as long as the
+// animation remains in the element's animation-name list. This guards against
+// style engines dropping the finished animation from their animation state on
+// the next full restyle, which would snap the element back to its underlying
+// style.
+//
+// The restyle below is performed by changing the element's class. A class
+// change forces a full selector re-match (rather than reusing the cached
+// cascade), which is the code path where finished animations can be dropped.
+
+// Flush pending style updates and return the current value of `property`.
+// (testcommon.js also has a flushComputedStyle helper, but it only flushes
+// without returning a value.)
+function flushComputedStyleAndValue(element, property) {
+  flushComputedStyle(element);
+  return getComputedStyle(element).getPropertyValue(property);
+}
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    class: 'target',
+    style: 'width: 50px; height: 50px; animation: grow 0.1s linear forwards',
+  });
+
+  // The animation is active immediately (no delay), so the first keyframe's
+  // value applies.
+  assert_equals(flushComputedStyleAndValue(div, 'width'), '0px',
+    'width has the animated first keyframe value while the animation runs');
+
+  const watcher = new EventWatcher(t, div, ['animationend']);
+
+  await watcher.wait_for('animationend');
+  assert_equals(flushComputedStyleAndValue(div, 'width'), '500px',
+    'width has the animated end value after the animation finishes');
+
+  // A class change that matches a rule forces a full selector re-match,
+  // which must not drop the filling animation.
+  div.classList.add('restyled');
+  assert_equals(flushComputedStyleAndValue(div, 'width'), '500px',
+    'width keeps the animated end value after a restyle');
+
+}, 'animation-fill-mode: forwards keeps applying end values across restyles '
+   + 'after animationend');
+
+promise_test(async t => {
+  // Same restyle sequence as above, but without any fill mode: once the
+  // animation finishes and is no longer filling, the element must snap back
+  // to its underlying style.
+  const div = addDiv(t, {
+    class: 'target',
+    style: 'width: 50px; height: 50px; animation: grow 0.1s linear',
+  });
+
+  assert_equals(flushComputedStyleAndValue(div, 'width'), '0px',
+    'width has the animated first keyframe value while the animation runs');
+
+  const watcher = new EventWatcher(t, div, ['animationend']);
+
+  await watcher.wait_for('animationend');
+  assert_equals(flushComputedStyleAndValue(div, 'width'), '50px',
+    'width snaps back to the underlying value once the animation finishes');
+
+  div.classList.add('restyled');
+  assert_equals(flushComputedStyleAndValue(div, 'width'), '50px',
+    'width stays at the underlying value after a restyle');
+}, 'without fill-mode, the element snaps back to its underlying style after '
+   + 'the animation finishes');
+</script>
