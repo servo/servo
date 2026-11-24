@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Selectors parsed for the DOM APIs are reused across documents</title>
+<link rel="help" href="https://github.com/servo/servo/issues/50160">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Servo shares the selectors parsed for `matches()`, `closest()` and `querySelector()`
+// between the documents of a script thread. Each document must still match them with its own
+// quirks mode, where class names are case-insensitive.
+test(() => {
+  const parser = new DOMParser();
+  const quirks = parser.parseFromString('<p class="Item"></p>', "text/html");
+  const standards = parser.parseFromString('<!doctype html><p class="Item"></p>', "text/html");
+  assert_equals(quirks.compatMode, "BackCompat");
+  assert_equals(standards.compatMode, "CSS1Compat");
+
+  for (const [doc, matches] of [[quirks, true], [standards, false], [quirks, true]]) {
+    const p = doc.querySelector("p");
+    const mode = doc.compatMode;
+    assert_equals(p.matches(".item"), matches, `matches() in ${mode}`);
+    assert_equals(p.closest(".item") === p, matches, `closest() in ${mode}`);
+    assert_equals(doc.querySelector(".item") === p, matches, `querySelector() in ${mode}`);
+    assert_equals(doc.querySelectorAll(".item").length, matches ? 1 : 0,
+                  `querySelectorAll() in ${mode}`);
+  }
+}, "Selectors match with the quirks mode of each document");
+
+test(() => {
+  const p = document.createElement("p");
+  for (let i = 0; i < 2; i++) {
+    assert_throws_dom("SyntaxError", () => p.matches("!"), "matches()");
+    assert_throws_dom("SyntaxError", () => p.closest("!"), "closest()");
+    assert_throws_dom("SyntaxError", () => document.querySelector("!"), "querySelector()");
+  }
+}, "Invalid selectors keep throwing when they are used again");
+</script>

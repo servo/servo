@@ -11,13 +11,13 @@ use servo_arc::Arc;
 use style;
 use style::dom::{NodeInfo, TNode};
 use style::dom_apis::{MayUseInvalidation, SelectorQuery, query_selector};
-use style::selector_parser::SelectorParser;
 use style::stylesheets::UrlExtraData;
 use url::Url;
 
 use super::{ServoDangerousStyleDocument, ServoDangerousStyleShadowRoot};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::LayoutDom;
+use crate::dom::element::parse_a_selector;
 use crate::dom::node::{Node, NodeFlags};
 use crate::layout_dom::{ServoDangerousStyleElement, ServoLayoutDomTypeBundle, ServoLayoutNode};
 
@@ -47,11 +47,10 @@ impl<'dom> ServoDangerousStyleNode<'dom> {
         let mut result = Query::Output::default();
 
         // Step 1. Let selector be the result of parse a selector selectors.
-        let selector_or_error =
-            SelectorParser::parse_author_origin_no_namespace(selector, &UrlExtraData(document_url));
+        let selector_list = parse_a_selector(selector, &UrlExtraData(document_url));
 
         // Step 2. If selector is failure, then throw a "SyntaxError" DOMException.
-        let Ok(selector_list) = selector_or_error else {
+        let Some(selector_list) = selector_list else {
             return Err(Error::Syntax(Some(format!(
                 "'{selector}' is an invalid selector"
             ))));
