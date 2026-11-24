@@ -538,10 +538,12 @@ impl GStreamerPlayer {
             return Ok(());
         }
 
-        // Check that we actually have the elements that we
-        // need to make this work.
+        // Check that we actually have and can load the elements that we need to
+        // make this work.
         for element in ["playbin3", "decodebin3", "queue"] {
-            if gstreamer::ElementFactory::find(element).is_none() {
+            let is_loadable = gstreamer::ElementFactory::find(element)
+                .is_some_and(|factory| factory.load().is_ok());
+            if !is_loadable {
                 return Err(PlayerError::Backend(format!(
                     "Missing dependency: {}",
                     element
