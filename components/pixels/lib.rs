@@ -15,7 +15,7 @@ use std::time::Duration;
 use euclid::default::{Point2D, Rect, Size2D};
 use image::imageops::{self, FilterType};
 use image::{ImageBuffer, ImageFormat, Rgba};
-use log::{debug, error};
+use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;

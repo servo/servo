@@ -11,7 +11,7 @@ use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
 use image::{
-    AnimationDecoder, DynamicImage, EncodableLayout, ImageDecoder, ImageError, ImageFormat,
+    AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat,
     ImageResult, Limits,
 };
 use log::debug;
