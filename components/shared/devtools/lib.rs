@@ -105,6 +105,8 @@ pub enum ScriptToDevtoolsControlMsg {
     ),
     /// The given browsing context is performing a navigation.
     Navigate(BrowsingContextId, NavigationState),
+    /// The given browsing context was discarded, for example because its iframe was removed.
+    BrowsingContextDiscarded(BrowsingContextId),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
     /// Request to clear the console for a given pipeline.

@@ -59,7 +59,7 @@ use crate::dom::types::{
 };
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
-use crate::event_loop::script_thread::with_script_thread;
+use crate::event_loop::script_thread::{ScriptThread, with_script_thread};
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
 
@@ -498,12 +498,25 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             // - SourceActor#url <https://searchfox.org/mozilla-central/rev/85667ab51e4b2a3352f7077a9ee43513049ed2d6/devtools/server/actors/source.js#157-162>
 
             // Firefox impl: getDebuggerSourceURL(), getSourceURL()
-            // TODO: handle `about:srcdoc` case (see Firefox getDebuggerSourceURL())
             // TODO: remove trailing details that may have been appended by SpiderMonkey
             // (currently impossible to do robustly due to <https://bugzilla.mozilla.org/show_bug.cgi?id=1982001>)
             let url_original = args.url.str();
             // FIXME: use page/worker url as base here
-            let url_original = ServoUrl::parse(&url_original).ok();
+            let mut url_original = ServoUrl::parse(&url_original).ok();
+
+            // Inline scripts in an `<iframe srcdoc>` can't be found in markup fetched from a url, so each one is
+            // treated as a separate source, with its id appended to the url. Firefox gives them the document url,
+            // `about:srcdoc`, but here they have the document's base url, so check the document instead.
+            // Firefox impl: getDebuggerSourceURL()
+            let is_srcdoc = introduction_type.str() == "inlineScript" &&
+                args.workerId.is_none() &&
+                ScriptThread::find_document(pipeline_id)
+                    .is_some_and(|document| document.url().matches_about_srcdoc());
+            if is_srcdoc {
+                let mut url = ServoUrl::parse("about:srcdoc").unwrap();
+                url.set_fragment(Some(&args.spidermonkeyId.to_string()));
+                url_original = Some(url);
+            }
 
             // If the source has a `urlOverride` (aka `displayURL` aka `//# sourceURL`), it should be a valid url,
             // possibly relative to the page/worker url, and we should treat the source as coming from that url for
@@ -543,8 +556,8 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
             // nor are sources created for `<iframe srcdoc>`, since they are not necessarily a substring of the
             // page markup as originally sent by the server.
             // Firefox impl: SourceActor#_isInlineSource
-            // TODO: handle `about:srcdoc` case (see Firefox SourceActor#_isInlineSource)
-            let inline = introduction_type.str() == "inlineScript" && url_override.is_none();
+            let inline =
+                introduction_type.str() == "inlineScript" && url_override.is_none() && !is_srcdoc;
             let Some(url) = url_override.or(url_original) else {
                 debug!("Not creating debuggee: no valid url");
                 return;

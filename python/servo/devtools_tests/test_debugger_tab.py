@@ -14,7 +14,6 @@ import time
 from collections import Counter
 from concurrent.futures import Future
 
-import pytest
 from geckordp.actors.events import Events
 from geckordp.actors.web_console import WebConsoleActor
 
@@ -33,6 +32,25 @@ from .utils import (
     wait_for_pause,
     wait_for_source,
 )
+
+
+def assert_iframe_target_destroyed_after(script: str):
+    with Devtools.connect(expected_targets=2) as devtools:
+        iframe_target = devtools.targets[1]
+        destroyed = Future()
+
+        def on_target_destroyed(data):
+            if data["target"]["actor"] == iframe_target["actor"] and not destroyed.done():
+                destroyed.set_result(None)
+
+        devtools.client.add_event_listener(
+            devtools.watcher.actor_id,
+            Events.Watcher.TARGET_DESTROYED_FORM,
+            on_target_destroyed,
+        )
+        console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+        console.evaluate_js_async(script)
+        destroyed.result(2)
 
 
 class TestDebuggerTab:
@@ -730,40 +748,69 @@ class TestDebuggerTab:
             )
         )
 
-    # Sources list for inline scripts in `<iframe srcdoc>`
+    # Sources list for scripts in `<iframe>`, which is a target of its own
 
-    @pytest.mark.xfail(strict=False)
+    def test_sources_list_with_iframe(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_iframe.html")
+        assert_sources_list(
+            Counter(
+                [
+                    frozen_multiset(
+                        [
+                            Source("inlineScript", f"{web_server_urls[0]}/sources/test_sources_list_with_iframe.html"),
+                        ]
+                    ),
+                    frozen_multiset(
+                        [
+                            Source("inlineScript", f"{web_server_urls[0]}/sources/iframe.html"),
+                            Source("srcScript", f"{web_server_urls[0]}/sources/classic.js"),
+                        ]
+                    ),
+                ]
+            )
+        )
+
+    def test_iframe_target_destroyed_when_iframe_removed(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_iframe.html")
+        assert_iframe_target_destroyed_after("document.querySelector('iframe').remove()")
+
+    def test_iframe_target_destroyed_when_page_navigates(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_iframe.html")
+        # Navigating directly from a console evaluation does nothing in Servo, so use a timer.
+        assert_iframe_target_destroyed_after("setTimeout(() => { location.href = 'iframe.html'; })")
+
+    # Sources list for inline scripts in `<iframe srcdoc>`, which is a target of its own
+
     def test_sources_list_with_iframe_srcdoc_and_display_url(self, run_servoshell):
         run_servoshell(url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script>">')
         assert_sources_list(
             Counter(
                 [
+                    frozen_multiset([]),
                     frozen_multiset(
                         [
                             Source("inlineScript", "http://test/"),
                         ]
-                    )
+                    ),
                 ]
             )
         )
 
-    @pytest.mark.xfail(strict=False)
     def test_sources_list_with_iframe_srcdoc_but_no_display_url(self, run_servoshell):
         run_servoshell(url='data:text/html,<iframe srcdoc="<script>1</script>">')
         assert_sources_list(
             Counter(
                 [
+                    frozen_multiset([]),
                     frozen_multiset(
                         [
-                            # FIXME: it's not really gonna be 0
-                            Source("inlineScript", "about:srcdoc#0"),
+                            Source("inlineScript", "about:srcdoc#<id>"),
                         ]
-                    )
+                    ),
                 ]
             )
         )
 
-    @pytest.mark.xfail(strict=False)
     def test_sources_list_with_iframe_srcdoc_multiple_inline_scripts(self, run_servoshell):
         run_servoshell(
             url='data:text/html,<iframe srcdoc="<script>//%23 sourceURL=http://test</script><script>2</script>">'
@@ -771,13 +818,13 @@ class TestDebuggerTab:
         assert_sources_list(
             Counter(
                 [
+                    frozen_multiset([]),
                     frozen_multiset(
                         [
                             Source("inlineScript", "http://test/"),
-                            # FIXME: it's not really gonna be 0
-                            Source("inlineScript", "about:srcdoc#0"),
+                            Source("inlineScript", "about:srcdoc#<id>"),
                         ]
-                    )
+                    ),
                 ]
             )
         )
@@ -813,6 +860,23 @@ class TestDebuggerTab:
 
     # Test case that uses innerHTML and would actually need the HTML parser
     # (innerHTML has a fast path for values that don't contain b'&' | b'\0' | b'<' | b'\r')
+    def test_source_content_iframe(self, run_servoshell, web_server_urls, test_dir):
+        run_servoshell(url=f"{web_server_urls[0]}/sources/test_sources_list_with_iframe.html")
+        expected_content = open(os.path.join(test_dir, "sources/iframe.html")).read()
+        assert_source_content(
+            Source("inlineScript", f"{web_server_urls[0]}/sources/iframe.html"),
+            expected_content,
+            devtools=Devtools.connect(expected_targets=2),
+        )
+
+    def test_source_content_iframe_srcdoc(self, run_servoshell):
+        run_servoshell(url='data:text/html,<iframe srcdoc="<script>console.log(42)</script>">')
+        assert_source_content(
+            Source("inlineScript", "about:srcdoc#<id>"),
+            "console.log(42)",
+            devtools=Devtools.connect(expected_targets=2),
+        )
+
     def test_source_content_inline_script_with_inner_html(self, run_servoshell):
         script_tag = '<div id="el"></div><script>el.innerHTML="<p>test"</script>'
         run_servoshell(url=f"data:text/html,{script_tag}")

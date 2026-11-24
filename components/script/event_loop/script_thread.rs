@@ -3297,6 +3297,11 @@ impl ScriptThread {
                     let browsing_context_id = window.window_proxy().browsing_context_id();
                     window.discard_browsing_context();
                     self.window_proxies.remove(browsing_context_id);
+                    if let Some(ref chan) = self.senders.devtools_server_sender {
+                        let _ = chan.send(ScriptToDevtoolsControlMsg::BrowsingContextDiscarded(
+                            browsing_context_id,
+                        ));
+                    }
                 }
 
                 // Clear the image cache now, instead of waiting for the Window to be

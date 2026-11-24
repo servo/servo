@@ -195,6 +195,7 @@ impl BrowsingContextActor {
         pipeline_id: PipelineId,
         outer_window_id: DevtoolsOuterWindowId,
         script_sender: GenericSender<DevtoolScriptControlMsg>,
+        tab_watcher_name: Option<String>,
     ) -> Arc<Self> {
         let name = new_actor_name::<BrowsingContextActor>();
 
@@ -221,11 +222,16 @@ impl BrowsingContextActor {
         let thread_actor =
             ThreadActor::register(registry, script_sender.clone(), Some(name.clone()));
 
-        let watcher_actor = WatcherActor::register(
-            registry,
-            name.clone(),
-            SessionContext::new(SessionContextType::BrowserElement),
-        );
+        // Iframes are targets of the tab they are in, so they share its watcher.
+        let watcher_name = tab_watcher_name.unwrap_or_else(|| {
+            WatcherActor::register(
+                registry,
+                name.clone(),
+                SessionContext::new(SessionContextType::BrowserElement),
+            )
+            .name()
+            .into()
+        });
 
         let mut script_chans = FxHashMap::default();
         script_chans.insert(pipeline_id, script_sender);
@@ -245,7 +251,7 @@ impl BrowsingContextActor {
             reflow_name: reflow_actor.name().into(),
             style_sheets_name: style_sheets_actor.name().into(),
             thread_name: thread_actor.name().into(),
-            watcher_name: watcher_actor.name().into(),
+            watcher_name,
         };
 
         registry.register::<Self>(actor)
@@ -354,7 +360,7 @@ impl ActorEncode<BrowsingContextActorMsg> for BrowsingContextActor {
             browser_id: self.browser_id.value(),
             browsing_context_id: self.browsing_context_id.value(),
             outer_window_id: self.outer_window_id().value(),
-            is_top_level_target: true,
+            is_top_level_target: self.page_info.borrow().is_top_level_global,
             accessibility_actor: self.accessibility_name.clone(),
             console_actor: self.console_name.clone(),
             css_properties_actor: self.css_properties_name.clone(),
