@@ -141,6 +141,9 @@ pub(crate) struct WebViewInner {
 
     /// The current index in the back / forward list.
     back_forward_list_index: usize,
+
+    /// The current opened context menu.
+    open_context_menu: Cell<Option<EmbedderControlId>>,
 }
 
 impl Drop for WebViewInner {
@@ -190,6 +193,7 @@ impl WebView {
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),
+            open_context_menu: Default::default(),
         })));
 
         let viewport_details = webview.viewport_details();
@@ -841,6 +845,13 @@ impl WebView {
                 })
             },
             EmbedderControlRequest::ContextMenu(mut context_menu_request) => {
+                // Close the old open context menu before opening another one anywhere.
+                if let Some(old_id) = self.inner().open_context_menu.replace(Some(control_id)) {
+                    if old_id.pipeline_id != control_id.pipeline_id {
+                        self.delegate().hide_embedder_control(self.clone(), old_id);
+                    }
+                }
+
                 for item in context_menu_request.items.iter_mut() {
                     match item {
                         ContextMenuItem::Item {
