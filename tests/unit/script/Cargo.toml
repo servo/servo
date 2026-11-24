@@ -20,3 +20,6 @@ script = { workspace = true }
 servo-base = { workspace = true }
 servo-url = { workspace = true }
 tempfile = { workspace = true }
+
+[dev-dependencies]
+fonts = { workspace = true, features = ["harfrust"] }

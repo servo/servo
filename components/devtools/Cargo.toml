@@ -41,5 +41,8 @@ uuid = { workspace = true }
 [build-dependencies]
 jiff = { workspace = true }
 
+[dev-dependencies]
+fonts = { workspace = true, features = ["harfrust"] }
+
 [lints]
 workspace = true
