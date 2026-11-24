@@ -2669,9 +2669,7 @@ impl VirtualMethods for HTMLInputElement {
                 self.update_checked_state(cx.no_gc());
                 self.update_indeterminate_state(cx.no_gc());
                 self.update_default_state_indirectly(cx.no_gc());
-                if element.focus_state() {
-                    element.set_focusring_state(cx.no_gc(), self.is_textual_or_password());
-                }
+                element.set_focusring_state(cx.no_gc(), element.focus_state());
                 self.update_required_and_optional_state(cx.no_gc());
             },
             local_name!("value") if !self.value_dirty.get() => {
