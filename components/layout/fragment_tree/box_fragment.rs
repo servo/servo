@@ -8,6 +8,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use app_units::{Au, MAX_AU, MIN_AU};
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use euclid::Rect;
+use itertools::Itertools;
 use malloc_size_of_derive::MallocSizeOf;
 use once_cell::race::OnceBox;
 use servo_arc::Arc as ServoArc;
@@ -24,12 +25,13 @@ use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, Fra
 use crate::SharedStyle;
 use crate::display_list::{ClipId, ToWebRender};
 use crate::formatting_contexts::Baselines;
+use crate::fragment_tree::debug::{PrintableRect, PrintableSides};
 use crate::fragment_tree::{CumulativeContentRectCalculation, FragmentChildren};
 use crate::geom::{
     AuOrAuto, LogicalSides, LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides,
     SyncPhysicalRectAu,
 };
-use crate::style_ext::ComputedValuesExt;
+use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::table::SpecificTableGridInfo;
 use crate::taffy::SpecificTaffyGridInfo;
 
@@ -110,6 +112,66 @@ impl BoxFragmentRareData {
     }
 }
 
+/// Physical padding, border, and margin expressed in [`Au`].
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
+pub(crate) struct PhysicalBoxSides {
+    pub padding: PhysicalSides<Au>,
+    pub border: PhysicalSides<Au>,
+    pub margin: PhysicalSides<Au>,
+}
+
+impl PhysicalBoxSides {
+    pub(crate) fn zero() -> Self {
+        Self::default()
+    }
+
+    pub(crate) fn from_pbm(
+        pbm: &PaddingBorderMargin,
+        margin: LogicalSides<Au>,
+        writing_mode: WritingMode,
+    ) -> Self {
+        Self::from_logical(pbm.padding, pbm.border, margin, writing_mode)
+    }
+
+    pub(crate) fn from_logical(
+        padding: LogicalSides<Au>,
+        border: LogicalSides<Au>,
+        margin: LogicalSides<Au>,
+        writing_mode: WritingMode,
+    ) -> Self {
+        Self {
+            padding: padding.to_physical(writing_mode),
+            border: border.to_physical(writing_mode),
+            margin: margin.to_physical(writing_mode),
+        }
+    }
+}
+
+impl std::fmt::Debug for PhysicalBoxSides {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let print_sides = |prefix: &str, sides: PhysicalSides<Au>| -> Option<String> {
+            let side_debug = format!("{:?}", PrintableSides(sides));
+            if side_debug.is_empty() {
+                return None;
+            }
+            Some(format!("{prefix}={side_debug}"))
+        };
+
+        write!(
+            f,
+            "{}",
+            [
+                print_sides("padding", self.padding),
+                print_sides("border", self.border),
+                print_sides("margin", self.margin),
+            ]
+            .into_iter()
+            .flatten()
+            .join(" "),
+        )
+    }
+}
+
 #[derive(MallocSizeOf)]
 pub(crate) struct BoxFragment {
     pub base: BaseFragment,
@@ -124,9 +186,8 @@ pub(crate) struct BoxFragment {
     /// transforms.
     pub cumulative_parent_content_rect: SyncPhysicalRectAu,
 
-    pub padding: PhysicalSides<Au>,
-    pub border: PhysicalSides<Au>,
-    pub margin: PhysicalSides<Au>,
+    /// The physical padding, border, and margin of this [`BoxFragment`].
+    sides: PhysicalBoxSides,
 
     /// When this [`BoxFragment`] is for content that has a baseline, this tracks
     /// the first and last baselines of that content. This is used to propagate baselines
@@ -156,15 +217,12 @@ pub(crate) struct BoxFragment {
 }
 
 impl BoxFragment {
-    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: FragmentChildren,
         content_rect: PhysicalRect<Au>,
-        padding: PhysicalSides<Au>,
-        border: PhysicalSides<Au>,
-        margin: PhysicalSides<Au>,
+        sides: PhysicalBoxSides,
         specific_layout_info: Option<SpecificLayoutInfo>,
     ) -> Self {
         let writing_mode = style.writing_mode;
@@ -173,23 +231,18 @@ impl BoxFragment {
             style,
             children,
             content_rect,
-            padding,
-            border,
-            margin,
+            sides,
             specific_layout_info,
             writing_mode,
         )
     }
 
-    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new_with_writing_mode_override(
         base_fragment_info: BaseFragmentInfo,
         style: ServoArc<ComputedValues>,
         children: FragmentChildren,
         content_rect: PhysicalRect<Au>,
-        padding: PhysicalSides<Au>,
-        border: PhysicalSides<Au>,
-        margin: PhysicalSides<Au>,
+        sides: PhysicalBoxSides,
         specific_layout_info: Option<SpecificLayoutInfo>,
         writing_mode: WritingMode,
     ) -> Self {
@@ -204,9 +257,7 @@ impl BoxFragment {
             style: style.into(),
             children,
             cumulative_parent_content_rect: Default::default(),
-            padding,
-            border,
-            margin,
+            sides,
             baselines: Baselines::default(),
             scrollable_overflow: Default::default(),
             scrollable_overflow_is_up_to_date: AtomicBool::new(false),
@@ -257,9 +308,9 @@ impl BoxFragment {
         if style.establishes_scroll_container(self.base.flags) {
             let content_rect_size =
                 LogicalVec2::from_physical_size(&self.content_rect().size, writing_mode);
-            let padding = LogicalSides::from_physical(&self.padding, writing_mode);
-            let border = LogicalSides::from_physical(&self.border, writing_mode);
-            let margin = LogicalSides::from_physical(&self.margin, writing_mode);
+            let padding = LogicalSides::from_physical(&self.sides.padding, writing_mode);
+            let border = LogicalSides::from_physical(&self.sides.border, writing_mode);
+            let margin = LogicalSides::from_physical(&self.sides.margin, writing_mode);
             baselines.last = Some(
                 content_rect_size.block + padding.block_end + border.block_end + margin.block_end,
             )
@@ -396,24 +447,36 @@ impl BoxFragment {
         )
     }
 
+    pub(crate) fn padding(&self) -> PhysicalSides<Au> {
+        self.sides.padding
+    }
+
+    pub(crate) fn border(&self) -> PhysicalSides<Au> {
+        self.sides.border
+    }
+
+    pub(crate) fn margin(&self) -> PhysicalSides<Au> {
+        self.sides.margin
+    }
+
     pub(crate) fn content_rect(&self) -> PhysicalRect<Au> {
         self.base.rect()
     }
 
     pub(crate) fn padding_rect(&self) -> PhysicalRect<Au> {
-        self.content_rect().outer_rect(self.padding)
+        self.content_rect().outer_rect(self.sides.padding)
     }
 
     pub(crate) fn border_rect(&self) -> PhysicalRect<Au> {
-        self.padding_rect().outer_rect(self.border)
+        self.padding_rect().outer_rect(self.sides.border)
     }
 
     pub(crate) fn margin_rect(&self) -> PhysicalRect<Au> {
-        self.border_rect().outer_rect(self.margin)
+        self.border_rect().outer_rect(self.sides.margin)
     }
 
     pub(crate) fn padding_border_margin(&self) -> PhysicalSides<Au> {
-        self.margin + self.border + self.padding
+        self.sides.padding + self.sides.border + self.sides.margin
     }
 
     pub(crate) fn is_root_element(&self) -> bool {
@@ -426,27 +489,31 @@ impl BoxFragment {
             .intersects(FragmentFlags::IS_BODY_ELEMENT_OF_HTML_ELEMENT_ROOT)
     }
 
-    pub(crate) fn print(self: &Arc<Self>, tree: &mut PrintTree) {
+    pub(crate) fn print(self: &Arc<Self>, tree: &mut PrintTree, kind: &str) {
         let with_style = self.with_style();
-        tree.new_level(format!(
-            "Box\
-                \nbase={:?}\
-                \ncontent={:?}\
-                \npadding rect={:?}\
-                \nborder rect={:?}\
-                \nmargin={:?}\
-                \nscrollable_overflow={:?}\
-                \nbaselines={:?}\
-                \noverflow={:?}",
-            self.base,
-            self.content_rect(),
-            self.padding_rect(),
-            self.border_rect(),
-            self.margin,
-            with_style.scrollable_overflow(),
-            self.baselines,
-            with_style.style().effective_overflow(self.base.flags),
-        ));
+        let content_rect = self.content_rect();
+
+        let overflow = with_style.style().effective_overflow(self.base.flags);
+        let overflow = (overflow.x != ComputedOverflow::Visible ||
+            overflow.y != ComputedOverflow::Visible)
+            .then(|| format!("overflow={overflow:?}"));
+
+        let scrollable_overflow = PrintableRect(with_style.scrollable_overflow());
+        let scrollable_overflow = (scrollable_overflow.0 != content_rect)
+            .then(|| format!("scrollable-overflow={scrollable_overflow:?}"));
+
+        let baselines = (self.baselines.first.is_some() || self.baselines.last.is_some())
+            .then(|| format!("baselines={:?}", self.baselines));
+        let sides = self.sides;
+        let sides = (sides != PhysicalBoxSides::zero()).then(|| format!("{sides:?}"));
+        let mut other_values = [sides, overflow, scrollable_overflow, baselines]
+            .iter()
+            .flatten()
+            .join(" ");
+        if !other_values.is_empty() {
+            other_values = format!("\n{other_values}");
+        }
+        tree.new_level(format!("{kind} {:?} {other_values}", self.base));
 
         for child in &self.children {
             child.print(tree);
@@ -737,7 +804,7 @@ impl<'a> BoxFragmentWithStyle<'a> {
 
                     let padding_contribution = padding_contribution
                         .translate(content_origin)
-                        .outer_rect(self.padding);
+                        .outer_rect(self.sides.padding);
 
                     // Applying padding could also cause the rectangle to overflow to
                     // the wholly unreachable scrollable overflow, clipping the overflow

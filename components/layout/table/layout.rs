@@ -39,11 +39,11 @@ use crate::flow::ContentAlignment;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentAndLogicalRect,
-    FragmentChildren, FragmentFlags, PositioningFragment, SpecificLayoutInfo,
+    FragmentChildren, FragmentFlags, PhysicalBoxSides, PositioningFragment, SpecificLayoutInfo,
 };
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
-    PhysicalSides, PhysicalVec,
+    PhysicalVec,
 };
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{PositioningContext, PositioningContextLength, relative_adjustement};
@@ -1791,9 +1791,7 @@ impl<'a> TableLayout<'a> {
                 self.table.grid_style.clone(),
                 Default::default(),
                 content_rect,
-                self.pbm.padding.to_physical(table_writing_mode),
-                self.pbm.border.to_physical(table_writing_mode),
-                PhysicalSides::zero(),
+                PhysicalBoxSides::from_pbm(&self.pbm, LogicalSides::zero(), table_writing_mode),
                 self.specific_layout_info_for_grid(),
             );
         }
@@ -1910,9 +1908,7 @@ impl<'a> TableLayout<'a> {
             self.table.grid_style.clone(),
             FragmentChildren::Logical(table_fragments),
             content_rect,
-            self.pbm.padding.to_physical(table_writing_mode),
-            self.pbm.border.to_physical(table_writing_mode),
-            PhysicalSides::zero(),
+            PhysicalBoxSides::from_pbm(&self.pbm, LogicalSides::zero(), table_writing_mode),
             self.specific_layout_info_for_grid(),
         )
         .with_baselines(baselines)
@@ -2361,10 +2357,8 @@ impl<'a> RowFragmentLayout<'a> {
             FragmentChildren::Logical(self.fragments),
             self.rect
                 .as_physical_deprecated(&row_group_containing_block),
-            PhysicalSides::zero(), /* padding */
-            PhysicalSides::zero(), /* border */
-            PhysicalSides::zero(), /* margin */
-            None,                  /* specific_layout_info */
+            PhysicalBoxSides::zero(),
+            None, /* specific_layout_info */
             containing_block_for_logical_conversion.style.writing_mode,
         );
         row_fragment.set_does_not_paint_background();
@@ -2434,10 +2428,8 @@ impl RowGroupFragmentLayout {
             FragmentChildren::Logical(self.fragments),
             self.rect
                 .as_physical_deprecated(containing_block_for_logical_conversion),
-            PhysicalSides::zero(), /* padding */
-            PhysicalSides::zero(), /* border */
-            PhysicalSides::zero(), /* margin */
-            None,                  /* specific_layout_info */
+            PhysicalBoxSides::zero(),
+            None, /* specific_layout_info */
             containing_block_for_logical_conversion.style.writing_mode,
         );
         row_group_fragment.set_does_not_paint_background();
@@ -2965,9 +2957,12 @@ impl TableSlotCell {
                 align_fragment_rect,
             )]),
             cell_content_rect.as_physical_deprecated(containing_block),
-            layout.padding.to_physical(table_style.writing_mode),
-            layout.border.to_physical(table_style.writing_mode),
-            PhysicalSides::zero(), /* margin */
+            PhysicalBoxSides::from_logical(
+                layout.padding,
+                layout.border,
+                LogicalSides::zero(),
+                table_style.writing_mode,
+            ),
             specific_layout_info,
         )
         .with_baselines(layout.layout.baselines)

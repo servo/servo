@@ -27,6 +27,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, LayoutRootFragment,
+    PhysicalBoxSides,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -846,9 +847,7 @@ impl IndependentFormattingContext {
             style,
             fragments,
             physical_adjusted_content_rect,
-            pbm.padding.to_physical(containing_block_writing_mode),
-            pbm.border.to_physical(containing_block_writing_mode),
-            margin.to_physical(containing_block_writing_mode),
+            PhysicalBoxSides::from_pbm(&pbm, margin, containing_block_writing_mode),
             specific_layout_info,
         );
 

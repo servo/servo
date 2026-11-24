@@ -78,7 +78,7 @@ pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<Physi
     Some(
         fragment
             .retrieve_box_fragment()
-            .map(|box_fragment| box_fragment.padding)
+            .map(|box_fragment| box_fragment.padding())
             .unwrap_or_default(),
     )
 }
@@ -402,13 +402,13 @@ pub fn process_resolved_style_request(
         let margins = LazyCell::new(|| {
             fragment
                 .retrieve_box_fragment()
-                .map(|fragment| fragment.margin)
+                .map(|fragment| fragment.margin())
                 .unwrap_or_default()
         });
         let padding = LazyCell::new(|| {
             fragment
                 .retrieve_box_fragment()
-                .map(|fragment| fragment.padding)
+                .map(|fragment| fragment.padding())
                 .unwrap_or_default()
         });
         match longhand_id {

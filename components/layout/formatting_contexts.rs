@@ -89,10 +89,20 @@ impl IndependentFormattingContextContents {
 
 /// The baselines of a layout or a [`crate::fragment_tree::BoxFragment`]. Some layout
 /// uses the first and some layout uses the last.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf)]
+#[derive(Clone, Copy, Default, MallocSizeOf)]
 pub(crate) struct Baselines {
     pub first: Option<Au>,
     pub last: Option<Au>,
+}
+
+impl std::fmt::Debug for Baselines {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let as_string =
+            |value: Option<Au>| value.map_or_else(|| "-".into(), |value| format!("{value:?}"));
+        let first = as_string(self.first);
+        let last = as_string(self.last);
+        write!(f, "{first}/{last}")
+    }
 }
 
 impl Baselines {

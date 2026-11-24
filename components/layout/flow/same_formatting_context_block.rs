@@ -25,7 +25,9 @@ use crate::flow::{
     BlockContainer, CollapsibleWithParentStartMargin, ContainingBlockPaddingAndBorder,
     ResolvedMargins, solve_containing_block_padding_and_border_for_in_flow_box, solve_margins,
 };
-use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, FragmentFlags};
+use crate::fragment_tree::{
+    BoxFragment, CollapsedBlockMargins, CollapsedMargin, FragmentFlags, PhysicalBoxSides,
+};
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
@@ -430,9 +432,7 @@ impl SameFormattingContextBlock {
             style.clone(),
             flow_layout.fragments,
             content_rect.as_physical_deprecated(containing_block),
-            pbm.padding.to_physical(containing_block_writing_mode),
-            pbm.border.to_physical(containing_block_writing_mode),
-            margin.to_physical(containing_block_writing_mode),
+            PhysicalBoxSides::from_pbm(&pbm, margin, containing_block_writing_mode),
             flow_layout.specific_layout_info,
         )
         .with_baselines(flow_layout.baselines)

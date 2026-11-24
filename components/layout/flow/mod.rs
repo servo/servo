@@ -37,11 +37,10 @@ use crate::flow::same_formatting_context_block::SameFormattingContextBlock;
 use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BaseFragmentInfo, BlockLevelLayoutInfo, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
-    Fragment, FragmentChildren, FragmentFlags, PositioningFragment,
+    Fragment, FragmentChildren, FragmentFlags, PhysicalBoxSides, PositioningFragment,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
-    PhysicalSides,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::positioned::{
@@ -473,9 +472,7 @@ impl OutsideMarker {
                 style.clone(),
                 layout.fragments,
                 content_rect.as_physical_deprecated(containing_block),
-                PhysicalSides::zero(),
-                PhysicalSides::zero(),
-                PhysicalSides::zero(),
+                PhysicalBoxSides::zero(),
                 layout.specific_layout_info,
             )
             .into(),
@@ -1376,9 +1373,7 @@ impl IndependentFormattingContext {
             self.base.style.clone(),
             layout.fragments,
             content_rect.as_physical_deprecated(containing_block),
-            pbm.padding.to_physical(containing_block_writing_mode),
-            pbm.border.to_physical(containing_block_writing_mode),
-            margin.to_physical(containing_block_writing_mode),
+            PhysicalBoxSides::from_pbm(&pbm, margin, containing_block_writing_mode),
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
@@ -1756,9 +1751,7 @@ impl IndependentFormattingContext {
             style.clone(),
             layout.fragments,
             content_rect.as_physical_deprecated(containing_block),
-            pbm.padding.to_physical(containing_block_writing_mode),
-            pbm.border.to_physical(containing_block_writing_mode),
-            margin.to_physical(containing_block_writing_mode),
+            PhysicalBoxSides::from_pbm(&pbm, margin, containing_block_writing_mode),
             layout.specific_layout_info,
         )
         .with_baselines(layout.baselines)
@@ -2543,9 +2536,7 @@ impl IndependentFormattingContext {
             style.clone(),
             fragments,
             content_rect,
-            pbm.padding.to_physical(container_writing_mode),
-            pbm.border.to_physical(container_writing_mode),
-            margin.to_physical(container_writing_mode),
+            PhysicalBoxSides::from_pbm(pbm, margin, container_writing_mode),
             specific_layout_info,
         );
 

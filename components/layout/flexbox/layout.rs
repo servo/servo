@@ -35,7 +35,7 @@ use crate::dom::WeakLayoutBox;
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentAndLogicalRect, FragmentChildren,
-    FragmentFlags, SpecificLayoutInfo,
+    FragmentFlags, PhysicalBoxSides, SpecificLayoutInfo,
 };
 use crate::geom::{AuOrAuto, LogicalRect, LogicalSides, LogicalVec2};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
@@ -275,15 +275,12 @@ impl FlexLineItem<'_> {
             style.clone(),
             self.layout_result.fragments,
             Default::default(),
-            flex_context
-                .sides_to_flow_relative(self.item.padding)
-                .to_physical(container_writing_mode),
-            flex_context
-                .sides_to_flow_relative(self.item.border)
-                .to_physical(container_writing_mode),
-            flex_context
-                .sides_to_flow_relative(item_margin)
-                .to_physical(container_writing_mode),
+            PhysicalBoxSides::from_logical(
+                flex_context.sides_to_flow_relative(self.item.padding),
+                flex_context.sides_to_flow_relative(self.item.border),
+                flex_context.sides_to_flow_relative(item_margin),
+                container_writing_mode,
+            ),
             self.layout_result.specific_layout_info,
         );
 
