@@ -11,8 +11,7 @@ use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
 use image::{
-    AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat,
-    ImageResult, Limits,
+    AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
 };
 use log::debug;
 
@@ -269,6 +268,8 @@ pub(crate) fn decode_static_image(
         dynamic_image.apply_orientation(orientation);
     }
 
+    // Without an alpha channel every pixel is opaque, so premultiplying would change nothing.
+    let has_alpha = dynamic_image.color().has_alpha();
     let format = match dynamic_image {
         DynamicImage::ImageLuma8(_) => PixelFormat::K8,
         DynamicImage::ImageLumaA8(_) => PixelFormat::KA8,
@@ -290,15 +291,15 @@ pub(crate) fn decode_static_image(
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
     // times. This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
-    let is_opaque = match format {
-        // Without an alpha channel every pixel is opaque, so premultiplying would change nothing.
-        PixelFormat::K8 | PixelFormat::RGB8 => true,
-        PixelFormat::KA8 => ka8_premultiply_inplace(&mut data),
-        PixelFormat::RGBA8 => rgba8_premultiply_inplace(&mut data),
-        PixelFormat::BGRA8 => {
-            unreachable!("Should not be creating a BGRA8 image out of a DynamicImage")
-        },
-    };
+    let is_opaque = !has_alpha ||
+        match format {
+            PixelFormat::K8 | PixelFormat::RGB8 => true,
+            PixelFormat::KA8 => ka8_premultiply_inplace(&mut data),
+            PixelFormat::RGBA8 => rgba8_premultiply_inplace(&mut data),
+            PixelFormat::BGRA8 => {
+                unreachable!("Should not be creating a BGRA8 image out of a DynamicImage")
+            },
+        };
 
     let frame = ImageFrame {
         delay: None,
