@@ -279,8 +279,8 @@ dir, dl, menu, ol, ul { margin-top: 1em; margin-bottom: 1em; }
   margin-top: 0; margin-bottom: 0;
 }
 
-dd { margin-left: 40px; } /* FIXME: use margin-inline-start when supported */
-dir, menu, ol, ul { padding-left: 40px; } /* FIXME: use padding-inline-start when supported */
+dd { margin-inline-start: 40px; }
+dir, menu, ol, ul { padding-inline-start: 40px; }
 
 ol { list-style-type: decimal; }
 
