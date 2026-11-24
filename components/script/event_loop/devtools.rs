@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Ref, RefCell, RefMut};
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 use std::fmt::Write as _;
 use std::str;
 
@@ -28,6 +28,7 @@ use servo_base::id::PipelineId;
 use servo_config::pref;
 use style::properties::{NonCustomPropertyId, PropertyId};
 use style::stylesheets::Origin;
+use style_traits::CssType;
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::CSSGroupingRuleBinding::CSSGroupingRuleMethods;
@@ -178,6 +179,29 @@ pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDa
     let database: HashMap<_, _> = NonCustomPropertyId::iter()
         .filter(|id| PropertyId::NonCustom(*id).enabled_for_all_content())
         .map(|id| {
+            let property = PropertyId::NonCustom(id);
+
+            let supports = [
+                ("color", CssType::COLOR),
+                ("gradient", CssType::GRADIENT),
+                ("timing-function", CssType::TIMING_FUNCTION),
+            ]
+            .into_iter()
+            .filter(|(_, bit)| property.supports_type(*bit))
+            .map(|(name, _)| name.into())
+            .collect();
+
+            let mut keywords = BTreeSet::<&'static str>::new();
+            property.collect_property_completion_keywords(&mut |list| keywords.extend(list));
+            let mut values: Vec<String> =
+                keywords.iter().map(|keyword| (*keyword).into()).collect();
+
+            // firefox replaces this marker with the full color name list on the client
+            // avoiding sending full list of color names for every property
+            if keywords.contains("transparent") {
+                values.insert(0, "COLOR".into());
+            }
+
             let (is_inherited, subproperties) = match id.longhand_or_shorthand() {
                 Ok(longhand) => (longhand.inherited(), vec![longhand.name().into()]),
                 Err(shorthand) => (
@@ -189,8 +213,8 @@ pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDa
                 id.name().into(),
                 CssDatabaseProperty {
                     is_inherited,
-                    values: vec![], // TODO: Get allowed values for each property
-                    supports: vec![],
+                    values,
+                    supports,
                     subproperties,
                 },
             )

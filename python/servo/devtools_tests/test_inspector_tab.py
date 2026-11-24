@@ -78,6 +78,36 @@ class TestInspectorTab:
             # Assert that longhands are still present
             assert properties["padding-top"]["subproperties"] == ["padding-top"]
 
+    def test_inspector_css_database_includes_supports_and_values(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
+        with Devtools.connect() as devtools:
+            css_properties = devtools.targets[0]["cssPropertiesActor"]
+
+            reply = devtools.client.send_receive(
+                {
+                    "to": css_properties,
+                    "type": "getCSSDatabase",
+                }
+            )
+
+            properties = reply["properties"]
+
+            # Assert that color supports the color type
+            assert "color" in properties["color"]["supports"]
+
+            # Assert that padding doesnot support any special types
+            assert properties["padding"]["supports"] == []
+
+            # Assert that timing function is supported
+            assert "timing-function" in properties["transition-timing-function"]["supports"]
+
+            # Assert that color values start with the COLOR marker
+            assert properties["color"]["values"][0] == "COLOR"
+
+            # Assert that display includes its completion keywords
+            assert "block" in properties["display"]["values"]
+            assert "inherit" in properties["display"]["values"]
+
     def test_inspector_attribute_modifications_affect_dom(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:
