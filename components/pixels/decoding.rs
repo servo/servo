@@ -11,13 +11,14 @@ use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
 use image::metadata::LoopCount;
 use image::{
-    AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
+    AnimationDecoder, DynamicImage, EncodableLayout, ImageDecoder, ImageError, ImageFormat,
+    ImageResult, Limits,
 };
 use log::debug;
 
 use crate::{
     CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, Repeat,
-    rgba8_premultiply_inplace,
+    ka8_premultiply_inplace, rgba8_premultiply_inplace,
 };
 
 enum GenericImageDecoder<'a> {
@@ -268,29 +269,48 @@ pub(crate) fn decode_static_image(
         dynamic_image.apply_orientation(orientation);
     }
 
-    // Without an alpha channel every pixel is opaque, so premultiplying would change nothing.
-    let has_alpha = dynamic_image.color().has_alpha();
-    let mut rgba = dynamic_image.into_rgba8();
+    let format = match dynamic_image {
+        DynamicImage::ImageLuma8(_) => PixelFormat::K8,
+        DynamicImage::ImageLumaA8(_) => PixelFormat::KA8,
+        DynamicImage::ImageRgb8(_) => PixelFormat::RGB8,
+        DynamicImage::ImageRgba8(_) => PixelFormat::RGBA8,
+        // All other formats are converted down to RGBA8.
+        _ => PixelFormat::RGBA8,
+    };
+    let width = dynamic_image.width();
+    let height = dynamic_image.height();
+    let mut data = match dynamic_image {
+        DynamicImage::ImageLuma8(image) => image.into_vec(),
+        DynamicImage::ImageLumaA8(image) => image.into_vec(),
+        DynamicImage::ImageRgb8(image) => image.into_vec(),
+        DynamicImage::ImageRgba8(image) => image.into_vec(),
+        _ => dynamic_image.clone().into_rgba8().into_vec(),
+    };
 
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
     // times. This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
-    let is_opaque = !has_alpha || rgba8_premultiply_inplace(&mut rgba);
+    let is_opaque = match format {
+        // Without an alpha channel every pixel is opaque, so premultiplying would change nothing.
+        PixelFormat::K8 | PixelFormat::RGB8 => true,
+        PixelFormat::KA8 => ka8_premultiply_inplace(&mut data),
+        PixelFormat::RGBA8 => rgba8_premultiply_inplace(&mut data),
+        PixelFormat::BGRA8 => {
+            unreachable!("Should not be creating a BGRA8 image out of a DynamicImage")
+        },
+    };
 
     let frame = ImageFrame {
         delay: None,
-        byte_range: 0..rgba.len(),
-        width: rgba.width(),
-        height: rgba.height(),
+        byte_range: 0..data.len(),
+        width,
+        height,
     };
     Some(RasterImage {
-        metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
-        },
-        format: PixelFormat::RGBA8,
+        metadata: ImageMetadata { width, height },
+        format,
         frames: vec![frame],
-        bytes: Arc::new(rgba.into_vec()),
+        bytes: Arc::new(data),
         id: None,
         cors_status,
         load_time: None,

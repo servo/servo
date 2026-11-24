@@ -219,6 +219,28 @@ pub fn rgba8_premultiply_inplace(pixels: &mut [u8]) -> bool {
     is_opaque
 }
 
+/// Returns true if the pixels were found to be completely opaque.
+pub fn ka8_premultiply_inplace(pixels: &mut [u8]) -> bool {
+    assert!(pixels.len().is_multiple_of(2));
+    let mut is_opaque = true;
+    for ka in pixels.as_chunks_mut::<2>().0 {
+        let [k, a] = *ka;
+        // Fast path: full alpha keeps the color and zero alpha clears it.
+        match a {
+            u8::MAX => {},
+            0 => {
+                *ka = [0; 2];
+                is_opaque = false;
+            },
+            _ => {
+                *ka = [multiply_u8_color(k, a), a];
+                is_opaque = false;
+            },
+        }
+    }
+    is_opaque
+}
+
 /// Returns a*b/255, rounding any fractional bits to nearest integer
 /// to reduce the loss of precision after multiple consequence alpha
 /// (un)premultiply operations.
@@ -455,6 +477,7 @@ impl RasterImage {
                 GenericSharedMemory::from_arc_vec(self.bytes.clone()),
                 self.should_animate(),
             ),
+            // All other types need to be transformed to a format WebRender understands:
             PixelFormat::RGB8 => {
                 let frame_bytes = &self.bytes[frame.byte_range.clone()];
                 let mut bytes = Vec::with_capacity(frame_bytes.len() / 3 * 4);
@@ -470,8 +493,38 @@ impl RasterImage {
                     false,
                 )
             },
-            PixelFormat::K8 | PixelFormat::KA8 => {
-                panic!("Not support by webrender yet");
+            // While WebRender does have a format for storing one and two channel images,
+            // there is no way to tell it to interpret them as grayscale, so convert them.
+            PixelFormat::K8 => {
+                let frame_bytes = &self.bytes[frame.byte_range.clone()];
+                let mut bytes = Vec::with_capacity(frame_bytes.len() * 4);
+                for luma in frame_bytes {
+                    bytes.extend_from_slice(&[*luma, *luma, *luma, 0xff]);
+                }
+                (
+                    WebRenderImageFormat::BGRA8,
+                    GenericSharedMemory::from_vec(bytes),
+                    // Same as above
+                    false,
+                )
+            },
+            PixelFormat::KA8 => {
+                let frame_bytes = &self.bytes[frame.byte_range.clone()];
+                let mut bytes = Vec::with_capacity(frame_bytes.len() * 2);
+                for luma_alpha in frame_bytes.as_chunks::<2>().0 {
+                    bytes.extend_from_slice(&[
+                        luma_alpha[0],
+                        luma_alpha[0],
+                        luma_alpha[0],
+                        luma_alpha[1],
+                    ]);
+                }
+                (
+                    WebRenderImageFormat::BGRA8,
+                    GenericSharedMemory::from_vec(bytes),
+                    // Same as above
+                    false,
+                )
             },
         };
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
@@ -500,11 +553,7 @@ impl RasterImage {
         let format = match self.format {
             PixelFormat::BGRA8 => WebRenderImageFormat::BGRA8,
             PixelFormat::RGBA8 => WebRenderImageFormat::RGBA8,
-            PixelFormat::RGB8 => WebRenderImageFormat::BGRA8,
-            PixelFormat::KA8 | PixelFormat::K8 => {
-                error!("Pixel format currently not supported");
-                return None;
-            },
+            PixelFormat::RGB8 | PixelFormat::KA8 | PixelFormat::K8 => WebRenderImageFormat::BGRA8,
         };
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
