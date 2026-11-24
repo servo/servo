@@ -742,7 +742,6 @@ impl Handler {
 
         let cmd_msg = WebDriverCommandMsg::LoadUrl(webview_id, url);
         self.send_message_to_embedder(cmd_msg)?;
-        self.synchronize_navigation_state(webview_id)?;
 
         // Step 8.2.1: try to wait for navigation to complete.
         self.wait_for_navigation_to_complete()?;
@@ -815,8 +814,8 @@ impl Handler {
         }
     }
 
-    /// Ask the Constellation, in order with the navigation command just sent, whether a
-    /// navigation is in progress, and record the answer locally.
+    /// Ask the Constellation whether a navigation is in progress for `webview_id`, and
+    /// record the answer locally.
     fn synchronize_navigation_state(&mut self, webview_id: WebViewId) -> WebDriverResult<()> {
         let (sender, receiver) = generic_channel::oneshot().unwrap();
         self.send_message_to_embedder(WebDriverCommandMsg::IsNavigationInProgress(
@@ -840,9 +839,13 @@ impl Handler {
             return Ok(WebDriverResponse::Void);
         }
 
+        self.pump_load_statuses()?;
+        if !self.navigating_webviews.contains(&webview_id) {
+            // A script-initiated navigation reports its start asynchronously.
+            self.synchronize_navigation_state(webview_id)?;
+        }
         // Nothing to wait for; step 2 would return success too, so skip asking the
         // embedder about the browsing context.
-        self.pump_load_statuses()?;
         if !self.navigating_webviews.contains(&webview_id) {
             return Ok(WebDriverResponse::Void);
         }
@@ -1074,7 +1077,6 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         self.send_message_to_embedder(WebDriverCommandMsg::GoBack(webview_id))?;
-        self.synchronize_navigation_state(webview_id)?;
         self.wait_for_navigation_to_complete()
     }
 
@@ -1089,7 +1091,6 @@ impl Handler {
         self.handle_any_user_prompts(webview_id)?;
 
         self.send_message_to_embedder(WebDriverCommandMsg::GoForward(webview_id))?;
-        self.synchronize_navigation_state(webview_id)?;
         self.wait_for_navigation_to_complete()
     }
 
@@ -1105,7 +1106,6 @@ impl Handler {
 
         let cmd_msg = WebDriverCommandMsg::Refresh(webview_id);
         self.send_message_to_embedder(cmd_msg)?;
-        self.synchronize_navigation_state(webview_id)?;
 
         // Step 4.1: Try to wait for navigation to complete.
         self.wait_for_navigation_to_complete()?;
