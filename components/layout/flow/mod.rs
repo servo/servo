@@ -1914,6 +1914,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     );
 
     // Make the block size definite so children can resolve block percentages against it.
+    // TODO: This doesn't update `tentative_block_size`, which e.g. is checked in order to
+    // determine whether margins can collapse through the box. That logic should take the
+    // ratio-dependent block size into account as well.
     if let Some(ratio_dependent_block_size) =
         compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size)
     {
@@ -2479,6 +2482,8 @@ impl IndependentFormattingContext {
                     block_stretch_size,
                     || block_content_size,
                     is_table,
+                    // TODO: Resolve the ratio-dependent block size here, so that the contents
+                    // can resolve block percentages against it.
                     || None, /* ratio_dependent_block_size */
                 ))
             } else {

@@ -726,6 +726,8 @@ impl IndependentFormattingContext {
                 block_stretch_size,
                 || block_content_size,
                 is_table,
+                // TODO: Resolve the ratio-dependent block size here, so that the contents can
+                // resolve block percentages against it.
                 || None, /* ratio_dependent_block_size */
             ))
         } else {
