@@ -57,30 +57,6 @@ bitflags! {
     }
 }
 
-impl FragmentAndLogicalRect {
-    /// Given a vector of [`FragmentAndLogicalRect`], this resolves the final physical rect for each
-    /// non-floating fragment (storing it) then returns a vector with the [`Fragment`]s.
-    fn resolve_physical_rects(
-        fragments_and_logical_rects: Vec<Self>,
-        container: &ContainingBlock,
-    ) -> Vec<Fragment> {
-        let mut fragments = Vec::with_capacity(fragments_and_logical_rects.len());
-        for fragment_and_logical_rect in fragments_and_logical_rects {
-            if let Some(base) = fragment_and_logical_rect.fragment.base() {
-                // We do not know the actual physical position of a logically laid out inline element, until
-                // we know the width of the containing inline block. This step converts the logical rectangle
-                // into a physical one based on the inline formatting context width.
-                let rect = fragment_and_logical_rect
-                    .logical_rect
-                    .as_physical_deprecated(container);
-                base.set_rect(rect);
-            }
-            fragments.push(fragment_and_logical_rect.fragment);
-        }
-        fragments
-    }
-}
-
 /// The state used when laying out a collection of [`LineItem`]s into a line. This state is stored
 /// per-inline container. For instance, when laying out the conents of a `<span>` a fresh
 /// [`LineItemLayoutInlineContainerState`] is pushed onto [`LineItemLayout`]'s stack of states.
@@ -200,7 +176,7 @@ impl LineItemLayout<'_, '_> {
         justification_adjustment: Au,
         is_phantom_line: bool,
         for_block_level: bool,
-    ) -> Vec<Fragment> {
+    ) -> Vec<FragmentAndLogicalRect> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
             layout,
@@ -308,7 +284,7 @@ impl LineItemLayout<'_, '_> {
         iterator(line_items)
     }
 
-    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<Fragment> {
+    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<FragmentAndLogicalRect> {
         let line_item_iterator = self.reorder_line_items_for_bidi(line_items);
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
@@ -344,10 +320,7 @@ impl LineItemLayout<'_, '_> {
         // Move back to the root of the inline box tree, so that all boxes are ended.
         self.prepare_layout_for_inline_box(None);
 
-        FragmentAndLogicalRect::resolve_physical_rects(
-            std::mem::take(&mut self.current_state.fragments_and_logical_rect),
-            self.layout.containing_block(),
-        )
+        std::mem::take(&mut self.current_state.fragments_and_logical_rect)
     }
 
     fn current_positioning_context_mut(&mut self) -> &mut PositioningContext {

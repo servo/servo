@@ -10,6 +10,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
 use servo_base::id::AtomicOptionScrollTreeNodeId;
 use servo_base::print_tree::PrintTree;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
@@ -56,9 +57,26 @@ impl PositioningFragment {
         children: FragmentChildren,
         is_line_box: bool,
     ) -> Arc<Self> {
+        let writing_mode = style.writing_mode;
+        Self::new_anonymous_with_writing_mode_override(
+            style,
+            rect,
+            children,
+            is_line_box,
+            writing_mode,
+        )
+    }
+
+    pub fn new_anonymous_with_writing_mode_override(
+        style: ServoArc<ComputedValues>,
+        rect: PhysicalRect<Au>,
+        children: FragmentChildren,
+        is_line_box: bool,
+        writing_mode: WritingMode,
+    ) -> Arc<Self> {
         let children = children.into_physical_fragments(
             style.writing_mode,
-            LogicalVec2::from_physical_size(&rect.size, style.writing_mode),
+            LogicalVec2::from_physical_size(&rect.size, writing_mode),
         );
         Self::new_with_base_fragment_info(
             BaseFragmentInfo::anonymous(),
