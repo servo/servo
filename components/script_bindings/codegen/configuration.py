@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import functools
 import os
+from collections.abc import Iterable
+from enum import Enum
 from typing import Any, TypeVar
 
 from WebIDL import (
     IDLAttribute,
     IDLCallback,
+    IDLConstructor,
     IDLDictionary,
     IDLEnum,
     IDLExternalInterface,
@@ -28,10 +31,45 @@ from WebIDL import (
     WebIDLError,
 )
 
+EVENT_HANDLER_CALLBACKS = {
+    "EventHandlerNonNull",
+    "OnErrorEventHandlerNonNull",
+    "OnBeforeUnloadEventHandlerNonNull",
+}
+
+
 TargetType = TypeVar('TargetType')
 def assert_type(object: Any, cls: type[TargetType]) -> TargetType:
     assert isinstance(object, cls)
     return object
+
+
+class Context(Enum):
+    NoContext = 0
+    NoGC = 1
+    CxNoGC = 2
+    Cx = 3
+    CurrentRealm = 4
+
+    def argument(self) -> Iterable[tuple[str, str]]:
+        match self:
+            case Context.CurrentRealm:
+                yield "realm", "&mut CurrentRealm"
+            case Context.Cx:
+                yield "cx", "&mut JSContext"
+            case Context.CxNoGC:
+                yield "cx", "&JSContext"
+            case Context.NoGC:
+                yield "cx", "&NoGC"
+            case Context.NoContext:
+                pass
+
+
+class MethodType(Enum):
+    Normal = 0
+    Setter = 1
+    Getter = 2
+
 
 FilterItemsType = TypeVar('FilterItemsType', bound=IDLObjectWithIdentifier)
 class Configuration:
@@ -446,6 +484,28 @@ class Descriptor(DescriptorProvider):
             self._internalNames.setdefault(member.identifier.name,
                                            member.identifier.name.replace('-', '_'))
 
+    def contextForMember(self, member: IDLInterfaceMember, nativeName: str, methodType: MethodType) -> Context:
+        if nativeName in self.realmMethods:
+            return Context.CurrentRealm
+
+        if methodType == MethodType.Setter and self.implicitCxSetters:
+            return Context.Cx
+        if isinstance(member, IDLAttribute) and isEventHandlerCallback(member):
+            return Context.Cx
+        if self.interface.isIteratorInterface():
+            return Context.Cx
+
+        if nativeName in self.cxMethods:
+            return Context.Cx
+        if nativeName in self.cx_no_gcMethods:
+            return Context.CxNoGC
+        if nativeName in self.no_gcMethods:
+            return Context.NoGC
+        if isinstance(member, IDLConstructor):
+            return Context.Cx
+
+        return Context.NoContext
+
     def maybeGetSuperModule(self) -> str | None:
         """
         Returns name of super module if self is part of it
@@ -472,7 +532,7 @@ class Descriptor(DescriptorProvider):
     def supportsNamedProperties(self) -> bool:
         return self.operations['NamedGetter'] is not None
 
-    def getExtendedAttributes(self, member: IDLInterfaceMember, getter: bool = False, setter: bool = False) -> list[str]:
+    def getExtendedAttributes(self, member: IDLInterfaceMember, methodType: MethodType = MethodType.Normal) -> list[str]:
         def maybeAppendInfallibleToAttrs(attrs: list[str], throws: bool | None) -> None:
             if throws is None:
                 attrs.append("infallible")
@@ -489,12 +549,12 @@ class Descriptor(DescriptorProvider):
             return attrs
 
         assert member.isAttr()
-        assert bool(getter) != bool(setter)
-        key = 'getterOnly' if getter else 'setterOnly'
+        assert methodType != MethodType.Normal
+        key = 'getterOnly' if methodType == MethodType.Getter else 'setterOnly'
         attrs = self.extendedAttributes['all'].get(name, []) + self.extendedAttributes[key].get(name, [])
         throws = member.getExtendedAttribute("Throws")
         if throws is None:
-            throwsAttr = "GetterThrows" if getter else "SetterThrows"
+            throwsAttr = "GetterThrows" if methodType == MethodType.Getter else "SetterThrows"
             throws = member.getExtendedAttribute(throwsAttr)
         maybeAppendInfallibleToAttrs(attrs, throws)
         return attrs
@@ -625,3 +685,13 @@ def iteratorNativeType(descriptor: Descriptor, infer: bool = False) -> str:
     if iterableDecl.isSetlike() or iterableDecl.isMaplike():
         res = f"crate::iterable::{res}"
     return res
+
+
+def isEventHandlerCallback(member: IDLAttribute) -> bool:
+    if not member.isAttr():
+        return False
+    if not member.type.isCallback():
+        return False
+    # pyrefly: ignore  # missing-attribute
+    callback = member.type.unroll().callback
+    return callback.identifier.name in EVENT_HANDLER_CALLBACKS

@@ -17,22 +17,24 @@ import textwrap
 from abc import abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable, Iterator
-from enum import IntEnum
 from itertools import groupby
 from re import Match
 from typing import Any, Generic, Optional, TypeGuard, TypeVar, cast
 
 from configuration import (
     Configuration,
+    Context,
     Descriptor,
     DescriptorProvider,
     MakeNativeName,
     MemberIsLegacyUnforgeable,
+    MethodType,
     assert_type,
     getModuleFromObject,
     getTypesFromCallback,
     getTypesFromDescriptor,
     getTypesFromDictionary,
+    isEventHandlerCallback,
     iteratorNativeType,
 )
 from WebIDL import (
@@ -157,12 +159,6 @@ RUST_KEYWORDS = {
     "where",
     "while",
     "yield",
-}
-
-EVENT_HANDLER_CALLBACKS = {
-    "EventHandlerNonNull",
-    "OnErrorEventHandlerNonNull",
-    "OnBeforeUnloadEventHandlerNonNull",
 }
 
 STYLO_PREF_PREFIX = "stylo:"
@@ -1535,30 +1531,6 @@ def wrapForType(jsvalRef: str, result: str = 'result', successCode: str = 'true'
     if successCode:
         wrap += f"\n{successCode}"
     return wrap
-
-
-class Context(IntEnum):
-    No = 0
-    Cx = 1
-    CurrentRealm = 2
-
-
-def typeNeedsCx(type: IDLType | None, retVal: bool = False) -> Context:
-    if type is None:
-        return Context.No
-    if type.nullable():
-        assert isinstance(type, IDLNullableType)
-        type = type.inner
-    if type.isSequence() or type.isObservableArray():
-        assert isinstance(type, (IDLSequenceType, IDLObservableArrayType))
-        type = type.inner
-    if type.isUnion():
-        assert isinstance(type, IDLUnionType)
-        flatMemberTypes = type.unroll().flatMemberTypes
-        assert flatMemberTypes is not None
-
-        return max(typeNeedsCx(t) for t in flatMemberTypes)
-    return Context.No
 
 
 def returnTypeNeedsOutparam(type: IDLType | None) -> bool:
@@ -4233,20 +4205,6 @@ class CGDefineDOMInterfaceMethod(CGAbstractMethod):
         )
 
 
-def needCx(returnType: IDLType | None, arguments: Iterable[IDLArgument | FakeArgument], considerTypes: bool) -> Context:
-    return max([typeNeedsCx(a.type) for a in arguments] + [typeNeedsCx(returnType, True)]) if considerTypes else Context.No
-
-
-def isEventHandlerCallback(member: IDLAttribute) -> bool:
-    if not member.isAttr():
-        return False
-    if not member.type.isCallback():
-        return False
-    # pyrefly: ignore  # missing-attribute
-    callback = member.type.unroll().callback
-    return callback.identifier.name in EVENT_HANDLER_CALLBACKS
-
-
 class CGCallGenerator(CGThing):
     """
     A class to generate an actual call to a C++ object.  Assumes that the C++
@@ -4263,7 +4221,7 @@ class CGCallGenerator(CGThing):
                  extendedAttributes: list[str],
                  descriptor: Descriptor,
                  nativeMethodName: str,
-                 is_implicit_cx_attribute: bool,
+                 context: Context,
                  static: bool,
                  object: str = "this",
                  hasCEReactions: bool = False
@@ -4288,31 +4246,15 @@ class CGCallGenerator(CGThing):
         for (a, name) in arguments:
             args.append(CGGeneric(name))
 
-        match max([needCx(returnType, (a for (a, _) in arguments), True), Context.Cx if is_implicit_cx_attribute else Context.No]):
-            case Context.Cx:
-                descriptor.cxMethods.append(nativeMethodName)
-            case Context.CurrentRealm:
-                descriptor.realmMethods.append(nativeMethodName)
-            case Context.No:
-                pass
-
         # Build up our actual call
         self.cgRoot = CGList([], "\n")
-        if nativeMethodName in descriptor.realmMethods:
+        if context == Context.CurrentRealm:
             self.cgRoot.append(CGList([
                 CGGeneric("let mut realm = CurrentRealm::assert(cx);"),
                 CGGeneric("let cx = &mut realm;"),
             ]))
 
-        needs_cx_arg = (
-            nativeMethodName in descriptor.no_gcMethods
-            or nativeMethodName in descriptor.cx_no_gcMethods
-            or nativeMethodName in descriptor.cxMethods
-            or nativeMethodName in descriptor.realmMethods
-            or nativeMethodName.startswith("Constructor")
-            or descriptor.interface.isIteratorInterface()
-        )
-        if needs_cx_arg:
+        if context != Context.NoContext:
             args.prepend(CGGeneric("cx"))
 
         if returnType and outparamRootType:
@@ -4403,22 +4345,19 @@ class CGPerSignatureCall(CGThing):
                  descriptor: Descriptor,
                  idlNode: IDLInterfaceMember,
                  argConversionStartsAt: int = 0,
-                 getter: bool = False,
-                 setter: bool = False) -> None:
+                 methodType: MethodType = MethodType.Normal) -> None:
         CGThing.__init__(self)
         self.returnType = returnType
         self.descriptor = descriptor
         self.idlNode = idlNode
-        self.extendedAttributes = descriptor.getExtendedAttributes(idlNode,
-                                                                   getter=getter,
-                                                                   setter=setter)
+        self.extendedAttributes = descriptor.getExtendedAttributes(idlNode, methodType)
         self.argsPre = argsPre
         self.arguments = arguments
         self.argCount = len(arguments)
         cgThings: list[CGThing] = []
         cgThings.extend([CGArgumentConverter(arguments[i], i, self.getArgs(),
                                              self.getArgc(), self.descriptor,
-                                             invalidEnumValueFatal=not setter) for
+                                             invalidEnumValueFatal=methodType != MethodType.Setter) for
                          i in range(argConversionStartsAt, self.argCount)])
 
         errorResult = None
@@ -4436,17 +4375,16 @@ class CGPerSignatureCall(CGThing):
                 cgThings.append(CGIterableMethodGenerator(descriptor,
                                                           idlNode.maplikeOrSetlikeOrIterable,
                                                           idlNode.identifier.name))
-        elif isinstance(idlNode, IDLAttribute) and setter and idlNode.type.isObservableArray():
+        elif isinstance(idlNode, IDLAttribute) and methodType == MethodType.Setter and idlNode.type.isObservableArray():
             cgThings.append(CGObservableArraySetterGenerator(descriptor, idlNode))
         else:
             hasCEReactions = idlNode.getExtendedAttribute("CEReactions") or False
-            is_event_listener = isinstance(idlNode, IDLAttribute) and isEventHandlerCallback(idlNode)
-            is_implicit_cx_attribute = is_event_listener or descriptor.implicitCxSetters and idlNode.isAttr() and nativeMethodName.startswith('Set')
+            context = self.descriptor.contextForMember(idlNode, nativeMethodName, methodType)
             cgThings.append(CGCallGenerator(
                 errorResult,
                 self.getArguments(), self.argsPre, returnType,
                 self.extendedAttributes, descriptor, nativeMethodName,
-                is_implicit_cx_attribute, static, hasCEReactions=hasCEReactions))
+                context, static, hasCEReactions=hasCEReactions))
 
         self.cgRoot = CGList(cgThings, "\n")
 
@@ -4535,7 +4473,7 @@ class CGGetterCall(CGPerSignatureCall):
     def __init__(self, argsPre: list[str], returnType: IDLType | None, nativeMethodName: str, descriptor: Descriptor, attr: IDLAttribute) -> None:
         CGPerSignatureCall.__init__(self, returnType, argsPre, [],
                                     nativeMethodName, attr.isStatic(), descriptor,
-                                    attr, getter=True)
+                                    attr, methodType=MethodType.Getter)
 
 
 class FakeArgument():
@@ -4566,7 +4504,7 @@ class CGSetterCall(CGPerSignatureCall):
         CGPerSignatureCall.__init__(self, None, argsPre,
                                     [FakeArgument(argType, attr, allowTreatNonObjectAsNull=True)],
                                     nativeMethodName, attr.isStatic(), descriptor, attr,
-                                    setter=True)
+                                    methodType=MethodType.Setter)
 
     def wrap_return_value(self) -> str:
         # We have no return value
@@ -5077,7 +5015,7 @@ true
             nativeName = descriptor.internalNameFor(name)
         nativeName = MakeNativeName(nativeName)
         infallible = ('infallible' in
-                      descriptor.getExtendedAttributes(attr, getter=True))
+                      descriptor.getExtendedAttributes(attr, methodType=MethodType.Getter))
         if attr.type.nullable() or not infallible:
             return f"Get{nativeName}"
 
@@ -5322,7 +5260,7 @@ impl<D: DomTypes> BindingTables<D> {{
             getter = f"get_{internalMemberName}"
             if self.member.type.isPromise():
                 getter = CGGetterPromiseWrapper.makeNativeName(self.descriptor, self.member)
-            getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, getter=True)
+            getterinfal = "infallible" in self.descriptor.getExtendedAttributes(self.member, methodType=MethodType.Getter)
 
             movable = self.mayBeMovable() and getterinfal
             aliasSet = self.aliasSet()
@@ -7368,24 +7306,12 @@ class CGInterfaceTrait(CGThing):
 
         def attribute_arguments(attribute_type: IDLType,
                                 argument: IDLType | None = None,
-                                no_gc: bool = False,
-                                cx_no_gc: bool = False,
-                                cx: bool = False,
-                                realm: bool = False,
+                                context: Context = Context.NoContext,
                                 retval: bool = False,
                                 ) -> Iterable[tuple[str, str]]:
-            if realm:
-                yield "realm", "&mut CurrentRealm"
-            elif cx:
-                yield "cx", "&mut JSContext"
-            elif cx_no_gc:
-                yield "cx", "&JSContext"
-            elif no_gc:
-                yield "cx", "&NoGC"
-
+            yield from context.argument()
             if argument:
                 yield "value", argument_type(descriptor, argument)
-
             if retval and returnTypeNeedsOutparam(attribute_type):
                 yield "retval", outparamTypeFromReturnType(attribute_type)
 
@@ -7406,11 +7332,8 @@ class CGInterfaceTrait(CGThing):
                     for idx, (rettype, arguments) in enumerate(m.signatures()):
                         rettype = cast(IDLType, rettype)
                         arguments = cast(list[IDLArgument], arguments)
-                        arguments = method_arguments(descriptor, rettype, arguments,
-                                                     no_gc=name in descriptor.no_gcMethods,
-                                                     cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                                     cx=name in descriptor.cxMethods or descriptor.interface.isIteratorInterface(),
-                                                     realm=name in descriptor.realmMethods)
+                        context = descriptor.contextForMember(m, name, MethodType.Normal)
+                        arguments = method_arguments(descriptor, rettype, arguments, context=context)
                         rettype = return_type(descriptor, rettype, infallible)
                         yield f"{name}{'_' * idx}", arguments, rettype, m.isStatic()
                 elif m.isAttr():
@@ -7438,36 +7361,24 @@ class CGInterfaceTrait(CGThing):
                         continue
                     used_names.add(name)
 
-                    infallible = 'infallible' in descriptor.getExtendedAttributes(m, getter=True)
+                    infallible = 'infallible' in descriptor.getExtendedAttributes(m, methodType=MethodType.Getter)
+                    context = descriptor.contextForMember(m, name, MethodType.Getter)
                     yield (name,
-                           attribute_arguments(
-                               m.type,
-                               no_gc=name in descriptor.no_gcMethods,
-                               cx_no_gc=name in descriptor.cx_no_gcMethods,
-                               cx=name in descriptor.cxMethods or isEventHandlerCallback(m),
-                               realm=name in descriptor.realmMethods,
-                               retval=True,
-                           ),
+                           attribute_arguments(m.type, context=context, retval=True),
                            return_type(descriptor, m.type, infallible),
                            m.isStatic())
 
                     if not m.readonly:
                         name = CGSpecializedSetter.makeNativeName(descriptor, m)
-                        infallible = 'infallible' in descriptor.getExtendedAttributes(m, setter=True)
+                        infallible = 'infallible' in descriptor.getExtendedAttributes(m, methodType=MethodType.Setter)
                         if infallible:
                             rettype = "()"
                         else:
                             rettype = "ErrorResult"
+
+                        context = descriptor.contextForMember(m, name, MethodType.Setter)
                         yield (name,
-                               attribute_arguments(
-                                   m.type,
-                                   m.type,
-                                   no_gc=name in descriptor.no_gcMethods,
-                                   cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                   cx=name in descriptor.cxMethods or descriptor.implicitCxSetters or isEventHandlerCallback(m),
-                                   realm=name in descriptor.realmMethods,
-                                   retval=False,
-                               ),
+                               attribute_arguments(m.type, m.type, context=context, retval=False),
                                rettype,
                                m.isStatic())
 
@@ -7483,11 +7394,8 @@ class CGInterfaceTrait(CGThing):
                     if operation.isGetter():
                         if not rettype.nullable():
                             rettype = IDLNullableType(rettype.location, rettype)
-                        arguments = method_arguments(descriptor, rettype, arguments,
-                                                     no_gc=name in descriptor.no_gcMethods,
-                                                     cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                                     cx=name in descriptor.cxMethods,
-                                                     realm=name in descriptor.realmMethods)
+                        context = descriptor.contextForMember(operation, name, MethodType.Normal)
+                        arguments = method_arguments(descriptor, rettype, arguments, context=context)
 
                         # If this interface 'supports named properties', then we
                         # should be able to access 'supported property names'
@@ -7497,11 +7405,8 @@ class CGInterfaceTrait(CGThing):
                         if operation.isNamed():
                             yield "SupportedPropertyNames", [("no_gc", "&NoGC")], "Vec<DOMString>", False
                     else:
-                        arguments = method_arguments(descriptor, rettype, arguments,
-                                                     no_gc=name in descriptor.no_gcMethods,
-                                                     cx_no_gc=name in descriptor.cx_no_gcMethods,
-                                                     cx=name in descriptor.cxMethods,
-                                                     realm=name in descriptor.realmMethods)
+                        context = descriptor.contextForMember(operation, name, MethodType.Normal)
+                        arguments = method_arguments(descriptor, rettype, arguments, context=context)
                     rettype = return_type(descriptor, rettype, infallible)
                     yield name, arguments, rettype, False
 
@@ -7542,8 +7447,8 @@ class CGInterfaceTrait(CGThing):
             infallible = 'infallible' in descriptor.getExtendedAttributes(ctor)
             for (i, (rettype, arguments)) in enumerate(ctor.signatures()):
                 name = (baseName or ctor.identifier.name) + ('_' * i)
-                realm = name in descriptor.realmMethods
-                args = list(method_arguments(descriptor, rettype, arguments, cx=True, realm=realm))
+                context = descriptor.contextForMember(ctor, name, MethodType.Normal)
+                args = list(method_arguments(descriptor, rettype, arguments, context=context))
                 extra = [
                     ("global", f"&D::{exposedGlobal}"),
                     ("proto", "Option<HandleObject>"),
@@ -8747,31 +8652,10 @@ def argument_type(descriptorProvider: DescriptorProvider,
 def method_arguments(descriptorProvider: DescriptorProvider,
                      returnType: IDLType,
                      arguments: Iterable[IDLArgument | FakeArgument],
-                     passJSBits: bool = True,
                      trailing: tuple[str, str] | None = None,
-                     no_gc: bool = False,
-                     cx_no_gc: bool = False,
-                     cx: bool = False,
-                     realm: bool = False,
+                     context: Context = Context.NoContext,
                      ) -> Iterator[tuple[str, str]]:
-
-    match needCx(returnType, arguments, passJSBits):
-        case Context.Cx:
-            cx = True
-        case Context.CurrentRealm:
-            realm = True
-        case Context.No:
-            pass
-
-    if realm:
-        yield "realm", "&mut CurrentRealm"
-    elif cx:
-        yield "cx", "&mut JSContext"
-    elif cx_no_gc:
-        yield "cx", "&JSContext"
-    elif no_gc:
-        yield "cx", "&NoGC"
-
+    yield from context.argument()
     for argument in arguments:
         ty = argument_type(descriptorProvider, argument.type, argument.optional,
                            argument.defaultValue, argument.variadic)
@@ -8801,17 +8685,11 @@ class CGNativeMember(ClassMethod):
                  signature: tuple[IDLType, list[IDLArgument | FakeArgument]],
                  extendedAttrs: dict[str, Any],
                  breakAfter: bool = True,
-                 passJSBitsAsNeeded: bool = True,
                  visibility: str = "public",
                  unsafe: bool = False) -> None:
-        """
-        If passJSBitsAsNeeded is false, we don't automatically pass in a
-        JSContext* or a JSObject* based on the return and argument types.
-        """
         self.descriptorProvider = descriptorProvider
         self.member = member
         self.extendedAttrs = extendedAttrs
-        self.passJSBitsAsNeeded = passJSBitsAsNeeded
         breakAfterSelf = "\n" if breakAfter else ""
         ClassMethod.__init__(self, name,
                              self.getReturnType(signature[0]),
@@ -8833,8 +8711,7 @@ class CGNativeMember(ClassMethod):
     def getArgs(self, returnType: IDLType, argList: list[IDLArgument | FakeArgument]) -> list[Argument]:
         return [Argument(arg[1], arg[0]) for arg in method_arguments(self.descriptorProvider,
                                                                      returnType,
-                                                                     argList,
-                                                                     self.passJSBitsAsNeeded)]
+                                                                     argList)]
 
 
 class CGCallback(CGClass):
@@ -9051,7 +8928,6 @@ class CallbackMember(CGNativeMember):
         CGNativeMember.__init__(self, descriptorProvider, FakeMember(),
                                 name, (self.retvalType, args),
                                 extendedAttrs={},
-                                passJSBitsAsNeeded=False,
                                 unsafe=needThisHandling,
                                 visibility=visibility)
         # We have to do all the generation of our body now, because
