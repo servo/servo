@@ -263,11 +263,11 @@ pub struct Preferences {
     pub dom_worklet_blockingsleep_enabled: bool,
     pub dom_worklet_testing_enabled: bool,
     pub dom_worklet_timeout_ms: u64,
-    /// The name of the embedder product.
-    pub embedder_name: String,
     /// <https://drafts.csswg.org/cssom-view/#the-visualviewport-interface>
     // feature: VisualViewport | #41341 | Web/API/VisualViewport
     pub dom_visual_viewport_enabled: bool,
+    /// The name of the embedder product.
+    pub embedder_name: String,
     /// True to compile all WebRender shaders when Servo initializes. This is mostly
     /// useful when modifying the shaders, to ensure they all compile after each change is
     /// made.
@@ -662,9 +662,7 @@ impl Default for Preferences {
             preferences.network_http_no_proxy = no_proxy
         }
 
-        if preferences.embedder_name.is_empty() {
-            preferences.embedder_name = "unknown-servo-embedder".into();
-        }
+        preferences.embedder_name = "unknown-servo-embedder".into();
 
         preferences
     }

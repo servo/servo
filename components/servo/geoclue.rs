@@ -204,7 +204,7 @@ struct Session {
 #[derive(Default)]
 struct GeoclueTaskState {
     session: Option<Session>,
-    /// Bumped whenever `session` is replaced or dropped, so that the run loop knows when its
+    /// Bumped whenever a new `session` is created, so that the run loop knows when its
     /// subscription belongs to a client that no longer exists.
     generation: u64,
     /// `getCurrentPosition()` calls waiting for the next position.
@@ -370,8 +370,8 @@ impl GeoclueTaskState {
         let error = convert_error(error);
         error!("GeoClue request failed: {}", error.message);
 
-        // Dropped rather than stopped: after a denial the client is unusable, and after any other
-        // failure the connection is suspect.
+        // Dropped our session object since it's already unusable and can't be properly
+        // closed anymore.
         self.session = None;
 
         for request in self.pending.drain(..) {
