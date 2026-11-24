@@ -3255,7 +3255,8 @@ impl Element {
         None
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes>
+    /// <https://html.spec.whatwg.org/multipage/#reflecting-content-attributes-in-idl-attributes:element>
+    /// > The setter steps are:
     pub(crate) fn set_attr_associated_element(
         &self,
         cx: &mut JSContext,
