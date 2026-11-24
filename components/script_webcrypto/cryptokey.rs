@@ -64,9 +64,9 @@ pub(crate) enum Handle {
     Aes128Key(aes::cipher::common::Key<aes::Aes128>),
     Aes192Key(aes::cipher::common::Key<aes::Aes192>),
     Aes256Key(aes::cipher::common::Key<aes::Aes256>),
+    HmacKey(Zeroizing<Vec<u8>>),
     HkdfSecret(Zeroizing<Vec<u8>>),
     Pbkdf2Password(Zeroizing<Vec<u8>>),
-    Hmac(Zeroizing<Vec<u8>>),
     MlKem512PrivateKey(ml_kem::DecapsulationKey<ml_kem::MlKem512>),
     MlKem768PrivateKey(ml_kem::DecapsulationKey<ml_kem::MlKem768>),
     MlKem1024PrivateKey(ml_kem::DecapsulationKey<ml_kem::MlKem1024>),
@@ -315,15 +315,6 @@ where
     }
 }
 
-impl Handle {
-    pub(crate) fn as_bytes(&self) -> &[u8] {
-        match self {
-            Self::Hmac(bytes) => bytes,
-            _ => unreachable!(),
-        }
-    }
-}
-
 impl MallocSizeOf for Handle {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
@@ -346,9 +337,9 @@ impl MallocSizeOf for Handle {
             Handle::Aes128Key(key) => key.size_of(ops),
             Handle::Aes192Key(key) => key.size_of(ops),
             Handle::Aes256Key(key) => key.size_of(ops),
+            Handle::HmacKey(key) => key.size_of(ops),
             Handle::HkdfSecret(secret) => secret.size_of(ops),
             Handle::Pbkdf2Password(password) => password.size_of(ops),
-            Handle::Hmac(bytes) => bytes.size_of(ops),
             Handle::MlKem512PrivateKey(private_key) => private_key.size_of(ops),
             Handle::MlKem768PrivateKey(private_key) => private_key.size_of(ops),
             Handle::MlKem1024PrivateKey(private_key) => private_key.size_of(ops),
@@ -442,9 +433,9 @@ impl TryFrom<SerializableCryptoKeyHandle> for Handle {
             SerializableCryptoKeyHandle::Aes256Key(key) => Ok(Handle::Aes256Key(
                 aes::cipher::common::Key::<aes::Aes256>::try_from(key).map_err(|_| ())?,
             )),
-            SerializableCryptoKeyHandle::Hmac(bytes) => Ok(Handle::Hmac(bytes.clone().into())),
-            SerializableCryptoKeyHandle::HkdfSecret(bytes) => {
-                Ok(Handle::HkdfSecret(bytes.clone().into()))
+            SerializableCryptoKeyHandle::HmacKey(key) => Ok(Handle::HmacKey(key.clone().into())),
+            SerializableCryptoKeyHandle::HkdfSecret(secret) => {
+                Ok(Handle::HkdfSecret(secret.clone().into()))
             },
             SerializableCryptoKeyHandle::Pbkdf2Password(password) => {
                 Ok(Handle::Pbkdf2Password(password.clone().into()))
@@ -596,7 +587,7 @@ impl TryFrom<&Handle> for SerializableCryptoKeyHandle {
             Handle::Aes128Key(key) => Ok(SerializableCryptoKeyHandle::Aes128Key(key.to_vec())),
             Handle::Aes192Key(key) => Ok(SerializableCryptoKeyHandle::Aes192Key(key.to_vec())),
             Handle::Aes256Key(key) => Ok(SerializableCryptoKeyHandle::Aes256Key(key.to_vec())),
-            Handle::Hmac(bytes) => Ok(SerializableCryptoKeyHandle::Hmac(bytes.to_vec())),
+            Handle::HmacKey(key) => Ok(SerializableCryptoKeyHandle::HmacKey(key.to_vec())),
             Handle::HkdfSecret(bytes) => {
                 Ok(SerializableCryptoKeyHandle::HkdfSecret(bytes.to_vec()))
             },
