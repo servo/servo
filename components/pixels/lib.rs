@@ -243,14 +243,19 @@ static RECIPROCALS: [u32; 256] = {
     table
 };
 
+/// Returns `dividend / alpha` rounded down.
+#[inline(always)]
+const fn divide_by_alpha(dividend: u16, alpha: NonZeroU8) -> u16 {
+    ((dividend as u64 * RECIPROCALS[alpha.get() as usize] as u64) >> RECIPROCAL_SHIFT) as u16
+}
+
 /// Returns `color * 255 / alpha` rounded to nearest: the inverse of [`multiply_u8_color`]
 /// for any `color` up to `alpha`.
 #[inline(always)]
 fn unmultiply_u8_color(color: u8, alpha: NonZeroU8) -> u8 {
-    let alpha = alpha.get();
     // Adding half the divisor rounds to nearest.
-    let dividend = color as u32 * 255 + (alpha / 2) as u32;
-    ((dividend as u64 * RECIPROCALS[alpha as usize] as u64) >> RECIPROCAL_SHIFT) as u8
+    let dividend = color as u16 * 255 + (alpha.get() / 2) as u16;
+    divide_by_alpha(dividend, alpha) as u8
 }
 
 pub fn clip(
