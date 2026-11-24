@@ -249,6 +249,21 @@ impl GStreamerRegistryScanner {
         {
             self.supported_codecs.insert("av01*");
         }
+
+        let is_h265_decoder_available =
+            has_element_for_media_type(&video_decoder_factories, "video/x-h265");
+        if is_h265_decoder_available {
+            self.supported_mime_types.insert("video/mp4");
+
+            if has_element_for_media_type(&video_parser_factories, "video/x-h265") {
+                self.supported_codecs.insert("hvc1*");
+                self.supported_codecs.insert("hev1*");
+                self.supported_codecs.insert("dvhe*");
+                self.supported_codecs.insert("dvh1*");
+                self.supported_codecs.insert("x-h265");
+                self.supported_codecs.insert("h265");
+            }
+        }
     }
 }
 
