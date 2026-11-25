@@ -2,12 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::Au;
 use euclid::default::Point2D;
+use fonts_traits::SkrifaFont;
 use harfrust::{Buffer, ClusterLevel, Feature, Language, Script, ShapeOptions, ShaperFont, Tag};
 use num_traits::Zero as _;
 use read_fonts::types::GlyphId;
-use skrifa::Font as SkrifaFont;
 
 use super::{GlyphShapingResult, unicode_script_to_iso15924_tag};
 use crate::{
@@ -92,7 +94,7 @@ impl GlyphShapingResult for HarfrustGlyphShapingResult {
 
 pub(crate) struct Shaper {
     /// The `skrifa::Font` instance to use for this [`Shaper`].
-    skrifa_font: SkrifaFont,
+    skrifa_font: Arc<SkrifaFont>,
     /// Point per em (i.e. the font size).
     ppem: f64,
 }

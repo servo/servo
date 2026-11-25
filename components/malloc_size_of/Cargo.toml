@@ -23,6 +23,7 @@ data-url = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
 font-types = { workspace = true }
+hashlink = { workspace = true }
 headers = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }

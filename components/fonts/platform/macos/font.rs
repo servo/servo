@@ -12,7 +12,9 @@ use app_units::Au;
 use byteorder::{BigEndian, ByteOrder};
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::tag::{CBDT, COLR, KERN, SBIX};
-use fonts_traits::{FontIdentifier, FontTemplateDescriptor, FontTemplateRef, LocalFontIdentifier};
+use fonts_traits::{
+    FontIdentifier, FontTemplateDescriptor, FontTemplateRef, LocalFontIdentifier, SkrifaFont,
+};
 use log::debug;
 use objc2_core_foundation::{
     CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType,
@@ -22,8 +24,8 @@ use objc2_core_text::{
     CTFont, CTFontOrientation, CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag,
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
 };
+use skrifa::Tag;
 use skrifa::font::{Blob, TableFunction};
-use skrifa::{Font as SkrifaFont, Tag};
 use style::font_face::{FontStyle, FontWidth};
 use style::values::computed::FontWeight;
 use webrender_api::{FontInstanceFlags, FontVariation};
@@ -444,7 +446,7 @@ impl PlatformFontMethods for PlatformFont {
         &self.variations
     }
 
-    fn create_skrifa_font(&self) -> Option<SkrifaFont> {
+    fn create_skrifa_font(&self) -> Option<Arc<SkrifaFont>> {
         let font = ThreadSafeCTFont {
             font: self.ctfont.clone(),
         };

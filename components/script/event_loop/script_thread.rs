@@ -992,7 +992,7 @@ impl ScriptThread {
                     timer_scheduler: Default::default(),
                     js_runtime: Rc::new(runtime),
                     mutation_observers: Default::default(),
-                    system_font_service: Arc::new(state.system_font_service.to_proxy()),
+                    system_font_service: SystemFontServiceProxy::new(&state.system_font_service),
                     #[cfg(feature = "webgl")]
                     webgl_chan: state.webgl_chan,
                     #[cfg(feature = "webxr")]

@@ -17,10 +17,10 @@ use dwrote::{
     FontCollection, FontFace, FontFile, FontSimulations,
 };
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::{FontData, LocalFontIdentifier};
+use fonts_traits::{FontData, LocalFontIdentifier, SkrifaFont};
 use log::debug;
+use skrifa::Tag;
 use skrifa::font::{Blob, TableFunction};
-use skrifa::{Font as SkrifaFont, Tag};
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};
 use winapi::shared::minwindef::{BOOL, FALSE};
@@ -350,7 +350,7 @@ impl PlatformFontMethods for PlatformFont {
         &self.variations
     }
 
-    fn create_skrifa_font(&self) -> Option<SkrifaFont> {
+    fn create_skrifa_font(&self) -> Option<Arc<SkrifaFont>> {
         let font = ThreadSafeDirectWriteFontFace::new(self.face.0.clone());
         let table_function = TableFunction::new(Arc::new(move |tag: Tag| -> Option<Blob> {
             font.table_data_blob(tag)

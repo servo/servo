@@ -10,6 +10,7 @@ mod font_template;
 mod system_font_service_proxy;
 pub mod tag;
 
+use std::ops::Deref;
 use std::sync::Arc;
 use std::sync::atomic::AtomicUsize;
 
@@ -22,9 +23,41 @@ use read_fonts::{FontRef, ReadError};
 use serde::{Deserialize, Serialize};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSharedMemory;
+use skrifa::font::Source;
 use style::font_face::Descriptors;
 use style::stylesheets::LockedFontFaceRule;
 pub use system_font_service_proxy::*;
+
+/// A data structure that holds a single [`skrifa::Font`]. Eventually this
+/// will hold the `ShapePlan` cache used by HarfRust.
+#[derive(MallocSizeOf)]
+pub struct SkrifaFont {
+    font: skrifa::Font,
+}
+
+impl SkrifaFont {
+    pub fn new(source: impl Into<Source>, index: u32) -> Option<Arc<Self>> {
+        Some(
+            Self {
+                font: skrifa::Font::new(source, index)?,
+            }
+            .into(),
+        )
+    }
+}
+
+impl From<skrifa::Font> for SkrifaFont {
+    fn from(font: skrifa::Font) -> Self {
+        Self { font }
+    }
+}
+
+impl Deref for SkrifaFont {
+    type Target = skrifa::Font;
+    fn deref(&self) -> &Self::Target {
+        &self.font
+    }
+}
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WebFontLoadEvent {

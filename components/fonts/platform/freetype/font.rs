@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::{FontDataAndIndex, FontIdentifier, LocalFontIdentifier};
+use fonts_traits::{FontDataAndIndex, FontIdentifier, LocalFontIdentifier, SkrifaFont};
 use freetype_sys::{
     FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
     FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
@@ -18,7 +18,6 @@ use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
 use read_fonts::TableProvider;
 use read_fonts::types::Tag;
-use skrifa::Font as SkrifaFont;
 use skrifa::font::Blob;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
@@ -131,7 +130,7 @@ impl PlatformFontMethods for PlatformFont {
         })
     }
 
-    fn create_skrifa_font(&self) -> Option<SkrifaFont> {
+    fn create_skrifa_font(&self) -> Option<Arc<SkrifaFont>> {
         SkrifaFont::new(
             Blob::Shared(Arc::new(self.data_and_index.data.clone())),
             self.data_and_index.index,

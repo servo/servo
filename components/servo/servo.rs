@@ -12,7 +12,7 @@ use accesskit::ActionRequest;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 pub use embedder_traits::*;
 use env_logger::Builder as EnvLoggerBuilder;
-use fonts::SystemFontService;
+use fonts::{SystemFontService, SystemFontServiceProxy};
 #[cfg(all(
     feature = "multiprocess",
     not(target_os = "windows"),
@@ -1347,13 +1347,10 @@ fn create_constellation(
 
     let privileged_urls = protocols.privileged_urls();
 
-    let system_font_service = Arc::new(
-        SystemFontService::spawn(
-            paint_proxy.cross_process_paint_api.clone(),
-            mem_profiler_chan.clone(),
-        )
-        .to_proxy(),
-    );
+    let system_font_service = SystemFontServiceProxy::new(&SystemFontService::spawn(
+        paint_proxy.cross_process_paint_api.clone(),
+        mem_profiler_chan.clone(),
+    ));
 
     let initial_state = InitialConstellationState {
         paint_proxy,
