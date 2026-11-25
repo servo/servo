@@ -7,7 +7,9 @@ use std::ptr;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom_struct::dom_struct;
-use embedder_traits::{EmbedderControlRequest, InputMethodRequest, RgbColor, SelectedFile};
+use embedder_traits::{
+    EmbedderControlRequest, InputMethodRequest, InputMethodType, RgbColor, SelectedFile,
+};
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
@@ -39,6 +41,7 @@ use crate::dom::activation::Activatable;
 use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
@@ -2465,9 +2468,20 @@ impl HTMLInputElement {
                 .hide_embedder_control_for_element(self.upcast());
         } else if *event_type == *"focus" {
             let input_type = &*self.input_type();
-            let Ok(input_method_type) = input_type.try_into() else {
+            let Ok(mut input_method_type) = input_type.try_into() else {
                 return;
             };
+
+            if input_method_type == InputMethodType::Text {
+                input_method_type = match &*self.upcast::<HTMLElement>().InputMode().str() {
+                    "email" => InputMethodType::Email,
+                    "tel" => InputMethodType::Tel,
+                    "url" => InputMethodType::Url,
+                    "numeric" | "decimal" => InputMethodType::Number,
+                    "search" => InputMethodType::Search,
+                    _ => input_method_type,
+                };
+            }
 
             // If there is a Document selection collapse it. This isn't really specified
             // and there are quite a few open specification issues about the interaction
