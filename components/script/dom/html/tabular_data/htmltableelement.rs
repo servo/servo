@@ -16,12 +16,12 @@ use crate::dom::bindings::codegen::Bindings::HTMLTableElementBinding::HTMLTableE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
+use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmltablecaptionelement::HTMLTableCaptionElement;
 use crate::dom::html::htmltablecolelement::HTMLTableColElement;
@@ -38,22 +38,6 @@ pub(crate) struct HTMLTableElement {
     cellspacing: Cell<Option<u32>>,
     tbodies: MutNullableDom<HTMLCollection>,
     rows: MutNullableDom<HTMLCollection>,
-}
-
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
-#[derive(JSTraceable, MallocSizeOf)]
-struct TableRowFilter {
-    sections: Vec<Dom<Node>>,
-}
-
-impl CollectionFilter for TableRowFilter {
-    fn filter(&self, elem: &Element, root: &Node) -> bool {
-        elem.is::<HTMLTableRowElement>() &&
-            (root.is_parent_of(elem.upcast()) ||
-                self.sections
-                    .iter()
-                    .any(|section| section.is_parent_of(elem.upcast())))
-    }
 }
 
 impl HTMLTableElement {
@@ -178,27 +162,32 @@ impl HTMLTableElement {
             thead.upcast::<Node>().remove_self(cx);
         }
     }
-
-    fn get_rows(&self) -> TableRowFilter {
-        TableRowFilter {
-            sections: self
-                .upcast::<Node>()
-                .children()
-                .filter_map(|ref node| {
-                    node.downcast::<HTMLTableSectionElement>()
-                        .map(|_| Dom::from_ref(&**node))
-                })
-                .collect(),
-        }
-    }
 }
 
 impl HTMLTableElementMethods<crate::DomTypeHolder> for HTMLTableElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-table-rows>
     fn Rows(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
         self.rows.or_init(|| {
-            let filter = self.get_rows();
-            HTMLCollection::new(cx, &self.owner_window(), self.upcast(), Box::new(filter))
+            HTMLCollection::new_with_filter_fn(
+                cx,
+                &self.owner_window(),
+                self.upcast(),
+                |elem, root| {
+                    if !elem.is::<HTMLTableRowElement>() {
+                        return false;
+                    }
+
+                    if root.is_parent_of(elem.upcast()) {
+                        return true;
+                    }
+
+                    if let Some(parent) = elem.upcast::<Node>().GetParentNode().as_deref() {
+                        parent.is::<HTMLTableSectionElement>() && root.is_parent_of(parent)
+                    } else {
+                        false
+                    }
+                },
+            )
         })
     }
 
