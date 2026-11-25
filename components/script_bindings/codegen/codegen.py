@@ -6833,16 +6833,10 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
         else:
             cross_origin = "None"
         if self.descriptor.operations['IndexedGetter']:
-            cx_argument = "_cx"
-            length_argument = ""
-            if "Length" in self.descriptor.cxMethods or "Length" in self.descriptor.cx_no_gcMethods:
-                cx_argument = "cx"
-                length_argument = "cx"
-            elif "Length" in self.descriptor.no_gcMethods:
-                cx_argument = "cx"
-                length_argument = "cx.no_gc()"
-
-            length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, {cx_argument}| unwrapped_proxy.Length({length_argument}))"
+            if self.descriptor.lengthGetterNeedsCx():
+                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx))"
+            else:
+                length = f"Some(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length())"
         else:
             length = "None"
 
@@ -6883,7 +6877,7 @@ class CGDOMJSProxyHandler_getOwnEnumerablePropertyKeys(CGAbstractExternMethod):
 
     def definition_body(self) -> CGThing:
         if self.descriptor.operations['IndexedGetter']:
-            if "Length" in self.descriptor.cxMethods or "Length" in self.descriptor.cx_no_gcMethods:
+            if self.descriptor.lengthGetterNeedsCx():
                 length = f"Some(Box::new(|unwrapped_proxy: &{self.descriptor.concreteType}, cx| unwrapped_proxy.Length(cx)))"
             else:
                 length = f"Some(Box::new(|unwrapped_proxy: &{self.descriptor.concreteType}, _cx| unwrapped_proxy.Length()))"

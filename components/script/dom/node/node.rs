@@ -1963,7 +1963,7 @@ impl Node {
         let element = self.downcast::<Element>();
         let display = element
             .map(|elem| window.GetComputedStyle(cx, elem, None))
-            .map(|style| style.Display().into());
+            .map(|style| style.Display(cx.no_gc()).into());
 
         // It is not entirely clear when this should be set to false.
         // Firefox considers nodes with "display: contents" to be displayed.

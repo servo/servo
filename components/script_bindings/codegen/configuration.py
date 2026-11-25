@@ -462,6 +462,7 @@ class Descriptor(DescriptorProvider):
         config.maxProtoChainLength = max(config.maxProtoChainLength,
                                          len(self.prototypeChain))
         self.implicitCxSetters = desc.get('implicitCxSetters', "Element" in self.prototypeChain)
+        self.implicitNoGCGetters = desc.get('implicitNoGCGetters', False)
 
         self._binaryNames = desc.get('binaryNames', {})
         self._binaryNames.setdefault(('__legacycaller', False), 'LegacyCall')
@@ -484,6 +485,12 @@ class Descriptor(DescriptorProvider):
             self._internalNames.setdefault(member.identifier.name,
                                            member.identifier.name.replace('-', '_'))
 
+    def lengthGetterNeedsCx(self) -> bool:
+        return ("Length" in self.cxMethods
+            or "Length" in self.cx_no_gcMethods
+            or "Length" in self.no_gcMethods
+            or self.implicitNoGCGetters)
+
     def contextForMember(self, member: IDLInterfaceMember, nativeName: str, methodType: MethodType) -> Context:
         if nativeName in self.realmMethods:
             return Context.CurrentRealm
@@ -494,15 +501,17 @@ class Descriptor(DescriptorProvider):
             return Context.Cx
         if self.interface.isIteratorInterface():
             return Context.Cx
-
         if nativeName in self.cxMethods:
             return Context.Cx
+        if isinstance(member, IDLConstructor):
+            return Context.Cx
+
         if nativeName in self.cx_no_gcMethods:
             return Context.CxNoGC
         if nativeName in self.no_gcMethods:
             return Context.NoGC
-        if isinstance(member, IDLConstructor):
-            return Context.Cx
+        if methodType == MethodType.Getter and self.implicitNoGCGetters:
+            return Context.NoGC
 
         return Context.NoContext
 

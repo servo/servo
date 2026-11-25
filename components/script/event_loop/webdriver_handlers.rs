@@ -1807,7 +1807,7 @@ pub(crate) fn handle_get_css(
                 String::from(
                     window
                         .GetComputedStyle(cx, &element, None)
-                        .GetPropertyValue(DOMString::from(name)),
+                        .GetPropertyValue(cx.no_gc(), DOMString::from(name)),
                 )
             }),
         )
