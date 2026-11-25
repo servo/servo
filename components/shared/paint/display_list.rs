@@ -1075,7 +1075,7 @@ impl PaintDisplayListInfo {
     /// and scroll frame already added to the scroll tree.
     pub fn new(
         viewport_details: ViewportDetails,
-        content_size: LayoutSize,
+        content_rect: LayoutRect,
         pipeline_id: PipelineId,
         epoch: Epoch,
         viewport_scroll_sensitivity: AxesScrollSensitivity,
@@ -1096,7 +1096,7 @@ impl PaintDisplayListInfo {
             Some(root_reference_frame_id),
             SpatialTreeNodeInfo::Scroll(ScrollableNodeInfo {
                 external_id: ExternalScrollId(0, pipeline_id),
-                content_rect: LayoutRect::from_origin_and_size(LayoutPoint::zero(), content_size),
+                content_rect,
                 clip_rect: LayoutRect::from_origin_and_size(
                     LayoutPoint::zero(),
                     viewport_details.layout_size(),
@@ -1112,7 +1112,7 @@ impl PaintDisplayListInfo {
             pipeline_id,
             iframes: Default::default(),
             viewport_details,
-            content_size,
+            content_size: content_rect.size(),
             epoch,
             scroll_tree,
             root_reference_frame_id,

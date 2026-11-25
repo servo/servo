@@ -233,10 +233,16 @@ impl StackingContextTree {
     ) -> Self {
         let scrollable_overflow = fragment_tree.scrollable_overflow();
         let scroll_area = scrollable_overflow.union(&fragment_tree.initial_containing_block);
-        let scroll_area = LayoutSize::from_untyped(Size2D::new(
-            scroll_area.size.width.to_f32_px(),
-            scroll_area.size.height.to_f32_px(),
-        ));
+        let scroll_area = LayoutRect::from_origin_and_size(
+            Point2D::new(
+                scroll_area.origin.x.to_f32_px(),
+                scroll_area.origin.y.to_f32_px(),
+            ),
+            Size2D::new(
+                scroll_area.size.width.to_f32_px(),
+                scroll_area.size.height.to_f32_px(),
+            ),
+        );
 
         let viewport_size = viewport_details.layout_size();
         let paint_info = PaintDisplayListInfo::new(
