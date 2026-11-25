@@ -43,6 +43,20 @@ fn main() -> Result<(), Box<dyn Error>> {
         println!("cargo:rustc-cfg=servo_do_not_use_in_production");
     }
 
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")?;
+    for name in ["HEAD", "refs", "packed-refs"] {
+        let path = Path::new(&manifest_dir)
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join(".git")
+            .join(name);
+        if path.exists() {
+            println!("cargo:rerun-if-changed={}", path.display());
+        }
+    }
+
     // Note: We can't use `#[cfg(windows)]`, since that would check the host platform
     // and not the target platform
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
@@ -92,7 +106,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Passing a version script allows us to inform the linker about required
     // symbol visibility (only one), which improves stripping of unused sections.
     if target_env == "ohos" {
-        let manifest_dir = std::env::var("CARGO_MANIFEST_DIR")?;
         let version_script = Path::new(&manifest_dir)
             .join("platform")
             .join("openharmony")
