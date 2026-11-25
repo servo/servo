@@ -302,6 +302,13 @@ pub(crate) fn renderbuffer_format(
                 constants::RGB8
             }
         },
+        _ if context
+            .extension_manager()
+            .color_buffer_float_formats()
+            .contains(&internal_format) =>
+        {
+            internal_format
+        },
         EXTColorBufferHalfFloatConstants::RGBA16F_EXT |
         EXTColorBufferHalfFloatConstants::RGB16F_EXT => {
             if !context
