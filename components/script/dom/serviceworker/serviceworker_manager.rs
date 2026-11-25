@@ -698,8 +698,8 @@ impl ServiceWorkerManager {
             let newest_worker = registration.get_newest_worker();
 
             // step 5.2: If newestWorker is not null,
-            // job’s script url equals newestWorker’s script url, 
-            // job’s worker type equals newestWorker’s type, 
+            // job’s script url equals newestWorker’s script url,
+            // job’s worker type equals newestWorker’s type,
             // and job’s update via cache mode’s value equals registration’s update via cache mode, then:
             if newest_worker.is_some() &&
                 newest_worker.as_ref().unwrap().script_url == job.script_url
