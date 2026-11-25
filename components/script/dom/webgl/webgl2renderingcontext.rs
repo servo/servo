@@ -811,7 +811,21 @@ impl WebGL2RenderingContext {
         }
     }
 
-    fn clear_buffer<T: Clone>(
+    /// Returns the component type of the color image that `draw_buffer` writes to; `None` if
+    /// it writes to no image.
+    fn color_buffer_component_type(&self, draw_buffer: i32) -> Option<TexComponentType> {
+        match self.base.get_draw_framebuffer_slot().get() {
+            Some(framebuffer) => framebuffer
+                .attachment_effective_format(framebuffer.draw_buffer_i(draw_buffer as usize))?
+                .component_type(),
+            None if draw_buffer == 0 && self.default_fb_drawbuffer.get() == constants::BACK => {
+                Some(TexComponentType::UnsignedNormalized)
+            },
+            None => None,
+        }
+    }
+
+    fn clear_buffer<T: ClearBufferValue>(
         &self,
         buffer: u32,
         draw_buffer: i32,
@@ -834,6 +848,16 @@ impl WebGL2RenderingContext {
             return self.base.webgl_error(InvalidValue);
         }
         let array = array[src_offset..src_offset + array_size].to_vec();
+
+        if buffer == constants::COLOR &&
+            self.color_buffer_component_type(draw_buffer)
+                .is_some_and(|component_type| !T::COLOR_TYPES.contains(&component_type))
+        {
+            return self.base.webgl_error(InvalidOperation);
+        }
+        if let Err(error) = self.base.validate_framebuffer() {
+            return self.base.webgl_error(error);
+        }
 
         self.base.send_command(msg(buffer, draw_buffer, array));
         self.mark_as_dirty();
@@ -5107,6 +5131,9 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         if let Err(error) = self.clearbuffer_array_size(buffer, draw_buffer) {
             return self.base.webgl_error(error);
         }
+        if let Err(error) = self.base.validate_framebuffer() {
+            return self.base.webgl_error(error);
+        }
 
         self.base.send_command(WebGLCommand::ClearBufferfi(
             buffer,
@@ -5339,4 +5366,26 @@ fn blit_integer_type(format: u32) -> Option<TexComponentType> {
     TexFormat::from_gl_constant(format)?
         .component_type()
         .filter(|ty| matches!(ty, SignedInt | UnsignedInt))
+}
+
+/// A value type of `clearBuffer*`.
+trait ClearBufferValue: Clone {
+    /// The color buffer component types that values of this type can clear.
+    const COLOR_TYPES: &'static [TexComponentType];
+}
+
+impl ClearBufferValue for f32 {
+    const COLOR_TYPES: &'static [TexComponentType] = &[
+        TexComponentType::UnsignedNormalized,
+        TexComponentType::SignedNormalized,
+        TexComponentType::Float,
+    ];
+}
+
+impl ClearBufferValue for i32 {
+    const COLOR_TYPES: &'static [TexComponentType] = &[TexComponentType::SignedInt];
+}
+
+impl ClearBufferValue for u32 {
+    const COLOR_TYPES: &'static [TexComponentType] = &[TexComponentType::UnsignedInt];
 }

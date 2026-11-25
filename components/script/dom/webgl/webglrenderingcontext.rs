@@ -3216,6 +3216,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         {
             return self.webgl_error(InvalidValue);
         }
+        // https://registry.khronos.org/webgl/specs/latest/2.0/#4.7.9
+        if mask & constants::COLOR_BUFFER_BIT != 0 &&
+            self.bound_draw_framebuffer
+                .get()
+                .is_some_and(|framebuffer| framebuffer.has_integer_color_draw_buffer())
+        {
+            return self.webgl_error(InvalidOperation);
+        }
 
         self.send_command(WebGLCommand::Clear(mask));
         self.mark_as_dirty();

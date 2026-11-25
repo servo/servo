@@ -13,8 +13,9 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
-    TexFormat, WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
-    WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion, webgl_channel,
+    TexComponentType, TexFormat, WebGLCommand, WebGLError, WebGLFramebufferBindingRequest,
+    WebGLFramebufferId, WebGLRenderbufferId, WebGLResult, WebGLTextureId, WebGLVersion,
+    webgl_channel,
 };
 #[cfg(feature = "webxr")]
 use webxr_api::Viewport;
@@ -329,6 +330,17 @@ impl WebGLFramebuffer {
             .iter()
             .filter_map(|&buffer| self.attachment_gl_format(buffer))
             .collect()
+    }
+
+    /// Returns whether any draw buffer writes to an integer color buffer.
+    pub(crate) fn has_integer_color_draw_buffer(&self) -> bool {
+        self.color_draw_buffers.borrow().iter().any(|&buffer| {
+            matches!(
+                self.attachment_effective_format(buffer)
+                    .and_then(TexFormat::component_type),
+                Some(TexComponentType::SignedInt | TexComponentType::UnsignedInt)
+            )
+        })
     }
 
     pub(crate) fn color_read_buffer_is_texture(&self) -> bool {
