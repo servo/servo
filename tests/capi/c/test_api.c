@@ -92,7 +92,6 @@ int test_options_setters(void)
     servo_options_set_force_ipc(options, true);
     servo_options_set_background_hang_monitor(options, false);
     servo_options_set_sandbox(options, true);
-    servo_options_set_temporary_storage(options, false);
     servo_options_set_ignore_certificate_errors(options, true);
     servo_options_set_unminify_js(options, false);
     servo_options_set_unminify_css(options, true);

@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::path::PathBuf;
-
 use rusqlite::Connection;
 use servo_base::generic_channel;
 use servo_base::generic_channel::GenericCallback;
@@ -11,7 +9,7 @@ use servo_base::id::{
     BrowsingContextId, PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId,
 };
 use servo_url::ServoUrl;
-use storage::ClientStorageThreadFactory;
+use storage::{ClientStorageThreadFactory, DataDirectory};
 use storage_traits::client_storage::{
     ClientStorageThreadHandle, ClientStorageThreadMessage, StorageIdentifier, StorageProxyMap,
     StorageType,
@@ -23,16 +21,13 @@ fn install_test_namespace() {
     }
 }
 
-fn registry_db_path(tmp_dir: &tempfile::TempDir) -> PathBuf {
-    tmp_dir
-        .path()
-        .join("clientstorage")
-        .join("default_v1")
-        .join("reg.sqlite")
-}
-
-fn open_registry(tmp_dir: &tempfile::TempDir) -> Connection {
-    Connection::open(registry_db_path(tmp_dir)).expect("Registry database should exist")
+fn open_registry(storage_directory: &DataDirectory) -> Connection {
+    Connection::open(
+        storage_directory
+            .subdirectory("client-storage-v1")
+            .join("reg.sqlite"),
+    )
+    .expect("Registry database should exist")
 }
 
 fn obtain_bottle_map(
@@ -51,7 +46,8 @@ fn obtain_bottle_map(
 
 #[test]
 fn test_exit() {
-    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(None, false);
+    let storage_directory = DataDirectory::temporary();
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
     let (sender, receiver) = generic_channel::channel().unwrap();
     handle
@@ -67,9 +63,8 @@ fn test_exit() {
 #[test]
 fn test_workflow() {
     install_test_namespace();
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
+    let storage_directory = DataDirectory::temporary();
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
     let url = ServoUrl::parse("https://example.com").unwrap();
 
@@ -134,9 +129,8 @@ fn test_workflow() {
 #[test]
 fn test_repeated_local_obtain_reuses_same_logical_rows() {
     install_test_namespace();
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
+    let storage_directory = DataDirectory::temporary();
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
     let webview = Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID));
@@ -158,7 +152,7 @@ fn test_repeated_local_obtain_reuses_same_logical_rows() {
 
     assert_eq!(first.bottle_id, second.bottle_id);
 
-    let registry = open_registry(&tmp_dir);
+    let registry = open_registry(&storage_directory);
     let local_shed_count: i64 = registry
         .query_row(
             "SELECT COUNT(*) FROM sheds WHERE storage_type = 'local' AND browsing_context IS NULL;",
@@ -189,9 +183,8 @@ fn test_repeated_local_obtain_reuses_same_logical_rows() {
 #[test]
 fn test_repeated_session_obtain_reuses_same_logical_rows() {
     install_test_namespace();
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
+    let storage_directory = DataDirectory::temporary();
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
     let webview = Some(WebViewId::new(servo_base::id::TEST_PAINTER_ID));
@@ -214,7 +207,7 @@ fn test_repeated_session_obtain_reuses_same_logical_rows() {
 
     assert_eq!(first.bottle_id, second.bottle_id);
 
-    let registry = open_registry(&tmp_dir);
+    let registry = open_registry(&storage_directory);
     let session_shed_count: i64 = registry
         .query_row(
             "SELECT COUNT(*) FROM sheds WHERE storage_type = 'session' AND browsing_context = ?1;",
@@ -245,9 +238,8 @@ fn test_repeated_session_obtain_reuses_same_logical_rows() {
 #[test]
 fn test_local_persistence_and_estimate() {
     install_test_namespace();
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
+    let storage_directory = DataDirectory::temporary();
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
     let origin = ServoUrl::parse("https://example.com").unwrap().origin();
     let webview = WebViewId::new(servo_base::id::TEST_PAINTER_ID);
@@ -297,9 +289,8 @@ fn test_local_persistence_and_estimate() {
 #[test]
 fn test_storage_manager_operations_fail_for_opaque_origins() {
     install_test_namespace();
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let handle: ClientStorageThreadHandle =
-        ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), false);
+    let storage_directory = DataDirectory::temporary();
+    let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
     let origin = ServoUrl::parse("data:text/plain,hello").unwrap().origin();
 

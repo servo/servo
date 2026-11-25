@@ -36,16 +36,15 @@ const QUOTA_SIZE_LIMIT: usize = 5 * 1024 * 1024;
 
 pub trait WebStorageThreadFactory {
     fn new(
-        config_dir: Option<PathBuf>,
+        storage_directory: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
         reporter_name: String,
     ) -> Self;
 }
 
 impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
-    /// Create a storage thread
     fn new(
-        config_dir: Option<PathBuf>,
+        storage_directory: Option<PathBuf>,
         mem_profiler_chan: MemProfilerChan,
         reporter_name: String,
     ) -> GenericSender<WebStorageThreadMsg> {
@@ -55,7 +54,7 @@ impl WebStorageThreadFactory for GenericSender<WebStorageThreadMsg> {
             .name("WebStorageManager".to_owned())
             .spawn(move || {
                 mem_profiler_chan.run_with_memory_reporting(
-                    || WebStorageManager::new(port, config_dir).start(),
+                    || WebStorageManager::new(port, storage_directory).start(),
                     reporter_name,
                     chan2,
                     WebStorageThreadMsg::CollectMemoryReport,
@@ -211,7 +210,7 @@ struct WebStorageManager {
     session_storage_origins: StorageOrigins,
     local_storage_origins: StorageOrigins,
     session_data: FxHashMap<WebViewId, FxHashMap<ImmutableOrigin, OriginEntry>>,
-    config_dir: Option<PathBuf>,
+    storage_directory: Option<PathBuf>,
     thread_pool: Arc<ThreadPool>,
     environments: FxHashMap<ImmutableOrigin, WebStorageEnvironment<SqliteEngine>>,
 }
@@ -219,11 +218,13 @@ struct WebStorageManager {
 impl WebStorageManager {
     fn new(
         port: GenericReceiver<WebStorageThreadMsg>,
-        config_dir: Option<PathBuf>,
+        storage_directory: Option<PathBuf>,
     ) -> WebStorageManager {
-        let local_storage_origins = config_dir
+        let local_storage_origins = storage_directory
             .as_ref()
-            .and_then(|config_dir| read_json_from_file(config_dir, "localstorage.json").ok())
+            .and_then(|storage_directory| {
+                read_json_from_file(storage_directory, "localstorage.json").ok()
+            })
             .unwrap_or_default();
 
         WebStorageManager {
@@ -231,7 +232,7 @@ impl WebStorageManager {
             session_storage_origins: StorageOrigins::new(),
             local_storage_origins,
             session_data: FxHashMap::default(),
-            config_dir,
+            storage_directory,
             thread_pool: ThreadPool::global(),
             environments: FxHashMap::default(),
         }
@@ -317,14 +318,18 @@ impl WebStorageManager {
     }
 
     fn save_local_storage_origins(&self) {
-        if let Some(ref config_dir) = self.config_dir {
-            write_json_to_file(&self.local_storage_origins, config_dir, "localstorage.json");
+        if let Some(ref storage_directory) = self.storage_directory {
+            write_json_to_file(
+                &self.local_storage_origins,
+                storage_directory,
+                "localstorage.json",
+            );
         }
     }
 
     fn get_origin_location(&self, origin: &ImmutableOrigin) -> Option<PathBuf> {
-        match &self.config_dir {
-            Some(config_dir) => {
+        match &self.storage_directory {
+            Some(storage_directory) => {
                 const NAMESPACE_SERVO_WEBSTORAGE: &uuid::Uuid = &Uuid::from_bytes([
                     0x37, 0x9e, 0x56, 0xb0, 0x1a, 0x76, 0x44, 0xc5, 0xa4, 0xdb, 0xe2, 0x18, 0xc5,
                     0xc8, 0xa3, 0x5d,
@@ -333,7 +338,11 @@ impl WebStorageManager {
                     NAMESPACE_SERVO_WEBSTORAGE,
                     origin.ascii_serialization().as_bytes(),
                 );
-                Some(config_dir.join("webstorage").join(origin_uuid.to_string()))
+                Some(
+                    storage_directory
+                        .join("webstorage")
+                        .join(origin_uuid.to_string()),
+                )
             },
             None => None,
         }
@@ -654,7 +663,7 @@ impl WebStorageManager {
             WebStorageType::Local => {
                 let origins = self.local_storage_origins.take_origins_for_sites(sites);
 
-                if self.config_dir.is_some() {
+                if self.storage_directory.is_some() {
                     for origin in origins {
                         self.environments.remove(&origin);
 

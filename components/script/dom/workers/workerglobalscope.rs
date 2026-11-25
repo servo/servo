@@ -165,7 +165,7 @@ pub(crate) fn prepare_workerscope_init(
         inherited_upgrade_insecure_navigations_set: global
             .upgrade_insecure_navigations_set()
             .clone(),
-        unminify_js: global.unminify_js(),
+        unminify_js: global.unminify_javascript(),
         #[cfg(feature = "webgl")]
         webgl_chan,
         online: global.online(),

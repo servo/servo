@@ -246,30 +246,6 @@ pub unsafe extern "C" fn servo_options_set_sandbox(options: *mut ServoOptions, s
     unsafe { &mut *options }.sandbox = sandbox;
 }
 
-/// Enables or disables Servo's use of temporary storage. When enabled
-/// data on disk will not persist across restarts.
-///
-/// `options` is a handle to a `ServoOptions` object.
-/// The ownership of `options` remains with the caller after the call.
-///
-/// # Safety
-///
-/// The caller must ensure that `options` is a non-null pointer to a
-/// `ServoOptions` previously returned by `servo_options_create` and has
-/// not yet been freed nor passed to another API that takes ownership of
-/// it.
-#[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_options_set_temporary_storage(
-    options: *mut ServoOptions,
-    temporary_storage: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.temporary_storage = temporary_storage;
-}
-
 /// Enables or disables the option to ignore SSL certificate
 /// validation errors.
 ///
@@ -421,7 +397,7 @@ pub unsafe extern "C" fn servo_options_set_local_script_source(
 
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `options` documented above.
-    unsafe { &mut *options }.local_script_source = Some(path);
+    unsafe { &mut *options }.local_script_source_override = Some(path);
 }
 
 /// Sets the path to load WebRender shaders from disk.
@@ -465,14 +441,14 @@ pub unsafe extern "C" fn servo_options_set_shaders_path(
     unsafe { &mut *options }.shaders_path = Some(PathBuf::from(path));
 }
 
-/// Sets the path to the default config directory.
+/// Sets the path to the storage directory.
 ///
 /// `options` is a handle to a `ServoOptions` object.
 /// The ownership of `options` remains with the caller after the call.
 ///
-/// `config_dir` is a NUL terminated UTF-8 string.
+/// `storage_directory` is a NUL terminated UTF-8 string.
 /// The function panics if it is not a valid UTF-8 string.
-/// The ownership of `config_dir` remains with the caller after the call.
+/// The ownership of `storage_directory` remains with the caller after the call.
 ///
 /// # Safety
 ///
@@ -481,26 +457,70 @@ pub unsafe extern "C" fn servo_options_set_shaders_path(
 /// - `options` is a non-null pointer to a `ServoOptions` previously
 ///   returned by `servo_options_create` and has not yet been freed nor
 ///   passed to another API that takes ownership of it.
-/// - `config_dir` is a non-null pointer to a C string that remains
+/// - `storage_directory` is a non-null pointer to a C string that remains
 ///   unmodified for the duration of the call.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_options_set_config_dir(
+pub unsafe extern "C" fn servo_options_set_storage_dir(
     options: *mut ServoOptions,
-    config_dir: *const c_char,
+    storage_directory: *const c_char,
 ) {
     assert!(!options.is_null(), "options pointer must not be null");
-    assert!(!config_dir.is_null(), "config_dir pointer must not be null");
+    assert!(
+        !storage_directory.is_null(),
+        "storage_directory pointer must not be null"
+    );
 
     // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `config_dir` documented above.
-    let path = unsafe { CStr::from_ptr(config_dir) }
+    // for `storage_directory` documented above.
+    let path = unsafe { CStr::from_ptr(storage_directory) }
         .to_str()
-        .expect("invalid config directory path")
+        .expect("invalid storage directory path")
         .to_string();
 
     // SAFETY: The caller is assumed to uphold the safety requirements
     // for `options` documented above.
-    unsafe { &mut *options }.config_dir = Some(PathBuf::from(path));
+    unsafe { &mut *options }.storage_directory = Some(PathBuf::from(path));
+}
+
+/// Sets the path to the cache directory.
+///
+/// `options` is a handle to a `ServoOptions` object.
+/// The ownership of `options` remains with the caller after the call.
+///
+/// `cache_directory` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `cache_directory` remains with the caller after the call.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `options` is a non-null pointer to a `ServoOptions` previously
+///   returned by `servo_options_create` and has not yet been freed nor
+///   passed to another API that takes ownership of it.
+/// - `cache_directory` is a non-null pointer to a C string that remains
+///   unmodified for the duration of the call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_options_set_cache_dir(
+    options: *mut ServoOptions,
+    cache_directory: *const c_char,
+) {
+    assert!(!options.is_null(), "options pointer must not be null");
+    assert!(
+        !cache_directory.is_null(),
+        "cache_directory pointer must not be null"
+    );
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `cache_directory` documented above.
+    let path = unsafe { CStr::from_ptr(cache_directory) }
+        .to_str()
+        .expect("invalid cache directory path")
+        .to_string();
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `options` documented above.
+    unsafe { &mut *options }.cache_directory = Some(PathBuf::from(path));
 }
 
 /// Sets the probability of randomly closing a pipeline. This is

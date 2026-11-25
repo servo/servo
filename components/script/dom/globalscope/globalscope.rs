@@ -164,7 +164,6 @@ use crate::scripting::script_execution::{
 use crate::scripting::script_module::{ModuleRequest, ModuleStatus, ResolvedModule};
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
-use crate::unminify::unminified_path;
 
 #[dom_struct]
 pub(crate) struct GlobalScope {
@@ -307,9 +306,8 @@ pub(crate) struct GlobalScope {
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
 
-    /// Directory to store unminified scripts for this window if unminify-js
-    /// opt is enabled.
-    unminified_js_dir: Option<String>,
+    /// Whether or not to unminify all encountered JavaScript source and write the result to disk.
+    unminify_javascript: bool,
 
     /// The byte length queuing strategy size function that will be initialized once
     /// `size` getter of `ByteLengthQueuingStrategy` is called.
@@ -422,7 +420,7 @@ impl GlobalScope {
         #[cfg(feature = "webgpu")] gpu_id_hub: Arc<IdentityHub>,
         inherited_secure_context: Option<bool>,
         inherited_upgrade_insecure_navigations_set: HashSet<UpgradeInsecureNavigations>,
-        unminify_js: bool,
+        unminify_javascript: bool,
     ) -> Self {
         let resource_threads_sender = resource_threads.sender();
         Self {
@@ -460,7 +458,7 @@ impl GlobalScope {
             console_group_stack: DomRefCell::new(Vec::new()),
             console_count_map: Default::default(),
             inherited_secure_context,
-            unminified_js_dir: unminify_js.then(|| unminified_path("unminified-js")),
+            unminify_javascript,
             byte_length_queuing_strategy_size_function: OnceCell::new(),
             count_queuing_strategy_size_function: OnceCell::new(),
             notification_permission_request_callback_map: Default::default(),
@@ -3154,12 +3152,8 @@ impl GlobalScope {
         );
     }
 
-    pub(crate) fn unminify_js(&self) -> bool {
-        self.unminified_js_dir.is_some()
-    }
-
-    pub(crate) fn unminified_js_dir(&self) -> Option<String> {
-        self.unminified_js_dir.clone()
+    pub(crate) fn unminify_javascript(&self) -> bool {
+        self.unminify_javascript
     }
 
     pub(crate) fn set_byte_length_queuing_strategy_size(&self, function: RootedCallback<Function>) {

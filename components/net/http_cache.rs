@@ -8,6 +8,7 @@
 //! and <http://tools.ietf.org/html/rfc7232>.
 
 use std::ops::Bound;
+use std::path::PathBuf;
 use std::sync::Arc as StdArc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime};
@@ -275,10 +276,10 @@ type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
 >;
 
 /// Is this state assigned to the private or public side.
-#[derive(Debug, MallocSizeOf, PartialEq)]
+#[derive(Debug)]
 pub enum HttpCacheAssignment {
-    /// Public Cache State, possibly stored to disk.
-    Public,
+    /// Public Cache State, possibly stored to disk at the given path.
+    Public(PathBuf),
     /// Private Cache State, not stored to disk.
     Private,
 }
@@ -319,13 +320,21 @@ impl HttpCache {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
-        let (disk_cache, lifecycle) = DiskCache::new(assignment);
+
+        let disk_cache = if pref!(network_http_disk_cache_enabled) &&
+            let HttpCacheAssignment::Public(cache_directory) = assignment
+        {
+            DiskCache::new(cache_directory)
+        } else {
+            None
+        };
+
         let memory_cache = Cache::with(
             size,
             size as u64,
             UnitWeighter,
             DefaultHashBuilder::default(),
-            lifecycle,
+            MemoryCacheLifecycle::new(disk_cache.clone()),
         );
 
         Self {
@@ -360,8 +369,8 @@ pub struct MemoryCacheLifecycle {
 }
 
 impl MemoryCacheLifecycle {
-    pub(crate) fn empty() -> MemoryCacheLifecycle {
-        MemoryCacheLifecycle { disk_cache: None }
+    pub(crate) fn new(disk_cache: Option<StdArc<DiskCache>>) -> Self {
+        Self { disk_cache }
     }
 }
 
@@ -885,7 +894,7 @@ pub(crate) fn construct_response(
     done_chan: &mut DoneChannel,
     cache_result: &[CachedResource],
 ) -> Option<CachedResponse> {
-    if pref!(network_http_cache_disabled) {
+    if !pref!(network_http_cache_enabled) {
         return None;
     }
 
@@ -1186,7 +1195,7 @@ pub enum CachedResourcesOrGuard<'a> {
 impl<'a> CachedResourcesOrGuard<'a> {
     /// Insert into the cache according to http spec
     pub fn insert(self, request: &Request, response: &Response) {
-        if pref!(network_http_cache_disabled) {
+        if !pref!(network_http_cache_enabled) {
             return;
         }
 

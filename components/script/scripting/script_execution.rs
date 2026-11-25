@@ -173,8 +173,8 @@ impl GlobalScope {
             external: options.contains(ScriptOptions::External),
             url: &url,
         };
-        if let Some(unminified_js_dir) = self.unminified_js_dir() {
-            unminify_js(&mut script_source, unminified_js_dir);
+        if self.unminify_javascript() {
+            unminify_js(&mut script_source);
         }
         let mut source = transform_str_to_source_text(&script_source.source);
 

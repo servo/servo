@@ -92,7 +92,7 @@ use servo_geometry::{
 use servo_media::ServoMedia;
 use servo_media::player::context::GlContext;
 use servo_wakelock::DefaultWakeLockDelegate;
-use storage::new_storage_threads;
+use storage::{DataDirectory, new_storage_threads};
 use storage_traits::StorageThreads;
 #[cfg(feature = "multiprocess")]
 use style::global_style_data::StyleThreadPool;
@@ -262,6 +262,15 @@ struct ServoInner {
     constellation_embedder_receiver: Receiver<ConstellationToEmbedderMsg>,
     network_manager: Rc<RefCell<NetworkManager>>,
     site_data_manager: SiteDataManager,
+    /// The [`DataDirectory`] that tracks the target of persistent storage. This serves to keep
+    /// temporary directories alive in the case that storage is not meant to persist.
+    _storage_directory: DataDirectory,
+    /// The [`DataDirectory`] that tracks the target caches. This serves to keep temporary
+    /// directories alive in the case that caches are not meant to persist.
+    _cache_directory: DataDirectory,
+    /// The [`DataDirectory`] that refers to a temporary directory to use for private data, when
+    /// it is *impossible* to avoid writing that data to disk.
+    _private_storage_directory: DataDirectory,
     /// A struct that tracks ongoing JavaScript evaluations and is responsible for
     /// calling the callback when the evaluation is complete.
     javascript_evaluator: Rc<RefCell<JavaScriptEvaluator>>,
@@ -1078,13 +1087,18 @@ impl Servo {
         });
 
         let protocols = Arc::new(protocols);
+        let storage_directory = DataDirectory::from_path(opts.storage_directory.clone());
+        let cache_directory = DataDirectory::from_path(opts.cache_directory.clone());
+
+        let private_storage_directory = DataDirectory::temporary();
         let (public_resource_threads, private_resource_threads, async_runtime) =
             new_resource_threads(
                 devtools_sender.clone(),
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
                 net_embedder_proxy,
-                opts.config_dir.clone(),
+                storage_directory.path(),
+                cache_directory.path(),
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
                 protocols.clone(),
@@ -1092,8 +1106,8 @@ impl Servo {
 
         let (private_storage_threads, public_storage_threads) = new_storage_threads(
             mem_profiler_chan.clone(),
-            opts.config_dir.clone(),
-            opts.temporary_storage,
+            &storage_directory,
+            &private_storage_directory,
         );
 
         create_constellation(
@@ -1135,6 +1149,9 @@ impl Servo {
                 public_storage_threads,
                 private_storage_threads,
             ),
+            _storage_directory: storage_directory,
+            _cache_directory: cache_directory,
+            _private_storage_directory: private_storage_directory,
             javascript_evaluator: Rc::new(RefCell::new(JavaScriptEvaluator::new(
                 constellation_proxy.clone(),
             ))),

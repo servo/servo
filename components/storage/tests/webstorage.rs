@@ -8,47 +8,69 @@ use servo_base::generic_channel::GenericSend;
 use servo_base::id::TEST_WEBVIEW_ID;
 use servo_default_resources as _;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use storage::DataDirectory;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
-use tempfile::TempDir;
 
 pub(crate) struct WebStorageTest {
-    tmp_dir: Option<TempDir>,
+    data_directory: Option<DataDirectory>,
+    private_data_directory: Option<DataDirectory>,
     threads: StorageThreads,
+    private: bool,
 }
 
 impl WebStorageTest {
-    pub(crate) fn new() -> Self {
-        let tmp_dir = tempfile::tempdir().unwrap();
-        let config_dir = tmp_dir.path().to_path_buf();
+    pub(crate) fn create_threads() -> (
+        DataDirectory,
+        DataDirectory,
+        (StorageThreads, StorageThreads),
+    ) {
         let mem_profiler_chan = profile_mem::Profiler::create();
-        let threads = storage::new_storage_threads(mem_profiler_chan, Some(config_dir), false);
+        let data_directory = DataDirectory::temporary();
+        let private_data_directory = DataDirectory::temporary();
+        let threads = storage::new_storage_threads(
+            mem_profiler_chan,
+            &data_directory,
+            &private_data_directory,
+        );
+        (data_directory, private_data_directory, threads)
+    }
 
+    pub(crate) fn new() -> Self {
+        let (data_directory, private_data_directory, threads) = Self::create_threads();
         Self {
-            tmp_dir: Some(tmp_dir),
-            threads: threads.0,
+            data_directory: Some(data_directory),
+            private_data_directory: Some(private_data_directory),
+            threads: threads.1,
+            private: false,
         }
     }
 
-    pub(crate) fn new_in_memory() -> Self {
-        let mem_profiler_chan = profile_mem::Profiler::create();
-        let threads = storage::new_storage_threads(mem_profiler_chan, None, false);
-
+    fn new_private() -> Self {
+        let (data_directory, private_data_directory, threads) = Self::create_threads();
         Self {
-            tmp_dir: None,
+            data_directory: Some(data_directory),
+            private_data_directory: Some(private_data_directory),
             threads: threads.0,
+            private: true,
         }
     }
 
     pub(crate) fn restart(mut self) -> Self {
-        let tmp_dir = self.tmp_dir.take();
-        let config_dir = tmp_dir.as_ref().map(|d| d.path().to_path_buf());
+        let data_directory = self.data_directory.take().unwrap();
+        let private_data_directory = self.private_data_directory.take().unwrap();
         let mem_profiler_chan = profile_mem::Profiler::create();
-        let threads = storage::new_storage_threads(mem_profiler_chan, config_dir, false);
+        let threads = storage::new_storage_threads(
+            mem_profiler_chan,
+            &data_directory,
+            &private_data_directory,
+        );
 
         Self {
-            tmp_dir: tmp_dir,
-            threads: threads.0,
+            data_directory: Some(data_directory),
+            private_data_directory: Some(private_data_directory),
+            threads: if self.private { threads.0 } else { threads.1 },
+            private: self.private,
         }
     }
 
@@ -209,8 +231,8 @@ fn set_and_get_item() {
 }
 
 #[test]
-fn set_and_get_item_in_memory() {
-    let test = WebStorageTest::new_in_memory();
+fn set_and_get_item_in_private() {
+    let test = WebStorageTest::new_private();
     let url = ServoUrl::parse("https://example.com").unwrap();
 
     // Set a value.
@@ -400,8 +422,8 @@ fn clear_data_for_sites_local() {
 }
 
 #[test]
-fn clear_data_for_sites_local_in_memory() {
-    let test = WebStorageTest::new_in_memory();
+fn clear_data_for_sites_local_private() {
+    let test = WebStorageTest::new_private();
     test_clear_data_for_sites(test, WebStorageType::Local);
 }
 

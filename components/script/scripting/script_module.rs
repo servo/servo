@@ -220,8 +220,8 @@ impl ModuleTree {
             external,
             url,
         };
-        if let Some(unminified_js_dir) = global.unminified_js_dir() {
-            unminify_js(&mut module_source, unminified_js_dir);
+        if global.unminify_javascript() {
+            unminify_js(&mut module_source);
         }
         let mut source = transform_str_to_source_text(&module_source.source);
 

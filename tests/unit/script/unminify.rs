@@ -5,7 +5,7 @@
 use std::borrow::Cow;
 use std::io::{ErrorKind, Write};
 
-use script::test::unminify::{create_output_file, substitute_with_local_script};
+use script::test::unminify::{create_output_file_in_directory, substitute_with_local_script};
 use servo_url::ServoUrl;
 
 #[test]
@@ -13,7 +13,7 @@ fn test_create_output_file_with_query_string() {
     let dir = tempfile::tempdir().expect("create temp dir");
     let url = ServoUrl::parse("https://example.com/app.js?v=abc123&t=456").unwrap();
 
-    let result = create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true));
+    let result = create_output_file_in_directory(dir.path(), &url, Some(true));
 
     assert!(result.is_ok(), "file creation failed: {:?}", result.err());
     assert!(
@@ -33,7 +33,7 @@ fn test_create_output_file_without_query_string() {
     let dir = tempfile::tempdir().expect("create temp dir");
     let url = ServoUrl::parse("https://example.com/app.js").unwrap();
 
-    let result = create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true));
+    let result = create_output_file_in_directory(dir.path(), &url, Some(true));
 
     assert!(result.is_ok());
     assert!(dir.path().join("example.com/app.js").exists());
@@ -44,7 +44,7 @@ fn test_create_output_file_with_data_url() {
     let dir = tempfile::tempdir().expect("create temp dir");
     let url = ServoUrl::parse("data:text/javascript,console.log('pass')").unwrap();
 
-    let result = create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true));
+    let result = create_output_file_in_directory(dir.path(), &url, Some(true));
 
     assert_eq!(result.unwrap_err().kind(), ErrorKind::InvalidInput);
     assert_eq!(dir.path().read_dir().unwrap().count(), 0);
@@ -56,8 +56,7 @@ fn replace_script_with_query_string() {
     let url = ServoUrl::parse("https://example.com/app.js?query=true").unwrap();
 
     {
-        let mut result =
-            create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true)).unwrap();
+        let mut result = create_output_file_in_directory(dir.path(), &url, Some(true)).unwrap();
         result.write(b"pass").unwrap();
     }
 
@@ -72,8 +71,7 @@ fn replace_script_without_query_string() {
     let url = ServoUrl::parse("https://example.com/app.js").unwrap();
 
     {
-        let mut result =
-            create_output_file(dir.path().to_str().unwrap().to_owned(), &url, Some(true)).unwrap();
+        let mut result = create_output_file_in_directory(dir.path(), &url, Some(true)).unwrap();
         result.write(b"pass").unwrap();
     }
 

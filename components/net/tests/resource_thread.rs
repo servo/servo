@@ -12,6 +12,7 @@ use net_traits::CoreResourceMsg;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::ProfilerChan;
 use servo_base::generic_channel;
+use tempfile::TempDir;
 
 use crate::create_generic_embedder_proxy;
 
@@ -24,12 +25,14 @@ fn test_exit() {
     let (tx, _rx) = generic_channel::channel().unwrap();
     let (mtx, _mrx) = generic_channel::channel().unwrap();
     let (sender, receiver) = generic_channel::oneshot().unwrap();
+    let temporary_directory = TempDir::new().unwrap();
     let (resource_thread, _private_resource_thread) = new_core_resource_thread(
         None,
         ProfilerChan(Some(tx)),
         MemProfilerChan(mtx),
         create_generic_embedder_proxy(),
-        None,
+        temporary_directory.path().to_owned(),
+        temporary_directory.path().to_owned(),
         CACertificates::Default,
         false, /* ignore_certificate_errors */
         std::sync::Arc::new(ProtocolRegistry::default()),

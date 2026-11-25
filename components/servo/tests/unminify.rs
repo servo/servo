@@ -11,6 +11,7 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use net::test_util::{make_body, make_server};
 use servo::{JSValue, WebViewBuilder};
 use servo_config::opts;
+use tempfile::TempDir;
 
 #[expect(dead_code)]
 mod common;
@@ -19,10 +20,11 @@ use common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
 
 #[test]
 fn test_unminify_script() {
+    let temp_dir = TempDir::new().unwrap();
     let servo_test = ServoTest::new_with_builder(|builder| {
         let mut opts = opts::Opts::default();
         opts.unminify_js = true;
-        opts.temporary_storage = true;
+        opts.unminification_output_directory = Some(temp_dir.path().to_owned());
         builder.opts(opts)
     });
 

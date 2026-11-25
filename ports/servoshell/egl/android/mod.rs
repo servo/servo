@@ -774,7 +774,7 @@ fn set_default_config_dir<'local>(
         error!("Failed to create config directory at {config_dir:?}: {error:?}");
     }
     debug!("Default config dir: {config_dir:?}");
-    let _ = crate::prefs::DEFAULT_CONFIG_DIR
+    let _ = crate::prefs::APPLICATION_FILES_DIRECTORY
         .set(config_dir)
         .inspect_err(|path| warn!("Default config dir was already set to {path:?}"));
     Ok(())

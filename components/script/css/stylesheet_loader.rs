@@ -118,11 +118,7 @@ struct StylesheetContext {
 }
 
 impl StylesheetContext {
-    fn unminify_css(&mut self, document: &Document, file_url: ServoUrl) {
-        let Some(unminified_dir) = document.window().unminified_css_dir() else {
-            return;
-        };
-
+    fn unminify_css(&mut self, file_url: ServoUrl) {
         let mut style_content = std::mem::take(&mut self.data).to_vec();
         if let Some((input, mut output)) = create_temp_files() &&
             execute_js_beautify(
@@ -134,7 +130,7 @@ impl StylesheetContext {
             output.seek(std::io::SeekFrom::Start(0)).unwrap();
             output.read_to_end(&mut style_content).unwrap();
         }
-        match create_output_file(unminified_dir, &file_url, None) {
+        match create_output_file(&file_url, None) {
             Ok(mut file) => {
                 file.write_all(&style_content).unwrap();
             },
@@ -424,7 +420,9 @@ impl FetchResponseListener for StylesheetContext {
             return;
         }
 
-        self.unminify_css(&document, metadata.final_url.clone());
+        if document.window().unminify_css() {
+            self.unminify_css(metadata.final_url.clone());
+        }
 
         let loader = if pref!(dom_parallel_css_parsing_enabled) {
             ElementStylesheetLoader::Asynchronous(AsynchronousStylesheetLoader::new(&element))

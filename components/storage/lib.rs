@@ -4,6 +4,7 @@
 
 pub mod cache_storage;
 pub mod client_storage;
+mod data_directory;
 mod indexeddb;
 pub(crate) mod shared;
 mod storage_thread;
@@ -11,6 +12,7 @@ mod webstorage;
 
 pub use cache_storage::CacheStorageThreadFactory;
 pub use client_storage::ClientStorageThreadFactory;
+pub use data_directory::DataDirectory;
 pub(crate) use indexeddb::IndexedDBThreadFactory;
 pub use storage_thread::new_storage_threads;
 pub(crate) use webstorage::WebStorageThreadFactory;

@@ -62,11 +62,13 @@ pub struct Opts {
     /// Load shaders from disk.
     pub shaders_path: Option<PathBuf>,
 
-    /// Directory for a default config directory
-    pub config_dir: Option<PathBuf>,
+    /// Directory for storing data such as local storage and cookies. If this is `None`, then a
+    /// temporary directory will be used.
+    pub storage_directory: Option<PathBuf>,
 
-    /// Use temporary storage (data on disk will not persist across restarts).
-    pub temporary_storage: bool,
+    /// Directory for storing cached data such as HTTP disk cache. If this is `None`, then a
+    /// temporary directory will be used.
+    pub cache_directory: Option<PathBuf>,
 
     /// Path to PEM encoded SSL CA certificate store.
     pub certificate_path: Option<String>,
@@ -80,14 +82,19 @@ pub struct Opts {
     /// <https://github.com/servo/servo/issues/30080>.
     pub ignore_certificate_errors: bool,
 
-    /// Unminify Javascript.
+    /// Unminify all JavaScript and write the contents to disk.
     pub unminify_js: bool,
 
-    /// Directory path that was created with "unminify-js"
-    pub local_script_source: Option<String>,
-
-    /// Unminify Css.
+    /// Unminify all CSS and write the contents to disk.
     pub unminify_css: bool,
+
+    /// A directory to write unminified sources to. If `None`, they will be written to a temporary
+    /// directory.
+    pub unminification_output_directory: Option<PathBuf>,
+
+    /// A directory with local script source overrides. This allows the embedder to override the
+    /// contents of scripts with one from the local disk.
+    pub local_script_source_override: Option<String>,
 }
 
 /// The set of diagnostic options that can be enabled in Servo.
@@ -253,15 +260,16 @@ impl Default for Opts {
             random_pipeline_closure_seed: None,
             sandbox: false,
             debug: Default::default(),
-            config_dir: None,
-            temporary_storage: false,
+            storage_directory: None,
+            cache_directory: None,
             shaders_path: None,
             certificate_path: None,
             host_file: None,
             ignore_certificate_errors: false,
             unminify_js: false,
-            local_script_source: None,
             unminify_css: false,
+            unminification_output_directory: None,
+            local_script_source_override: None,
         }
     }
 }
