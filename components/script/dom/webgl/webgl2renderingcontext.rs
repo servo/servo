@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::{cmp, ptr};
 
@@ -615,6 +616,7 @@ impl WebGL2RenderingContext {
 
     fn uniform_vec_section_uint(
         &self,
+        no_gc: &NoGC,
         vec: Uint32ArrayOrUnsignedLongSequence,
         offset: u32,
         length: u32,
@@ -622,8 +624,10 @@ impl WebGL2RenderingContext {
         uniform_location: &WebGLUniformLocation,
     ) -> WebGLResult<Vec<u32>> {
         let vec = match vec {
-            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => v.to_vec().unwrap_or_default(),
-            Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => v,
+            Uint32ArrayOrUnsignedLongSequence::Uint32Array(v) => {
+                Cow::Borrowed(v.as_slice_safe(no_gc).unwrap_or(&[]))
+            },
+            Uint32ArrayOrUnsignedLongSequence::UnsignedLongSequence(v) => Cow::Owned(v),
         };
         self.base
             .uniform_vec_section::<u32>(vec, offset, length, uniform_size, uniform_location)
@@ -2549,12 +2553,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1iv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Int32ArrayOrLongSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform1iv(location, v, src_offset, src_length)
+        self.base
+            .uniform1iv(no_gc, location, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
@@ -2573,6 +2579,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn Uniform1uiv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         val: Uint32ArrayOrUnsignedLongSequence,
         src_offset: u32,
@@ -2589,7 +2596,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
 
-            let val = self.uniform_vec_section_uint(val, src_offset, src_length, 1, location)?;
+            let val =
+                self.uniform_vec_section_uint(no_gc, val, src_offset, src_length, 1, location)?;
 
             match location.type_() {
                 constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
@@ -2613,12 +2621,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform1fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Float32ArrayOrUnrestrictedFloatSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform1fv(location, v, src_offset, src_length);
+        self.base
+            .uniform1fv(no_gc, location, v, src_offset, src_length);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -2629,12 +2639,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Float32ArrayOrUnrestrictedFloatSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform2fv(location, v, src_offset, src_length);
+        self.base
+            .uniform2fv(no_gc, location, v, src_offset, src_length);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -2645,12 +2657,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform2iv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Int32ArrayOrLongSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform2iv(location, v, src_offset, src_length)
+        self.base
+            .uniform2iv(no_gc, location, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
@@ -2669,6 +2683,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn Uniform2uiv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         val: Uint32ArrayOrUnsignedLongSequence,
         src_offset: u32,
@@ -2679,7 +2694,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 constants::BOOL_VEC2 | constants::UNSIGNED_INT_VEC2 => {},
                 _ => return Err(InvalidOperation),
             }
-            let val = self.uniform_vec_section_uint(val, src_offset, src_length, 2, location)?;
+            let val =
+                self.uniform_vec_section_uint(no_gc, val, src_offset, src_length, 2, location)?;
             self.base
                 .send_command(WebGLCommand::Uniform2uiv(location.id(), val));
             Ok(())
@@ -2694,12 +2710,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Float32ArrayOrUnrestrictedFloatSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform3fv(location, v, src_offset, src_length);
+        self.base
+            .uniform3fv(no_gc, location, v, src_offset, src_length);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
@@ -2710,12 +2728,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform3iv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Int32ArrayOrLongSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform3iv(location, v, src_offset, src_length)
+        self.base
+            .uniform3iv(no_gc, location, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
@@ -2734,6 +2754,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn Uniform3uiv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         val: Uint32ArrayOrUnsignedLongSequence,
         src_offset: u32,
@@ -2744,7 +2765,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 constants::BOOL_VEC3 | constants::UNSIGNED_INT_VEC3 => {},
                 _ => return Err(InvalidOperation),
             }
-            let val = self.uniform_vec_section_uint(val, src_offset, src_length, 3, location)?;
+            let val =
+                self.uniform_vec_section_uint(no_gc, val, src_offset, src_length, 3, location)?;
             self.base
                 .send_command(WebGLCommand::Uniform3uiv(location.id(), val));
             Ok(())
@@ -2759,12 +2781,14 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4iv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Int32ArrayOrLongSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform4iv(location, v, src_offset, src_length)
+        self.base
+            .uniform4iv(no_gc, location, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
@@ -2783,6 +2807,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn Uniform4uiv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         val: Uint32ArrayOrUnsignedLongSequence,
         src_offset: u32,
@@ -2793,7 +2818,8 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 constants::BOOL_VEC4 | constants::UNSIGNED_INT_VEC4 => {},
                 _ => return Err(InvalidOperation),
             }
-            let val = self.uniform_vec_section_uint(val, src_offset, src_length, 4, location)?;
+            let val =
+                self.uniform_vec_section_uint(no_gc, val, src_offset, src_length, 4, location)?;
             self.base
                 .send_command(WebGLCommand::Uniform4uiv(location.id(), val));
             Ok(())
@@ -2808,17 +2834,20 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn Uniform4fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         v: Float32ArrayOrUnrestrictedFloatSequence,
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.uniform4fv(location, v, src_offset, src_length);
+        self.base
+            .uniform4fv(no_gc, location, v, src_offset, src_length);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix2fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         v: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2826,12 +2855,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_length: u32,
     ) {
         self.base
-            .uniform_matrix_2fv(location, transpose, v, src_offset, src_length)
+            .uniform_matrix_2fv(no_gc, location, transpose, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix3fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         v: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2839,12 +2869,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_length: u32,
     ) {
         self.base
-            .uniform_matrix_3fv(location, transpose, v, src_offset, src_length)
+            .uniform_matrix_3fv(no_gc, location, transpose, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn UniformMatrix4fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         v: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2852,12 +2883,13 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         src_length: u32,
     ) {
         self.base
-            .uniform_matrix_4fv(location, transpose, v, src_offset, src_length)
+            .uniform_matrix_4fv(no_gc, location, transpose, v, src_offset, src_length)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn UniformMatrix3x2fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2870,6 +2902,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
             let val = self.base.uniform_matrix_section(
+                no_gc,
                 val,
                 src_offset,
                 src_length,
@@ -2886,6 +2919,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn UniformMatrix4x2fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2898,6 +2932,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
             let val = self.base.uniform_matrix_section(
+                no_gc,
                 val,
                 src_offset,
                 src_length,
@@ -2914,6 +2949,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn UniformMatrix2x3fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2926,6 +2962,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
             let val = self.base.uniform_matrix_section(
+                no_gc,
                 val,
                 src_offset,
                 src_length,
@@ -2942,6 +2979,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn UniformMatrix4x3fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2954,6 +2992,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
             let val = self.base.uniform_matrix_section(
+                no_gc,
                 val,
                 src_offset,
                 src_length,
@@ -2970,6 +3009,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn UniformMatrix2x4fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -2982,6 +3022,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
             let val = self.base.uniform_matrix_section(
+                no_gc,
                 val,
                 src_offset,
                 src_length,
@@ -2998,6 +3039,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn UniformMatrix3x4fv(
         &self,
+        no_gc: &NoGC,
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
@@ -3010,6 +3052,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
                 _ => return Err(InvalidOperation),
             }
             let val = self.base.uniform_matrix_section(
+                no_gc,
                 val,
                 src_offset,
                 src_length,
