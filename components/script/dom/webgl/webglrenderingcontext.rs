@@ -1669,6 +1669,7 @@ impl WebGLRenderingContext {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn uniform_matrix_section(
         &self,
         no_gc: &NoGC,
