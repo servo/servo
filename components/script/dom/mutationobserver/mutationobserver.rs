@@ -68,7 +68,8 @@ pub(crate) struct ObserverOptions {
     character_data_old_value: bool,
     child_list: bool,
     subtree: bool,
-    attribute_filter: Vec<DOMString>,
+    #[no_trace]
+    attribute_filter: Vec<LocalName>,
 }
 
 impl MutationObserver {
@@ -150,7 +151,7 @@ impl MutationObserver {
                                 .options
                                 .attribute_filter
                                 .iter()
-                                .any(|s| *s == **name)
+                                .any(|s| s == name)
                             {
                                 continue;
                             }
@@ -258,7 +259,12 @@ impl MutationObserverMethods<crate::DomTypeHolder> for MutationObserver {
 
     /// <https://dom.spec.whatwg.org/#dom-mutationobserver-observe>
     fn Observe(&self, target: &Node, options: &MutationObserverInit) -> Fallible<()> {
-        let attribute_filter = options.attributeFilter.clone().unwrap_or_default();
+        let attribute_filter: Vec<LocalName> = options
+            .attributeFilter
+            .iter()
+            .flatten()
+            .map(LocalName::from)
+            .collect();
         let attribute_old_value = options.attributeOldValue.unwrap_or(false);
         let mut attributes = options.attributes.unwrap_or(false);
         let mut character_data = options.characterData.unwrap_or(false);
