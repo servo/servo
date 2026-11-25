@@ -889,10 +889,10 @@ mod tests {
     };
     use url::Host;
 
-    use crate::ClientStorageThreadFactory;
     use crate::indexeddb::IndexedDBDescription;
     use crate::indexeddb::engines::sqlite::encoding;
     use crate::indexeddb::engines::{KvsEngine, KvsOperation, KvsTransaction, SqliteEngine};
+    use crate::{ClientStorageThreadFactory, DataDirectory};
 
     fn install_test_namespace() {
         PipelineNamespace::install(PipelineNamespaceId(1));
@@ -913,7 +913,7 @@ mod tests {
     fn create_db(
         db_name: String,
     ) -> (
-        tempfile::TempDir,
+        DataDirectory,
         PathBuf,
         bool,
         StorageProxyMap,
@@ -922,9 +922,8 @@ mod tests {
         if PIPELINE_NAMESPACE.get().is_none() {
             install_test_namespace();
         }
-        let tmp_dir = tempfile::tempdir().unwrap();
-        let handle: ClientStorageThreadHandle =
-            ClientStorageThreadFactory::new(Some(tmp_dir.path().to_path_buf()), true);
+        let storage_directory = DataDirectory::temporary();
+        let handle: ClientStorageThreadHandle = ClientStorageThreadFactory::new(&storage_directory);
 
         let storage_proxy_map = handle
             .obtain_a_storage_bottle_map(
@@ -941,12 +940,12 @@ mod tests {
             .recv()
             .unwrap()
             .unwrap();
-        (tmp_dir, path, created, storage_proxy_map, handle)
+        (storage_directory, path, created, storage_proxy_map, handle)
     }
 
     #[test]
     fn test_cycle() {
-        let (_temp_dir, path, created, proxy_map, handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, proxy_map, handle) = create_db("test_db".to_string());
         let thread_pool = get_pool();
         // Test create
         let db = SqliteEngine::new(
@@ -987,7 +986,8 @@ mod tests {
 
     #[test]
     fn test_create_store() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1015,7 +1015,8 @@ mod tests {
 
     #[test]
     fn test_create_store_empty_name() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1036,7 +1037,8 @@ mod tests {
 
     #[test]
     fn test_injection() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1064,7 +1066,8 @@ mod tests {
 
     #[test]
     fn test_key_path() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1087,7 +1090,8 @@ mod tests {
 
     #[test]
     fn test_delete_store() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1115,7 +1119,8 @@ mod tests {
 
     #[test]
     fn test_delete_store_removes_store_records() {
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1185,7 +1190,8 @@ mod tests {
             .expect("Could not construct callback")
         }
 
-        let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+        let (_data_directory, path, created, _proxy_map, _handle) =
+            create_db("test_db".to_string());
         let thread_pool = get_pool();
         let db = SqliteEngine::new(
             path,
@@ -1358,7 +1364,8 @@ mod tests {
             lower_open: bool,
             upper_open: bool,
         ) -> Vec<i32> {
-            let (_temp_dir, path, created, _proxy_map, _handle) = create_db("test_db".to_string());
+            let (_data_directory, path, created, _proxy_map, _handle) =
+                create_db("test_db".to_string());
             let thread_pool = get_pool();
             let db = SqliteEngine::new(
                 path,

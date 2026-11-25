@@ -8295,6 +8295,7 @@ dependencies = [
  "stylo",
  "stylo_traits",
  "surfman",
+ "tempfile",
  "tokio",
  "tracing",
  "url",

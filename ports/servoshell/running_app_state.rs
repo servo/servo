@@ -396,9 +396,9 @@ impl RunningAppState {
         {
             use std::ffi::CString;
 
-            use crate::prefs::default_config_dir;
+            use crate::prefs::default_config_directory;
 
-            let mut profile_path = default_config_dir().expect("Need a config dir");
+            let mut profile_path = default_config_directory().expect("Need a config dir");
             profile_path.push("profiles/");
             let filename = format!(
                 "{}/profile-%h-%p.profraw",

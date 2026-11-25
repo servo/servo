@@ -257,7 +257,7 @@ impl ApplicationHandler<AppEvent> for App {
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        if !self.preferences.network_http_disk_cache.is_empty() &&
+        if self.preferences.network_http_disk_cache_enabled &&
             let AppState::Teardown(state) = &self.state
         {
             state.servo.network_manager().store_http_cache_to_disk();

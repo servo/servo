@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::borrow::Cow;
-use std::env;
 use std::fs::{File, create_dir_all};
 use std::io::{Error, ErrorKind, Read, Seek, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::sync::LazyLock;
 
 use servo_config::opts;
 use servo_url::ServoUrl;
-use tempfile::NamedTempFile;
+use tempfile::{NamedTempFile, TempDir};
 use uuid::Uuid;
 
 pub(crate) struct ScriptSource<'a> {
@@ -61,18 +61,27 @@ pub(crate) fn execute_js_beautify(input: &Path, output: File, file_type: Beautif
     }
 }
 
-pub fn create_output_file(
-    unminified_dir: String,
+fn unminified_source_output_directory() -> Result<PathBuf, Error> {
+    static UNMINIFIED_SOURCE_TEMPORARY_OUTPUT_DIRECTORY: LazyLock<Option<TempDir>> =
+        LazyLock::new(|| TempDir::new().ok());
+    opts::get()
+        .unminification_output_directory
+        .clone()
+        .or_else(|| {
+            (*UNMINIFIED_SOURCE_TEMPORARY_OUTPUT_DIRECTORY)
+                .as_ref()
+                .map(|temp_dir| temp_dir.path().to_owned())
+        })
+        .ok_or(Error::other(
+            "Could not create output directory for unminified sources",
+        ))
+}
+
+pub fn create_output_file_in_directory(
+    directory: &Path,
     url: &ServoUrl,
     external: Option<bool>,
 ) -> Result<File, Error> {
-    let (path, _tmp_dir) = if opts::get().temporary_storage {
-        let tempfile = tempfile::tempdir()?;
-        (tempfile.path().to_owned(), Some(tempfile))
-    } else {
-        (PathBuf::from(unminified_dir), None)
-    };
-
     if url.scheme() == "data" {
         return Err(Error::new(
             ErrorKind::InvalidInput,
@@ -86,15 +95,15 @@ pub fn create_output_file(
     let url_path = &url[url::Position::BeforeHost..url::Position::AfterPath];
 
     let (base, has_name) = match url.as_str().ends_with('/') {
-        true => (path.join(url_path).as_path().to_owned(), false),
-        false => (path.join(url_path).parent().unwrap().to_owned(), true),
+        true => (directory.join(url_path).as_path().to_owned(), false),
+        false => (directory.join(url_path).parent().unwrap().to_owned(), true),
     };
 
     create_dir_all(&base)?;
 
     let path = if external.unwrap_or(true) && has_name {
         // External.
-        path.join(url_path)
+        directory.join(url_path)
     } else {
         // Inline file or url ends with '/'
         base.join(Uuid::new_v4().to_string())
@@ -105,7 +114,12 @@ pub fn create_output_file(
     File::create(path)
 }
 
-pub(crate) fn unminify_js(script: &mut ScriptSource, unminified_js_dir: String) {
+pub(crate) fn create_output_file(url: &ServoUrl, external: Option<bool>) -> Result<File, Error> {
+    let path = unminified_source_output_directory()?;
+    create_output_file_in_directory(&path, url, external)
+}
+
+pub(crate) fn unminify_js(script: &mut ScriptSource) {
     if let Some((mut input, mut output)) = create_temp_files() {
         input.write_all(script.source.as_bytes()).unwrap();
 
@@ -121,14 +135,8 @@ pub(crate) fn unminify_js(script: &mut ScriptSource, unminified_js_dir: String) 
         }
     }
 
-    match create_output_file(unminified_js_dir, script.url, Some(script.external)) {
+    match create_output_file(script.url, Some(script.external)) {
         Ok(mut file) => file.write_all(script.source.as_bytes()).unwrap(),
         Err(why) => warn!("Could not store script {:?}", why),
     }
-}
-
-pub(crate) fn unminified_path(dir: &str) -> String {
-    let mut path = env::current_dir().unwrap();
-    path.push(dir);
-    path.into_os_string().into_string().unwrap()
 }

@@ -102,7 +102,7 @@ pub mod encoding_detection {
 
 pub mod unminify {
     pub use crate::dom::html::htmlscriptelement::substitute_with_local_script;
-    pub use crate::unminify::create_output_file;
+    pub use crate::unminify::create_output_file_in_directory;
 }
 
 pub mod console {

@@ -371,8 +371,9 @@ pub struct ScriptThread {
     /// Unminify Javascript.
     unminify_js: bool,
 
-    /// Directory with stored unminified scripts
-    local_script_source: Option<String>,
+    /// A directory with local script source overrides. This allows the embedder to override the
+    /// contents of scripts with one from the local disk.
+    local_script_source_override: Option<String>,
 
     /// Unminify Css.
     unminify_css: bool,
@@ -1003,7 +1004,7 @@ impl ScriptThread {
                         .debug
                         .is_enabled(DiagnosticsLoggingOption::ProfileScriptEvents),
                     unminify_js: opts.unminify_js,
-                    local_script_source: opts.local_script_source.clone(),
+                    local_script_source_override: opts.local_script_source_override.clone(),
                     unminify_css: opts.unminify_css,
                     shared_style_locks,
                     user_contents_for_manager_id: RefCell::new(user_contents_for_manager_id),
@@ -3616,7 +3617,7 @@ impl ScriptThread {
                     self.paint_api.clone(),
                     self.unminify_js,
                     self.unminify_css,
-                    self.local_script_source.clone(),
+                    self.local_script_source_override.clone(),
                     user_contents,
                     self.player_context.clone(),
                     #[cfg(feature = "webgpu")]

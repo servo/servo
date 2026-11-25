@@ -8,7 +8,7 @@ use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufReader};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Weak};
 use std::thread;
 
@@ -89,7 +89,8 @@ pub fn new_resource_threads(
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
-    config_dir: Option<PathBuf>,
+    storage_directory: PathBuf,
+    cache_directory: PathBuf,
     certificate_path: Option<String>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
@@ -110,7 +111,8 @@ pub fn new_resource_threads(
         time_profiler_chan,
         mem_profiler_chan,
         embedder_proxy,
-        config_dir,
+        storage_directory,
+        cache_directory,
         ca_certificates,
         ignore_certificate_errors,
         protocols,
@@ -129,7 +131,8 @@ pub fn new_core_resource_thread(
     time_profiler_chan: ProfilerChan,
     mem_profiler_chan: MemProfilerChan,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
-    config_dir: Option<PathBuf>,
+    storage_directory: PathBuf,
+    cache_directory: PathBuf,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     protocols: Arc<ProtocolRegistry>,
@@ -158,7 +161,7 @@ pub fn new_core_resource_thread(
 
             let mut channel_manager = ResourceChannelManager {
                 resource_manager,
-                config_dir,
+                storage_directory,
                 ca_certificates,
                 ignore_certificate_errors,
                 cancellation_listeners: Default::default(),
@@ -174,6 +177,7 @@ pub fn new_core_resource_thread(
                         refresh_receiver,
                         protocols,
                         embedder_proxy,
+                        cache_directory,
                     )
                 },
                 String::from("network-cache-reporter"),
@@ -187,7 +191,7 @@ pub fn new_core_resource_thread(
 
 struct ResourceChannelManager {
     resource_manager: CoreResourceManager,
-    config_dir: Option<PathBuf>,
+    storage_directory: PathBuf,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     cancellation_listeners: FxHashMap<RequestId, Weak<CancellationListener>>,
@@ -195,20 +199,18 @@ struct ResourceChannelManager {
 
 /// This returns a tuple HttpState and a private HttpState.
 fn create_http_states(
-    config_dir: Option<&Path>,
+    storage_directory: PathBuf,
+    cache_directory: PathBuf,
     ca_certificates: CACertificates<'static>,
     ignore_certificate_errors: bool,
     embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
-    let auth_cache = config_dir
-        .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "auth_cache.json").ok())
-        .unwrap_or_default();
-    let hsts_list = config_dir
-        .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "hsts_list.json").ok())
-        .unwrap_or_default();
-    let cookie_jar = config_dir
-        .and_then(|config_dir| servo_base::read_json_from_file(config_dir, "cookie_jar.json").ok())
-        .unwrap_or_else(|| CookieStorage::new(150));
+    let auth_cache =
+        servo_base::read_json_from_file(&storage_directory, "auth_cache.json").unwrap_or_default();
+    let hsts_list =
+        servo_base::read_json_from_file(&storage_directory, "hsts_list.json").unwrap_or_default();
+    let cookie_jar = servo_base::read_json_from_file(&storage_directory, "cookie_jar.json")
+        .unwrap_or_else(|_| CookieStorage::new(150));
 
     let override_manager = CertificateErrorOverrideManager::new();
     let http_state = HttpState {
@@ -217,7 +219,7 @@ fn create_http_states(
         auth_cache: RwLock::new(auth_cache),
         cors_cache: RwLock::new(CorsCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: HttpCache::new(HttpCacheAssignment::Public),
+        http_cache: HttpCache::new(HttpCacheAssignment::Public(cache_directory)),
         client: create_http_client(create_tls_config(
             ca_certificates.clone(),
             ignore_certificate_errors,
@@ -258,9 +260,11 @@ impl ResourceChannelManager {
         refresh_receiver: GenericReceiver<CoreResourceMsg>,
         protocols: Arc<ProtocolRegistry>,
         embedder_proxy: GenericEmbedderProxy<NetToEmbedderMsg>,
+        cache_directory: PathBuf,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
-            self.config_dir.as_deref(),
+            self.storage_directory.clone(),
+            cache_directory,
             self.ca_certificates.clone(),
             self.ignore_certificate_errors,
             embedder_proxy,
@@ -650,14 +654,17 @@ impl ResourceChannelManager {
                 sender.send_or_ignore(total);
             },
             CoreResourceMsg::Exit(sender) => {
-                if let Some(ref config_dir) = self.config_dir {
-                    let auth_cache = http_state.auth_cache.read();
-                    servo_base::write_json_to_file(&*auth_cache, config_dir, "auth_cache.json");
-                    let jar = http_state.cookie_jar.read();
-                    servo_base::write_json_to_file(&*jar, config_dir, "cookie_jar.json");
-                    let hsts = http_state.hsts_list.read();
-                    servo_base::write_json_to_file(&*hsts, config_dir, "hsts_list.json");
-                }
+                let auth_cache = http_state.auth_cache.read();
+                servo_base::write_json_to_file(
+                    &*auth_cache,
+                    &self.storage_directory,
+                    "auth_cache.json",
+                );
+                let jar = http_state.cookie_jar.read();
+                servo_base::write_json_to_file(&*jar, &self.storage_directory, "cookie_jar.json");
+                let hsts = http_state.hsts_list.read();
+                servo_base::write_json_to_file(&*hsts, &self.storage_directory, "hsts_list.json");
+
                 self.resource_manager.exit();
 
                 let _ = sender.send(());

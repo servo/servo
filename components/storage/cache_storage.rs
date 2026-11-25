@@ -4,7 +4,6 @@
 
 use std::collections::HashMap;
 use std::fmt::Debug;
-use std::path::PathBuf;
 use std::thread;
 
 use log::error;
@@ -200,12 +199,12 @@ impl CacheStorageEngine for MemCacheStorageEngine {
 }
 
 pub trait CacheStorageThreadFactory {
-    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> Self;
+    fn new() -> Self;
 }
 
 impl CacheStorageThreadFactory for CacheStorageThreadHandle {
     // Current memory-only implementation needs no tempdir or config dir.
-    fn new(_config_dir: Option<PathBuf>, _temporary_storage: bool) -> CacheStorageThreadHandle {
+    fn new() -> CacheStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
         let sender_clone = generic_sender.clone();
         thread::Builder::new()

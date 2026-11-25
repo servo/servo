@@ -256,7 +256,7 @@ fn init_app(
 
     let config_dir = PathBuf::from(&native_values.cache_dir).join("servo");
     debug!("Configs are located at: {:?}", config_dir);
-    let _ = crate::prefs::DEFAULT_CONFIG_DIR
+    let _ = crate::prefs::APPLICATION_FILES_DIRECTORY
         .set(config_dir.clone())
         .inspect_err(|e| {
             warn!(
@@ -266,7 +266,7 @@ fn init_app(
         });
 
     // Ensure cache dir exists before copy `prefs.json`
-    let _ = crate::prefs::default_config_dir().inspect(|path| {
+    let _ = crate::prefs::default_config_directory().inspect(|path| {
         if !path.exists() {
             fs::create_dir_all(path).unwrap_or_else(|e| {
                 log::error!("Failed to create config directory at {:?}: {:?}", path, e)

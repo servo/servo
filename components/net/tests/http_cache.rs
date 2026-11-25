@@ -36,7 +36,7 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     response
         .headers
         .insert(EXPIRES, HeaderValue::from_str("-10").unwrap());
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
     for body in response_bodies {
         *response.body.lock() = body.clone();
         // First, store the 'normal' response.
@@ -70,7 +70,7 @@ async fn test_skip_incomplete_cache_for_range_request_with_no_end_bound() {
     let incomplete_response_body = &[1, 2, 3, 4, 5];
     let url = ServoUrl::parse("https://servo.org").unwrap();
 
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
     let mut headers = HeaderMap::new();
 
     headers.insert(
@@ -147,7 +147,7 @@ async fn stale_while_revalidate_freshness_for_cache_control(
         .headers
         .insert(CACHE_CONTROL, HeaderValue::from_str(cache_control).unwrap());
 
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
     cache.store(&request, &response).await;
 
     let mut done_chan = None;
@@ -198,7 +198,7 @@ async fn test_stale_while_revalidate_not_used_when_request_demands_revalidation(
     );
 
     let store_request = build_stale_while_revalidate_test_request();
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
     cache.store(&store_request, &response).await;
 
     let mut req_headers = HeaderMap::new();
@@ -233,7 +233,7 @@ async fn http_cache_get_items() {
         network_http_cache_size: 4,
         ..Default::default()
     });
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
     let url = ServoUrl::parse(&format!("https://www.servo.org/really_long_request")).unwrap();
     let request = RequestBuilder::new(
         None,
@@ -267,7 +267,7 @@ async fn http_cache_size() {
         network_http_cache_size: 4,
         ..Default::default()
     });
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
 
     // Fill requests that are not done
     for i in 0..4 {
@@ -299,7 +299,7 @@ async fn http_cache_do_not_evict_unfinished_requests() {
         network_http_cache_size: 4,
         ..Default::default()
     });
-    let cache = HttpCache::new(HttpCacheAssignment::Public);
+    let cache = HttpCache::new(HttpCacheAssignment::Private);
 
     // Store a not yet finished request
     let not_finished_request = {

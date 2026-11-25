@@ -121,7 +121,7 @@ fn parse_file_path() -> Result<PathBuf, Box<dyn Error>> {
 /// Helper function to obtain the path to the directory where we'll eventually store our cache file in.
 fn get_directory() -> Result<PathBuf, Box<dyn Error>> {
     let base_dir = opts::get()
-        .config_dir
+        .cache_directory
         .clone()
         .ok_or("Failed to get config dir")?;
 

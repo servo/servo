@@ -116,7 +116,7 @@ fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> Http
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
         cors_cache: RwLock::new(net::fetch::cors_cache::CorsCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: net::http_cache::HttpCache::new(net::http_cache::HttpCacheAssignment::Public),
+        http_cache: net::http_cache::HttpCache::new(net::http_cache::HttpCacheAssignment::Private),
         client: create_http_client(create_tls_config(
             net::connector::CACertificates::Default,
             false, /* ignore_certificate_errors */

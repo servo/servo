@@ -17,9 +17,11 @@ use storage_traits::client_storage::{
 };
 use uuid::Uuid;
 
+use crate::DataDirectory;
+
 /// <https://storage.spec.whatwg.org/#storage-quota>
 /// The storage quota of a storage shelf is an implementation-defined conservative estimate of the
-/// total amount of byttes it can hold. We use 10 GiB per shelf, matching Firefox's documented
+/// total amount of bytes it can hold. We use 10 GiB per shelf, matching Firefox's documented
 /// limit (<https://developer.mozilla.org/en-US/docs/Web/API/Storage_API/Storage_quotas_and_eviction_criteria>).
 const STORAGE_SHELF_QUOTA_BYTES: u64 = 10 * 1024 * 1024 * 1024;
 
@@ -666,45 +668,19 @@ impl RegistryEngine for SqliteEngine {
 }
 
 pub trait ClientStorageThreadFactory {
-    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> Self;
+    fn new(storage_directory: &DataDirectory) -> Self;
 }
 
 impl ClientStorageThreadFactory for ClientStorageThreadHandle {
-    fn new(config_dir: Option<PathBuf>, temporary_storage: bool) -> ClientStorageThreadHandle {
+    fn new(storage_directory: &DataDirectory) -> ClientStorageThreadHandle {
         let (generic_sender, generic_receiver) = generic_channel::channel().unwrap();
-        let mut temp_dir: Option<tempfile::TempDir> = None;
-        let has_config_dir = config_dir.is_some();
-        let base_dir = config_dir
-            .unwrap_or_else(|| {
-                let tmp_dir = tempfile::tempdir().unwrap();
-                let path = tmp_dir.path().to_path_buf();
-                temp_dir = Some(tmp_dir);
-                path
-            })
-            .join("clientstorage");
-        let storage_dir = match (has_config_dir, temporary_storage) {
-            (true, true) => {
-                let tmp_base = base_dir.join("temporary");
-                std::fs::create_dir_all(&tmp_base).unwrap();
-                let tmp_dir = tempfile::tempdir_in(tmp_base).unwrap();
-                let path = tmp_dir.path().to_path_buf();
-                temp_dir = Some(tmp_dir);
-                path
-            },
-            (false, true) => {
-                let unique_id = uuid::Uuid::new_v4().to_string();
-                base_dir.join("temporary").join(unique_id)
-            },
-            (_, false) => base_dir.join("default_v1"),
-        };
+        let storage_dir = storage_directory.subdirectory("client-storage-v1");
         std::fs::create_dir_all(&storage_dir)
             .expect("Failed to create ClientStorage storage directory");
         let sender_clone = generic_sender.clone();
         thread::Builder::new()
             .name("ClientStorageThread".to_owned())
             .spawn(move || {
-                // Keep temp_dir alive while the thread runs.
-                let _ = temp_dir;
                 let engine = SqliteEngine::new(storage_dir).unwrap_or_else(|error| {
                     warn!("Failed to initialize ClientStorage engine into storage dir: {error:?}");
                     SqliteEngine::memory().unwrap()
@@ -801,21 +777,17 @@ mod tests {
     use std::fs;
 
     use super::{ClientStorageThreadFactory, ClientStorageThreadHandle};
+    use crate::DataDirectory;
 
     /// <https://github.com/servo/servo/issues/49656>
     #[test]
-    fn test_client_tmp_cleanup_with_config_dir() {
-        let tmp_config_dir = tempfile::tempdir().unwrap();
-        let config_dir = tmp_config_dir.path();
-
-        let handle = <ClientStorageThreadHandle as ClientStorageThreadFactory>::new(
-            Some(config_dir.to_path_buf()),
-            true,
-        );
+    fn test_temporary_storage_directory_removed_on_drop() {
+        let storage_directory = DataDirectory::temporary();
+        let directory = storage_directory.path();
+        let handle =
+            <ClientStorageThreadHandle as ClientStorageThreadFactory>::new(&storage_directory);
         drop(handle);
-
-        // Check if temp dir is cleared.
-        let mut entries = fs::read_dir(config_dir.join("clientstorage").join("temporary")).unwrap();
-        assert!(entries.next().is_none());
+        drop(storage_directory);
+        assert!(matches!(fs::read_dir(directory), std::io::Result::Err(_)));
     }
 }

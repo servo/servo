@@ -212,7 +212,6 @@ use crate::runtime::job_queue::UserMicrotask;
 use crate::runtime::script_runtime::Runtime;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
-use crate::unminify::unminified_path;
 use crate::window_named_properties;
 
 /// A callback to call when a response comes back from the `ImageCache`.
@@ -423,12 +422,12 @@ pub(crate) struct Window {
         HashMapTracedValues<PendingImageRasterizationKey, Vec<Dom<Node>>, FxBuildHasher>,
     >,
 
-    /// Directory to store unminified css for this window if unminify-css
-    /// opt is enabled.
-    unminified_css_dir: DomRefCell<Option<String>>,
+    /// Whether or not to write unminified CSS to disk.
+    unminify_css: bool,
 
-    /// Directory with stored unminified scripts
-    local_script_source: Option<String>,
+    /// A directory with local script source overrides. This allows the embedder to override the
+    /// contents of scripts with one from the local disk.
+    local_script_source_override: Option<String>,
 
     /// Worklets
     test_worklet: MutNullableDom<Worklet>,
@@ -2512,6 +2511,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 }
 
 impl Window {
+    pub(crate) fn unminify_css(&self) -> bool {
+        self.unminify_css
+    }
+
     pub(crate) fn scroll_offset(&self, cx: &mut JSContext) -> Vector2D<f32, LayoutPixel> {
         self.scroll_offset_query_with_external_scroll_id(cx, self.pipeline_id().root_scroll_id())
     }
@@ -3832,12 +3835,8 @@ impl Window {
         self.throttled.get()
     }
 
-    pub(crate) fn unminified_css_dir(&self) -> Option<String> {
-        self.unminified_css_dir.borrow().clone()
-    }
-
     pub(crate) fn local_script_source(&self) -> &Option<String> {
-        &self.local_script_source
+        &self.local_script_source_override
     }
 
     pub(crate) fn set_navigation_start(&self) {
@@ -4268,12 +4267,8 @@ impl Window {
             pending_image_callbacks: Default::default(),
             pending_layout_images: Default::default(),
             pending_images_for_rasterization: Default::default(),
-            unminified_css_dir: DomRefCell::new(if unminify_css {
-                Some(unminified_path("unminified-css"))
-            } else {
-                None
-            }),
-            local_script_source,
+            unminify_css,
+            local_script_source_override: local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
             exists_mut_observer: Cell::new(false),

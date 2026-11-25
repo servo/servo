@@ -142,42 +142,36 @@ impl Default for ServoShellPreferences {
     }
 }
 
-#[cfg(all(
-    unix,
-    not(target_os = "macos"),
-    not(target_os = "ios"),
-    not(target_os = "android"),
-    not(target_env = "ohos")
-))]
-pub fn default_config_dir() -> Option<PathBuf> {
-    let mut config_dir = ::dirs::config_dir().unwrap();
-    config_dir.push("servo");
-    config_dir.push("default");
-    Some(config_dir)
+#[cfg(all(not(target_os = "android"), not(target_env = "ohos")))]
+pub fn default_config_directory() -> Option<PathBuf> {
+    Some(::dirs::config_dir()?.join("servoshell"))
 }
 
-/// Overrides the default preference dir
+#[cfg(all(not(target_os = "android"), not(target_env = "ohos")))]
+pub fn default_storage_directory() -> Option<PathBuf> {
+    Some(::dirs::data_local_dir()?.join("servoshell"))
+}
+
+#[cfg(all(not(target_os = "android"), not(target_env = "ohos")))]
+pub fn default_cache_directory() -> Option<PathBuf> {
+    Some(::dirs::cache_dir()?.join("servoshell"))
+}
+
+/// The default application files directory for Android and OHOS, which use the same directory for
+/// configuration, cache, and storage.
 #[cfg(any(target_os = "android", target_env = "ohos"))]
-pub(crate) static DEFAULT_CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
+pub(crate) static APPLICATION_FILES_DIRECTORY: OnceLock<PathBuf> = OnceLock::new();
 #[cfg(any(target_os = "android", target_env = "ohos"))]
-pub fn default_config_dir() -> Option<PathBuf> {
-    DEFAULT_CONFIG_DIR.get().cloned()
+pub fn default_config_directory() -> Option<PathBuf> {
+    APPLICATION_FILES_DIRECTORY.get().cloned()
 }
-
-#[cfg(target_os = "macos")]
-pub fn default_config_dir() -> Option<PathBuf> {
-    // FIXME: use `config_dir()` ($HOME/Library/Preferences)
-    // instead of `data_dir()` ($HOME/Library/Application Support) ?
-    let mut config_dir = ::dirs::data_dir().unwrap();
-    config_dir.push("Servo");
-    Some(config_dir)
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+pub fn default_storage_directory() -> Option<PathBuf> {
+    APPLICATION_FILES_DIRECTORY.get().cloned()
 }
-
-#[cfg(target_os = "windows")]
-pub fn default_config_dir() -> Option<PathBuf> {
-    let mut config_dir = ::dirs::config_dir().unwrap();
-    config_dir.push("Servo");
-    Some(config_dir)
+#[cfg(any(target_os = "android", target_env = "ohos"))]
+pub fn default_cache_directory() -> Option<PathBuf> {
+    APPLICATION_FILES_DIRECTORY.get().cloned()
 }
 
 /// Get a Servo [`Preferences`] to use when initializing Servo by first reading the user
@@ -377,6 +371,10 @@ fn webdriver_port() -> impl Parser<Option<u16>> {
 
 fn map_debug_options(arg: String) -> Vec<String> {
     arg.split(',').map(|s| s.to_owned()).collect()
+}
+
+fn unminification_output_directory() -> Option<PathBuf> {
+    Some(std::env::current_dir().ok()?.join("unminified"))
 }
 
 #[derive(Bpaf, Clone, Debug)]
@@ -681,23 +679,29 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         return ArgumentParsingResult::ContentProcess(content_process);
     }
 
-    let config_dir = cmd_args
+    let config_directory = cmd_args
         .config_dir
         .clone()
-        .or_else(default_config_dir)
+        .or_else(default_config_directory)
         .inspect(|config_dir| {
             if !config_dir.exists() {
                 fs::create_dir_all(config_dir).expect("Could not create config_dir");
             }
         });
+    let mut preferences = get_preferences(&cmd_args.prefs_file, &config_directory);
+
     let temporary_storage = cmd_args.temporary_storage;
+    let (storage_directory, cache_directory) = if !temporary_storage {
+        (default_storage_directory(), default_cache_directory())
+    } else {
+        (None, None)
+    };
+
     if let Some(ref time_profiler_trace_path) = cmd_args.profiler_trace_path {
         let mut path = PathBuf::from(time_profiler_trace_path);
         path.pop();
         fs::create_dir_all(&path).expect("Error in creating profiler trace path");
     }
-
-    let mut preferences = get_preferences(&cmd_args.prefs_file, &config_dir);
 
     update_preferences_from_command_line_arguments(&mut preferences, &cmd_args);
 
@@ -768,8 +772,8 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         sandbox: cmd_args.sandbox,
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,
-        config_dir,
-        temporary_storage,
+        storage_directory,
+        cache_directory,
         shaders_path: cmd_args.shaders,
         certificate_path: cmd_args
             .certificate_path
@@ -777,10 +781,11 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         host_file: cmd_args.host_file,
         ignore_certificate_errors: cmd_args.ignore_certificate_errors,
         unminify_js: cmd_args.unminify_js,
-        local_script_source: cmd_args
+        unminify_css: cmd_args.unminify_css,
+        unminification_output_directory: unminification_output_directory(),
+        local_script_source_override: cmd_args
             .local_script_source
             .map(|p| p.to_string_lossy().into_owned()),
-        unminify_css: cmd_args.unminify_css,
         force_ipc: cmd_args.force_ipc,
     };
 
