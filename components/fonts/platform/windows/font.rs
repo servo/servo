@@ -190,11 +190,7 @@ impl PlatformFontMethods for PlatformFont {
         Self::new(font_face, pt_size, vec![])
     }
 
-    fn copy_with_variations(
-        self,
-        _: &FontIdentifier,
-        variations: &[FontVariation],
-    ) -> Result<Self, &'static str> {
+    fn copy_with_variations(self, variations: &[FontVariation]) -> Result<Self, &'static str> {
         Self::new_with_variations(
             self.face.0.clone(),
             Some(Au::from_f32_px(self.em_size * 16.)),

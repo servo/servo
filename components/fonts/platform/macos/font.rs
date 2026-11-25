@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::path::Path;
 use std::ptr;
 use std::ptr::NonNull;
 use std::sync::Arc;
@@ -14,12 +15,16 @@ use fonts_traits::{
 };
 use log::debug;
 use objc2_core_foundation::{
-    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType,
+    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType, CFURL, CGFloat,
 };
 use objc2_core_graphics::CGGlyph;
 use objc2_core_text::{
-    CTFont, CTFontOrientation, CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag,
-    kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
+    CTFont, CTFontDescriptor, CTFontManagerCreateFontDescriptorFromData, CTFontOrientation,
+    CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag, kCTFontSlantTrait,
+    kCTFontSymbolicTrait, kCTFontURLAttribute, kCTFontVariationAttribute,
+    kCTFontVariationAxisDefaultValueKey, kCTFontVariationAxisIdentifierKey,
+    kCTFontVariationAxisMaximumValueKey, kCTFontVariationAxisMinimumValueKey, kCTFontWeightTrait,
+    kCTFontWidthTrait,
 };
 use skrifa::Tag;
 use skrifa::font::{Blob, TableFunction};
@@ -27,13 +32,10 @@ use style::font_face::{FontStyle, FontWidth};
 use style::values::computed::FontWeight;
 use webrender_api::{FontInstanceFlags, FontVariation};
 
-use super::core_text_font_cache::CoreTextFontCache;
 use crate::font::{FontTableMethods, FractionalPixel, map_platform_values_to_style_values};
-use crate::font_context::SkrifaFontCache;
 use crate::platform::font_list::font_template_for_local_font_descriptor;
 use crate::{
-    FallbackFontSelectionOptions, Font, FontData, FontMetrics, FontRef, GlyphId,
-    PlatformFontMethods,
+    FallbackFontSelectionOptions, Font, FontData, FontMetrics, GlyphId, PlatformFontMethods,
 };
 
 #[derive(Clone)]
@@ -92,12 +94,70 @@ impl PlatformFont {
         data: Option<&FontData>,
         requested_size: Option<Au>,
     ) -> Result<PlatformFont, &'static str> {
-        let size = match requested_size {
-            Some(s) => s.to_f64_px(),
-            None => 0.0,
+        // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
+        // 12.0. We don't want that! (Issue #10492.)
+        let clamped_pt_size = requested_size.unwrap_or_default().to_f64_px().max(0.01);
+        let descriptor = match font_identifier {
+            FontIdentifier::Local(local_font_identifier) => {
+                // Other platforms can instantiate a platform font by loading the data
+                // from a file and passing an index in the case the file is a TTC bundle.
+                // The only way to reliably load the correct font from a TTC bundle on
+                // macOS is to create the font using a descriptor with both the PostScript
+                // name and path.
+                let postscript_name = CFString::from_str(&local_font_identifier.postscript_name);
+                let descriptor =
+                    unsafe { CTFontDescriptor::with_name_and_size(&postscript_name, 0.0) };
+
+                let cf_url =
+                    CFURL::from_file_path(Path::new(&local_font_identifier.path.to_string()))
+                        .ok_or("Could not create CFURL for local font file")?;
+                let attributes: CFRetained<CFDictionary<CFString, CFType>> =
+                    CFDictionary::from_slices(
+                        &[unsafe { kCTFontURLAttribute }],
+                        &[cf_url.as_ref()],
+                    );
+                unsafe { descriptor.copy_with_attributes(attributes.as_opaque()) }
+            },
+            FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => {
+                let data = data
+                    .expect("Should always have FontData for web fonts")
+                    .clone();
+                let data = CFData::from_bytes(data.as_ref());
+                unsafe {
+                    CTFontManagerCreateFontDescriptorFromData(&data)
+                        .ok_or("Could not create CTFont from web font data")?
+                }
+            },
         };
-        CoreTextFontCache::core_text_font(font_identifier, data, size)
-            .ok_or("Could not generate CTFont for FontTemplateData")
+
+        let ctfont = unsafe {
+            CTFont::with_font_descriptor(&descriptor, clamped_pt_size as CGFloat, std::ptr::null())
+        };
+
+        Ok(PlatformFont::new_with_ctfont(ctfont))
+    }
+
+    fn variation_axis_information(&self) -> Option<Vec<VariationAxisInformation>> {
+        let variation_axes = unsafe { self.ctfont.variation_axes()? };
+        let traits = unsafe { variation_axes.cast_unchecked::<CFDictionary<CFString, CFNumber>>() };
+
+        Some(
+            traits
+                .iter()
+                .filter_map(|axes| {
+                    let tag = unsafe { axes.get(kCTFontVariationAxisIdentifierKey) }?;
+                    let max_value = unsafe { axes.get(kCTFontVariationAxisMaximumValueKey) }?;
+                    let min_value = unsafe { axes.get(kCTFontVariationAxisMinimumValueKey) }?;
+                    let default_value = unsafe { axes.get(kCTFontVariationAxisDefaultValueKey) }?;
+                    Some(VariationAxisInformation {
+                        tag: tag.as_i64()?,
+                        max_value: max_value.as_f64()?,
+                        min_value: min_value.as_f64()?,
+                        default_value: default_value.as_f64()?,
+                    })
+                })
+                .collect(),
+        )
     }
 
     // This is adapted from WebRender glyph rasterizer for macos.
@@ -113,6 +173,14 @@ impl PlatformFont {
             0
         }
     }
+}
+
+#[derive(Clone, Default, Debug)]
+struct VariationAxisInformation {
+    tag: i64,
+    max_value: f64,
+    min_value: f64,
+    default_value: f64,
 }
 
 impl PlatformFontMethods for PlatformFont {
@@ -133,14 +201,79 @@ impl PlatformFontMethods for PlatformFont {
 
     fn copy_with_variations(
         self,
-        font_identifier: &FontIdentifier,
-        variations: &[FontVariation],
+        specified_variations: &[FontVariation],
     ) -> Result<Self, &'static str> {
-        Ok(CoreTextFontCache::add_variations_to_font(
-            self,
-            font_identifier,
-            variations,
-        ))
+        if specified_variations.is_empty() {
+            return Ok(self);
+        }
+
+        let pt_size = unsafe { self.ctfont.size() };
+        let Some(variations) = self.variation_axis_information() else {
+            return Ok(self);
+        };
+
+        let mut modified_variations = false;
+        let variations: Vec<_> = variations
+            .iter()
+            .map(|variation| {
+                let value = specified_variations
+                    .iter()
+                    .find_map(|specified_variation| {
+                        if variation.tag == specified_variation.tag as i64 {
+                            Some(specified_variation.value as f64)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(variation.default_value)
+                    .clamp(variation.min_value, variation.max_value);
+                if value != variation.default_value {
+                    modified_variations = true;
+                }
+                FontVariation {
+                    tag: variation.tag as u32,
+                    value: value as f32,
+                }
+            })
+            .collect();
+
+        if !modified_variations {
+            return Ok(self);
+        }
+
+        let variation_keys: Vec<_> = variations
+            .iter()
+            .map(|variation| CFNumber::new_i64(variation.tag as i64))
+            .collect();
+        let variation_values: Vec<_> = variations
+            .iter()
+            .map(|variation| CFNumber::new_f32(variation.value))
+            .collect();
+        let values_dict = CFDictionary::<CFNumber, CFNumber>::from_slices(
+            &variation_keys
+                .iter()
+                .map(CFRetained::as_ref)
+                .collect::<Vec<_>>(),
+            &variation_values
+                .iter()
+                .map(CFRetained::as_ref)
+                .collect::<Vec<_>>(),
+        );
+
+        let attributes = CFDictionary::<CFString, CFType>::from_slices(
+            &[unsafe { kCTFontVariationAttribute }],
+            &[values_dict.as_ref()],
+        );
+        let descriptor_with_variations = unsafe {
+            self.ctfont
+                .font_descriptor()
+                .copy_with_attributes(attributes.as_opaque())
+        };
+
+        let ctfont = unsafe {
+            CTFont::with_font_descriptor(&descriptor_with_variations, pt_size, std::ptr::null())
+        };
+        Ok(Self::new_with_ctfont_and_variations(ctfont, variations))
     }
 
     fn copy_with_synthetic_bold(mut self) -> Result<Self, &'static str> {
@@ -378,8 +511,7 @@ impl Font {
     pub(crate) fn find_fallback_using_system_font_api(
         &self,
         options: &FallbackFontSelectionOptions,
-        skrifa_font_cache: &SkrifaFontCache,
-    ) -> Option<FontRef> {
+    ) -> Option<FontTemplateRef> {
         // TODO: The CoreText API is taking a UTS #35 string for the language value, and
         // the value stored in the HTML lang attribute is a BCP 47 language tag. These two
         // formats are generally compatible, but we may need to make refinements here in
@@ -398,18 +530,9 @@ impl Font {
             )
         };
 
-        let template = unsafe { font_template_for_local_font_descriptor(font.font_descriptor())? };
-        let template = FontTemplateRef::new(template);
-        Some(FontRef(Arc::new(
-            Font::new(
-                template,
-                self.descriptor.clone(),
-                None,
-                None,
-                skrifa_font_cache,
-            )
-            .ok()?,
-        )))
+        Some(FontTemplateRef::new(unsafe {
+            font_template_for_local_font_descriptor(font.font_descriptor())?
+        }))
     }
 }
 

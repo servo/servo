@@ -108,11 +108,7 @@ pub trait PlatformFontMethods: Sized {
     /// `self` is consumed to work around platform differences. On some platforms, changing the
     /// variations requires creating an entirely new font face, whereas on others the returned
     /// font is `self`.
-    fn copy_with_variations(
-        self,
-        _font_identifier: &FontIdentifier,
-        _variations: &[FontVariation],
-    ) -> Result<Self, &'static str>;
+    fn copy_with_variations(self, variations: &[FontVariation]) -> Result<Self, &'static str>;
 
     /// Create a platform font with synthetic bold from an existing font.
     ///
@@ -307,7 +303,7 @@ impl Font {
         let mut original_skrifa_font = None;
         if variation_axes.contains(VariationAxes::IS_VARIABLE) {
             let used_variations = compute_variations(&descriptor, &template, variation_axes);
-            handle = handle.copy_with_variations(&template.identifier(), &used_variations)?;
+            handle = handle.copy_with_variations(&used_variations)?;
             original_skrifa_font = Some(skrifa_font.clone());
             skrifa_font = Arc::new(
                 skrifa_font
@@ -649,8 +645,7 @@ impl Font {
     pub(crate) fn find_fallback_using_system_font_api(
         &self,
         _: &FallbackFontSelectionOptions,
-        _: &SkrifaFontCache,
-    ) -> Option<FontRef> {
+    ) -> Option<FontTemplateRef> {
         None
     }
 
@@ -827,11 +822,17 @@ impl FontGroup {
         }
 
         let first_font = self.first(font_context);
-        if let Some(fallback) = first_font.as_ref().and_then(|font| {
-            font.find_fallback_using_system_font_api(&options, font_context.skrifa_font_cache())
-        }) && font_has_glyph_and_presentation(&fallback)
+        if let Some(fallback_template) = first_font
+            .as_ref()
+            .and_then(|font| font.find_fallback_using_system_font_api(&options)) &&
+            let Some(fallback_font) = font_context.font(fallback_template, &self.descriptor) &&
+            font_has_glyph_and_presentation(&fallback_font)
         {
-            return Some(fallback);
+            let fallback_font = font_or_synthesized_small_caps(fallback_font);
+            if let Some(fallback_font) = fallback_font.clone() {
+                self.fallbacks.write().insert(fallback_key, fallback_font);
+            }
+            return fallback_font;
         }
 
         first_font

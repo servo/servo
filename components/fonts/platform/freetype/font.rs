@@ -136,11 +136,7 @@ impl PlatformFontMethods for PlatformFont {
         )
     }
 
-    fn copy_with_variations(
-        mut self,
-        _: &FontIdentifier,
-        variations: &[FontVariation],
-    ) -> Result<Self, &'static str> {
+    fn copy_with_variations(mut self, variations: &[FontVariation]) -> Result<Self, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
         self.variations = self
             .face
