@@ -138,6 +138,11 @@ pub(crate) struct Performance {
     resource_timing_buffer_pending_full_event: Cell<bool>,
     /// <https://w3c.github.io/resource-timing/#performance-resource-timing-secondary-buffer>
     resource_timing_secondary_entries: DomRefCell<VecDeque<Dom<PerformanceEntry>>>,
+    /// The buffer index of the navigation timing entry.
+    navigation_entry_index: Cell<Option<usize>>,
+    /// Whether the navigation timing entry has already been queued for
+    /// observers.
+    navigation_entry_queued: Cell<bool>,
     timing: Dom<PerformanceTiming>,
     navigation: Dom<PerformanceNavigation>,
 }
@@ -158,6 +163,8 @@ impl Performance {
             resource_timing_buffer_current_size: Cell::new(0),
             resource_timing_buffer_pending_full_event: Cell::new(false),
             resource_timing_secondary_entries: DomRefCell::new(VecDeque::new()),
+            navigation_entry_index: Cell::new(None),
+            navigation_entry_queued: Cell::new(false),
             timing: Dom::from_ref(timing),
             navigation: Dom::from_ref(navigation),
         }
@@ -205,6 +212,8 @@ impl Performance {
     pub(crate) fn clear_and_disable_performance_entry_buffer(&self) {
         let mut buffer = self.buffer.borrow_mut();
         buffer.entries.clear();
+        self.navigation_entry_index.set(None);
+        self.navigation_entry_queued.set(false);
         self.resource_timing_buffer_size_limit.set(0);
     }
 
@@ -238,7 +247,11 @@ impl Performance {
         if buffered {
             let buffer = self.buffer.borrow();
             let new_entries = buffer.get_entries_by_name_and_type(None, Some(entry_type));
-            if !new_entries.is_empty() {
+            // The navigation timing entry is replaced at the end of the response,
+            // so do not prefill observers with the early received entries.
+            let navigation_entry_ready =
+                entry_type != EntryType::Navigation || self.navigation_entry_queued.get();
+            if navigation_entry_ready && !new_entries.is_empty() {
                 let new_entries = new_entries.into_iter().map(|entry| entry.as_traced());
                 observer.entries_mut().extend(new_entries);
             }
@@ -283,6 +296,24 @@ impl Performance {
         observers.remove(index);
     }
 
+    /// Queue a low priority task to notify the observers about newly queued
+    /// entries.
+    fn queue_observer_notification_task(&self) {
+        if self.pending_notification_observers_task.get() {
+            return;
+        }
+
+        self.pending_notification_observers_task.set(true);
+
+        let owner = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .performance_timeline_task_source()
+            .queue(task!(notify_performance_observers: move |cx| {
+                owner.root().notify_observers(cx);
+            }));
+    }
+
     /// Queue a notification for each performance observer interested in
     /// this type of performance entry and queue a low priority task to
     /// notify the observers if no other notification task is already queued.
@@ -291,10 +322,10 @@ impl Performance {
     /// <https://w3c.github.io/performance-timeline/#queue-a-performanceentry>
     /// Also this algorithm has been extented according to :
     /// <https://w3c.github.io/resource-timing/#sec-extensions-performance-interface>
-    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) -> Option<usize> {
+    pub(crate) fn queue_entry(&self, entry: &PerformanceEntry) {
         // https://w3c.github.io/performance-timeline/#dfn-determine-eligibility-for-adding-a-performance-entry
         if entry.entry_type() == EntryType::Resource && !self.should_queue_resource_entry(entry) {
-            return None;
+            return;
         }
 
         // Steps 1-3.
@@ -314,27 +345,88 @@ impl Performance {
         // add the new entry to the buffer.
         self.buffer.borrow_mut().entries.push(Dom::from_ref(entry));
 
-        let entry_last_index = self.buffer.borrow_mut().entries.len() - 1;
+        // Steps 5-6.
+        self.queue_observer_notification_task();
+    }
 
-        // Step 5.
-        // If there is already a queued notification task, we just bail out.
-        if self.pending_notification_observers_task.get() {
-            return None;
+    /// Add the current document's navigation timing entry to the performance
+    /// entry buffer without notifying observers, and return its buffer index.
+    ///
+    /// <https://w3c.github.io/navigation-timing/#dfn-create-the-navigation-timing-entry>
+    pub(crate) fn add_navigation_entry(&self, entry: &PerformanceEntry) -> usize {
+        debug_assert!(entry.entry_type() == EntryType::Navigation);
+
+        let index = {
+            let mut buffer = self.buffer.borrow_mut();
+            buffer.entries.push(Dom::from_ref(entry));
+            buffer.entries.len() - 1
+        };
+
+        self.navigation_entry_index.set(Some(index));
+        self.navigation_entry_queued.set(false);
+        index
+    }
+
+    /// Replace the navigation timing entry at `index` in the performance entry
+    /// buffer with an updated one. This does not notify observers.
+    pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
+        debug_assert!(entry.entry_type() == EntryType::Navigation);
+
+        if let Some(entry_at_index) = self.buffer.borrow_mut().entries.get_mut(index) {
+            debug_assert!(entry_at_index.entry_type() == EntryType::Navigation);
+            *entry_at_index = Dom::from_ref(entry);
+        }
+    }
+
+    /// Queue the document's navigation timing entry for observers.
+    ///
+    /// The entry was already added to the performance entry buffer when the
+    /// document was created, so this only notifies observers.
+    ///
+    /// <https://w3c.github.io/navigation-timing/#dfn-queue-the-navigation-timing-entry>
+    pub(crate) fn queue_navigation_entry(&self) {
+        if self.navigation_entry_queued.get() {
+            return;
         }
 
-        // Step 6.
-        // Queue a new notification task.
-        self.pending_notification_observers_task.set(true);
+        let Some(index) = self.navigation_entry_index.get() else {
+            return;
+        };
+        let entry = {
+            let buffer = self.buffer.borrow();
+            buffer
+                .entries
+                .get(index)
+                .filter(|entry| entry.entry_type() == EntryType::Navigation)
+                .map(|entry| entry.as_rooted())
+                .or_else(|| {
+                    buffer
+                        .entries
+                        .iter()
+                        .rev()
+                        .find(|entry| entry.entry_type() == EntryType::Navigation)
+                        .map(|entry| entry.as_rooted())
+                })
+        };
+        let Some(entry) = entry else {
+            return;
+        };
+        self.navigation_entry_queued.set(true);
 
-        let owner = Trusted::new(self);
-        self.global()
-            .task_manager()
-            .performance_timeline_task_source()
-            .queue(task!(notify_performance_observers: move |cx| {
-                owner.root().notify_observers(cx);
-            }));
+        let mut entry_was_queued = false;
+        for observer in self
+            .observers
+            .borrow()
+            .iter()
+            .filter(|o| o.entry_types.contains(&EntryType::Navigation))
+        {
+            observer.observer.queue_entry(&entry);
+            entry_was_queued = true;
+        }
 
-        Some(entry_last_index)
+        if entry_was_queued {
+            self.queue_observer_notification_task();
+        }
     }
 
     /// Observers notifications task.
@@ -448,12 +540,6 @@ impl Performance {
         // Step 4. Increase resource timing secondary buffer current size by 1.
         //   This is tracked automatically via `.len()`.
         false
-    }
-
-    pub(crate) fn update_entry(&self, index: usize, entry: &PerformanceEntry) {
-        if let Some(e) = self.buffer.borrow_mut().entries.get_mut(index) {
-            *e = Dom::from_ref(entry);
-        }
     }
 
     /// <https://w3c.github.io/user-timing/#convert-a-name-to-a-timestamp>
