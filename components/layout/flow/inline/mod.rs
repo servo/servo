@@ -115,7 +115,7 @@ use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::generics::font::LineHeight;
 use style::values::specified::box_::BaselineSource;
 use style::values::specified::text::TextAlignKeyword;
-use style::values::specified::{AlignmentBaseline, TextAlignLast, TextJustify};
+use style::values::specified::{AlignmentBaseline, DominantBaseline, TextAlignLast, TextJustify};
 use text_run::{TextRun, get_font_for_first_font_for_style};
 use unicode_bidi::{BidiInfo, Level};
 
@@ -2631,7 +2631,7 @@ impl InlineContainerState {
             // The baseline offset from `vertical-align` might adjust where our block size contribution is
             // within the line.
             baseline_offset = parent_container.get_cumulative_baseline_offset_for_child(
-                style.get_alignment_baseline(),
+                *style.get_alignment_baseline(),
                 style.get_baseline_shift(),
                 &strut_block_sizes,
             );
@@ -2745,9 +2745,72 @@ impl InlineContainerState {
         )
     }
 
+    fn resolve_alignment_baseline_for_child(
+        &self,
+        child_alignment_baseline: AlignmentBaseline,
+        child_block_size: &LineBlockSizes,
+    ) -> Au {
+        match child_alignment_baseline {
+            AlignmentBaseline::Baseline => {
+                // The `baseline` keyword uses the dominant baseline choice of the parent.
+                let baseline = match self.style.get_dominant_baseline() {
+                    DominantBaseline::Auto
+                        if self.style.writing_mode.is_horizontal() ||
+                            self.style.writing_mode.is_sideways() =>
+                    {
+                        AlignmentBaseline::Alphabetic
+                    },
+                    DominantBaseline::Auto => AlignmentBaseline::Central,
+                    DominantBaseline::Alphabetic => AlignmentBaseline::Alphabetic,
+                    DominantBaseline::TextTop => AlignmentBaseline::TextTop,
+                    DominantBaseline::Middle => AlignmentBaseline::Middle,
+                    DominantBaseline::TextBottom => AlignmentBaseline::TextBottom,
+                    DominantBaseline::Central => AlignmentBaseline::Central,
+                    DominantBaseline::Ideographic => AlignmentBaseline::Ideographic,
+                    DominantBaseline::Mathematical => AlignmentBaseline::Mathematical,
+                    DominantBaseline::Hanging => AlignmentBaseline::Hanging,
+                };
+                self.resolve_alignment_baseline_for_child(baseline, child_block_size)
+            },
+            AlignmentBaseline::Alphabetic => {
+                // FIXME(#50198): The alphabetic baseline is typically at zero, but not always.
+                // Blink and WebKit seem to make the same assumption, though.
+                Au::zero()
+            },
+            AlignmentBaseline::TextTop => {
+                child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
+            },
+            AlignmentBaseline::Middle => {
+                // "Align the vertical midpoint of the box with the baseline of the parent
+                // box plus half the x-height of the parent."
+                (child_block_size.size_for_baseline_positioning.ascent -
+                    child_block_size.size_for_baseline_positioning.descent -
+                    self.font_metrics.x_height)
+                    .scale_by(0.5)
+            },
+            AlignmentBaseline::TextBottom => {
+                self.font_metrics.descent - child_block_size.size_for_baseline_positioning.descent
+            },
+            AlignmentBaseline::Central => {
+                // FIXME: This is just a heuristic, halfway between text-top and text-bottom.
+                // It should be between ideographic-over and ideographic-under, assigned to
+                // bsln value 1 in TrueType AAT.
+                (child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent +
+                    self.font_metrics.descent -
+                    child_block_size.size_for_baseline_positioning.descent)
+                    .scale_by(0.5)
+            },
+            AlignmentBaseline::Ideographic |
+            AlignmentBaseline::Mathematical |
+            AlignmentBaseline::Hanging => {
+                todo!("Disabled behind layout.css.baseline-metric.modern.enabled")
+            },
+        }
+    }
+
     fn get_cumulative_baseline_offset_for_child(
         &self,
-        child_alignment_baseline: &AlignmentBaseline,
+        child_alignment_baseline: AlignmentBaseline,
         child_baseline_shift: &BaselineShift,
         child_block_size: &LineBlockSizes,
     ) -> Au {
@@ -2757,24 +2820,7 @@ impl InlineContainerState {
             &self.font_metrics,
         );
         self.baseline_offset +
-            match child_alignment_baseline {
-                AlignmentBaseline::Baseline => Au::zero(),
-                AlignmentBaseline::TextTop => {
-                    child_block_size.size_for_baseline_positioning.ascent - self.font_metrics.ascent
-                },
-                AlignmentBaseline::Middle => {
-                    // "Align the vertical midpoint of the box with the baseline of the parent
-                    // box plus half the x-height of the parent."
-                    (child_block_size.size_for_baseline_positioning.ascent -
-                        child_block_size.size_for_baseline_positioning.descent -
-                        self.font_metrics.x_height)
-                        .scale_by(0.5)
-                },
-                AlignmentBaseline::TextBottom => {
-                    self.font_metrics.descent -
-                        child_block_size.size_for_baseline_positioning.descent
-                },
-            } +
+            self.resolve_alignment_baseline_for_child(child_alignment_baseline, child_block_size) +
             match child_baseline_shift {
                 // `top` and `bottom are not actually relative to the baseline, but this value is unused
                 // in those cases.
@@ -2934,7 +2980,7 @@ impl IndependentFormattingContext {
         let baseline_offset = ifc
             .current_inline_container_state()
             .get_cumulative_baseline_offset_for_child(
-                style.get_alignment_baseline(),
+                *style.get_alignment_baseline(),
                 style.get_baseline_shift(),
                 &contribution,
             );
