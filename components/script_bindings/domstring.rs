@@ -627,10 +627,23 @@ impl TracedDOMString {
     /// This works the same as `make_ascii_lowercase` on std::string. This means that any character in [A-Z]
     /// will be transformed to lower case but other characters stay the same (either ASCII or not ASCII).
     pub fn make_ascii_lowercase(&mut self) {
-        self.0
-            .borrow_mut()
-            .ensure_rust_string()
-            .make_ascii_lowercase();
+        // Only convert a JavaScript string to a Rust string if it has characters to lowercase.
+        // Both Latin-1 and UTF-8 encode [A-Z] as the same bytes, which can't be part of other
+        // UTF-8 characters.
+        let has_ascii_uppercase = {
+            // This is safe as the bytes do not leave this block and no GC can happen.
+            let no_gc = unsafe { NoGC::new() };
+            self.encoded_bytes(&no_gc)
+                .bytes()
+                .iter()
+                .any(u8::is_ascii_uppercase)
+        };
+        if has_ascii_uppercase {
+            self.0
+                .borrow_mut()
+                .ensure_rust_string()
+                .make_ascii_lowercase();
+        }
     }
 
     pub fn push_str(&mut self, string_to_push: &str) {
@@ -1389,6 +1402,21 @@ mod tests {
         assert!(s.starts_with('A'));
         let s2 = DOMString::from("");
         assert!(s2.is_empty());
+    }
+
+    #[test]
+    fn make_ascii_lowercase_converts_only_strings_with_uppercase() {
+        // Without characters to lowercase, a Latin-1 string isn't converted.
+        let mut lowercase = from_latin1(b"data-id\xB2".to_vec());
+        lowercase.make_ascii_lowercase();
+        let traced: &TracedDOMString = &lowercase;
+        assert!(matches!(*traced.0.borrow(), DOMStringType::Latin1Vec(_)));
+        assert_eq!(&*lowercase.str(), "data-id²");
+
+        // Characters in [A-Z] are lowercased, but not the other ones.
+        let mut uppercase = from_latin1(b"Data-ID\xC0".to_vec());
+        uppercase.make_ascii_lowercase();
+        assert_eq!(&*uppercase.str(), "data-idÀ");
     }
 
     #[test]
