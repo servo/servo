@@ -100,5 +100,8 @@ dwrote = { workspace = true }
 harfbuzz-sys = { workspace = true, optional = true, features = ["directwrite"] }
 winapi = { workspace = true }
 
+[dev-dependencies]
+servo-fonts = { path = ".", features = ["harfrust"] }
+
 [lints]
 workspace = true

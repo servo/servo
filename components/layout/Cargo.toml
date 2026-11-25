@@ -80,6 +80,7 @@ writeable = { workspace = true }
 
 [dev-dependencies]
 quickcheck = { workspace = true }
+fonts = { workspace = true, features = ["harfrust"] }
 
 [lints]
 workspace = true

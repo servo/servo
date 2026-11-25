@@ -44,5 +44,8 @@ stylo = { workspace = true }
 stylo_traits = { workspace = true }
 webrender_api = { workspace = true }
 
+[dev-dependencies]
+fonts = { workspace = true, features = ["harfrust"] }
+
 [lints]
 workspace = true
