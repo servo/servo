@@ -8683,7 +8683,6 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "bitflags 2.13.2",
- "byteorder",
  "content-security-policy",
  "dwrote",
  "euclid",

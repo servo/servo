@@ -2,16 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cmp::Ordering;
-use std::ops::Range;
+use std::ptr;
 use std::ptr::NonNull;
 use std::sync::Arc;
-use std::{fmt, ptr};
 
 use app_units::Au;
-use byteorder::{BigEndian, ByteOrder};
 use euclid::default::{Point2D, Rect, Size2D};
-use fonts_traits::tag::{CBDT, COLR, KERN, SBIX};
+use fonts_traits::tag::{CBDT, COLR, SBIX};
 use fonts_traits::{
     FontIdentifier, FontTemplateDescriptor, FontTemplateRef, LocalFontIdentifier, SkrifaFont,
 };
@@ -39,16 +36,9 @@ use crate::{
     PlatformFontMethods,
 };
 
-const KERN_PAIR_LEN: usize = 6;
-
 #[derive(Clone)]
 pub struct FontTable {
     data: CFRetained<CFData>,
-}
-
-// assumes 72 points per inch, and 96 px per inch
-fn pt_to_px(pt: f64) -> f64 {
-    pt / 72. * 96.
 }
 
 impl FontTable {
@@ -67,7 +57,6 @@ impl FontTableMethods for FontTable {
 pub struct PlatformFont {
     pub(crate) ctfont: CFRetained<CTFont>,
     variations: Vec<FontVariation>,
-    h_kern_subtable: Option<CachedKernTable>,
     pub(crate) synthetic_bold: bool,
 }
 
@@ -94,7 +83,6 @@ impl PlatformFont {
         Self {
             ctfont,
             variations,
-            h_kern_subtable: None,
             synthetic_bold: false,
         }
     }
@@ -108,80 +96,8 @@ impl PlatformFont {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        let Some(mut platform_font) =
-            CoreTextFontCache::core_text_font(font_identifier, data, size)
-        else {
-            return Err("Could not generate CTFont for FontTemplateData");
-        };
-
-        platform_font.load_h_kern_subtable();
-        Ok(platform_font)
-    }
-
-    /// Cache all the data needed for basic horizontal kerning. This is used only as a fallback or
-    /// fast path (when the GPOS table is missing or unnecessary) so it needn't handle every case.
-    #[expect(unsafe_code)]
-    fn load_h_kern_subtable(&mut self) {
-        if self.h_kern_subtable.is_some() {
-            return;
-        }
-
-        let Some(font_table) = self.table_for_tag(KERN) else {
-            return;
-        };
-
-        let mut result = CachedKernTable {
-            font_table,
-            pair_data_range: 0..0,
-            px_per_font_unit: 0.0,
-        };
-
-        // Look for a subtable with horizontal kerning in format 0.
-        // https://www.microsoft.com/typography/otspec/kern.htm
-        const KERN_COVERAGE_HORIZONTAL_FORMAT_0: u16 = 1;
-        const SUBTABLE_HEADER_LEN: usize = 6;
-        const FORMAT_0_HEADER_LEN: usize = 8;
-        {
-            let table = result.font_table.buffer();
-            let version = BigEndian::read_u16(table);
-            if version != 0 {
-                return;
-            }
-            let num_subtables = BigEndian::read_u16(&table[2..]);
-            let mut start = 4;
-            for _ in 0..num_subtables {
-                // TODO: Check the subtable version number?
-                let len = BigEndian::read_u16(&table[start + 2..]) as usize;
-                let cov = BigEndian::read_u16(&table[start + 4..]);
-                let end = start + len;
-                if cov == KERN_COVERAGE_HORIZONTAL_FORMAT_0 {
-                    // Found a matching subtable.
-                    if !result.pair_data_range.is_empty() {
-                        debug!("Found multiple horizontal kern tables. Disable fast path.");
-                        return;
-                    }
-                    // Read the subtable header.
-                    let subtable_start = start + SUBTABLE_HEADER_LEN;
-                    let n_pairs = BigEndian::read_u16(&table[subtable_start..]) as usize;
-                    let pair_data_start = subtable_start + FORMAT_0_HEADER_LEN;
-
-                    result.pair_data_range = pair_data_start..end;
-                    if result.pair_data_range.len() != n_pairs * KERN_PAIR_LEN {
-                        debug!("Bad data in kern header. Disable fast path.");
-                        return;
-                    }
-
-                    let pt_per_font_unit =
-                        unsafe { self.ctfont.size() / self.ctfont.units_per_em() as f64 };
-                    result.px_per_font_unit = pt_to_px(pt_per_font_unit);
-                }
-                start = end;
-            }
-        }
-
-        if !result.pair_data_range.is_empty() {
-            self.h_kern_subtable = Some(result);
-        }
+        CoreTextFontCache::core_text_font(font_identifier, data, size)
+            .ok_or("Could not generate CTFont for FontTemplateData")
     }
 
     // This is adapted from WebRender glyph rasterizer for macos.
@@ -196,41 +112,6 @@ impl PlatformFont {
         } else {
             0
         }
-    }
-}
-
-#[derive(Clone)]
-struct CachedKernTable {
-    font_table: FontTable,
-    pair_data_range: Range<usize>,
-    px_per_font_unit: f64,
-}
-
-impl CachedKernTable {
-    /// Search for a glyph pair in the kern table and return the corresponding value.
-    fn binary_search(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> Option<i16> {
-        let pairs = &self.font_table.buffer()[self.pair_data_range.clone()];
-
-        let query = (first_glyph << 16) | second_glyph;
-        let (mut start, mut end) = (0, pairs.len() / KERN_PAIR_LEN);
-        while start < end {
-            let i = (start + end) / 2;
-            let key = BigEndian::read_u32(&pairs[i * KERN_PAIR_LEN..]);
-            match key.cmp(&query) {
-                Ordering::Less => start = i + 1,
-                Ordering::Equal => {
-                    return Some(BigEndian::read_i16(&pairs[i * KERN_PAIR_LEN + 4..]));
-                },
-                Ordering::Greater => end = i,
-            }
-        }
-        None
-    }
-}
-
-impl fmt::Debug for CachedKernTable {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "CachedKernTable")
     }
 }
 
@@ -255,10 +136,11 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: &FontIdentifier,
         variations: &[FontVariation],
     ) -> Result<Self, &'static str> {
-        let mut platform_font =
-            CoreTextFontCache::add_variations_to_font(self, font_identifier, variations);
-        platform_font.load_h_kern_subtable();
-        Ok(platform_font)
+        Ok(CoreTextFontCache::add_variations_to_font(
+            self,
+            font_identifier,
+            variations,
+        ))
     }
 
     fn copy_with_synthetic_bold(mut self) -> Result<Self, &'static str> {
@@ -291,16 +173,6 @@ impl PlatformFontMethods for PlatformFont {
         }
 
         Some(glyphs[0] as GlyphId)
-    }
-
-    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
-        if let Some(ref table) = self.h_kern_subtable &&
-            let Some(font_units) = table.binary_search(first_glyph, second_glyph)
-        {
-            return font_units as f64 * table.px_per_font_unit;
-        }
-
-        0.0
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {

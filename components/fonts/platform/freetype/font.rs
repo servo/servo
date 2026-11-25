@@ -9,9 +9,8 @@ use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontDataAndIndex, FontIdentifier, LocalFontIdentifier, SkrifaFont};
 use freetype_sys::{
-    FT_F26Dot6, FT_Get_Char_Index, FT_Get_Kerning, FT_GlyphSlot, FT_KERNING_DEFAULT,
-    FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING, FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt,
-    FT_ULong, FT_Vector,
+    FT_F26Dot6, FT_Get_Char_Index, FT_GlyphSlot, FT_LOAD_DEFAULT, FT_LOAD_NO_HINTING,
+    FT_Load_Glyph, FT_Size_Metrics, FT_SizeRec, FT_UInt, FT_ULong,
 };
 use log::debug;
 use memmap2::Mmap;
@@ -170,22 +169,6 @@ impl PlatformFontMethods for PlatformFont {
                 None
             }
         }
-    }
-
-    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
-        let face = self.face.lock();
-
-        let mut delta = FT_Vector { x: 0, y: 0 };
-        unsafe {
-            FT_Get_Kerning(
-                face.as_ptr(),
-                first_glyph,
-                second_glyph,
-                FT_KERNING_DEFAULT,
-                &mut delta,
-            );
-        }
-        fixed_26_dot_6_to_float(delta.x) * self.unscalable_font_metrics_scale()
     }
 
     fn glyph_h_advance(&self, glyph: GlyphId) -> Option<FractionalPixel> {

@@ -73,7 +73,6 @@ uuid = { workspace = true, features = ["v4"] }
 webrender_api = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
-byteorder = { workspace = true }
 harfbuzz-sys = { workspace = true, optional = true, features = ["coretext"] }
 objc2 = { workspace = true }
 objc2-core-foundation = { workspace = true }
