@@ -25,6 +25,7 @@ webrender_api = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true, features = ["html_reports"] }
+rand = { workspace = true }
 
 [lints]
 workspace = true

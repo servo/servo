@@ -9412,6 +9412,7 @@ dependencies = [
  "image",
  "log",
  "malloc_size_of_derive",
+ "rand 0.10.4",
  "serde",
  "servo-base",
  "servo-malloc-size-of",
