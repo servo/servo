@@ -179,24 +179,25 @@ impl AudioNodeEngine for AudioBufferSourceNode {
 
         let buffer = self.buffer.as_ref().unwrap();
 
-        if buffer.is_empty() {
-            inputs.blocks.push(Default::default());
-            return inputs;
-        }
-
-        // Looping endpoint algorithm pseudocode described in playback section of specs.
         let (mut actual_loop_start, mut actual_loop_end) = (0., buffer.len() as f64);
+        // https://webaudio.github.io/web-audio-api/#looping-AudioBufferSourceNode
+        // > The effective loop start and end points are required to lie within
+        // > the range of zero and the buffer duration, as specified in the algorithm below.
+        // > loopEnd is further constrained to be at or after loopStart.
+        // > If any of these constraints are violated,
+        // > the loop is considered to include the entire buffer contents.
         if self.loop_enabled {
             let length = buffer.len() as f64;
-            let loop_start = self.loop_start.unwrap_or(0.);
-            let loop_end = self.loop_end.unwrap_or(0.);
+            let loop_start = self.loop_start.unwrap_or(0.) * (buffer.sample_rate as f64);
+            let loop_end = self.loop_end.unwrap_or(0.) * (buffer.sample_rate as f64);
 
-            if loop_start >= 0. && loop_end > 0. && loop_end > loop_start {
-                actual_loop_start = loop_start * (buffer.sample_rate as f64);
-                actual_loop_end = (loop_end * (buffer.sample_rate as f64)).min(length);
-            } else {
-                actual_loop_start = 0.;
-                actual_loop_end = length;
+            if loop_start >= 0. &&
+                loop_end > 0. &&
+                loop_start < loop_end &&
+                loop_end <= length
+            {
+                actual_loop_start = loop_start;
+                actual_loop_end = loop_end;
             }
         }
 
