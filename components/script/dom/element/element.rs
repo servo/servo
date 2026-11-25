@@ -120,6 +120,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementRegistry,
@@ -3212,7 +3213,7 @@ impl Element {
             .as_ref()?
             .explicitly_set_attr_elements
             .get(attr)
-            .map(|element| element.as_rooted())
+            .and_then(WeakRef::root)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-associated-element>
@@ -3294,11 +3295,9 @@ impl Element {
         self.set_string_attribute(cx, attr, DOMString::new());
 
         // Step 3. Set this's explicitly set attr-element to a weak reference to the given value.
-        //
-        // FIXME: weak reference
         self.ensure_rare_data(cx.no_gc())
             .explicitly_set_attr_elements
-            .insert(attr.clone(), Dom::from_ref(value));
+            .insert(attr.clone(), WeakRef::new(value));
     }
 }
 

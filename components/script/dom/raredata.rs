@@ -15,6 +15,7 @@ use uuid::Uuid;
 
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::bindings::trace::HashMapTracedValues;
+use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::closewatcher::internalclosewatcher::InternalCloseWatcher;
 use crate::dom::customelementregistry::{
     CustomElementDefinition, CustomElementReaction, CustomElementRegistry, CustomElementState,
@@ -136,5 +137,5 @@ pub(crate) struct ElementRareData {
     /// > Its reflected target has an explicitly set attr-element, which is a weak reference to an
     /// > element or null. It is initially null.
     pub(crate) explicitly_set_attr_elements:
-        HashMapTracedValues<LocalName, Dom<Element>, FxBuildHasher>,
+        HashMapTracedValues<LocalName, WeakRef<Element>, FxBuildHasher>,
 }
