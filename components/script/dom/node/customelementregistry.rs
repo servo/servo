@@ -507,16 +507,20 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 14.5: Handle the case where with `attributeChangedCallback` on `lifecycleCallbacks`
         // is not null.
-        let observed_attributes: Vec<DOMString> = if callbacks.attribute_changed_callback.is_some()
+        let observed_attributes: Vec<LocalName> = if callbacks.attribute_changed_callback.is_some()
         {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match get_property(
+            match get_property::<Vec<DOMString>>(
                 &mut realm,
                 constructor.handle(),
                 c"observedAttributes",
                 StringificationBehavior::Default,
             ) {
-                Ok(attributes) => attributes.unwrap_or_default(),
+                Ok(attributes) => attributes
+                    .unwrap_or_default()
+                    .iter()
+                    .map(LocalName::from)
+                    .collect(),
                 Err(error) => {
                     self.element_definition_is_running.set(false);
                     return Err(error);
@@ -883,7 +887,8 @@ pub(crate) struct CustomElementDefinition {
     pub(crate) constructor: TracedCallback<CustomElementConstructor>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-observed-attributes>
-    pub(crate) observed_attributes: Vec<DOMString>,
+    #[no_trace]
+    pub(crate) observed_attributes: Vec<LocalName>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-lifecycle-callbacks>
     pub(crate) callbacks: LifecycleCallbacks,
@@ -907,7 +912,7 @@ impl CustomElementDefinition {
         name: LocalName,
         local_name: LocalName,
         constructor: RootedCallback<CustomElementConstructor>,
-        observed_attributes: Vec<DOMString>,
+        observed_attributes: Vec<LocalName>,
         callbacks: RootedLifecycleCallbacks,
         form_associated: bool,
         disable_internals: bool,
@@ -1394,7 +1399,7 @@ impl CustomElementReactionStack {
                 if !definition
                     .observed_attributes
                     .iter()
-                    .any(|attr| *attr == *local_name)
+                    .any(|attr| *attr == local_name)
                 {
                     return;
                 }
