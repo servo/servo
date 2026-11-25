@@ -1411,7 +1411,7 @@ impl InlineFormattingContextLayout<'_> {
             .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 self.root_nesting_level.style.clone(),
                 physical_line_rect,
-                FragmentChildren::PhysicalDeprecated(fragments),
+                FragmentChildren::Logical(fragments),
                 true, /* is_line_box */
             )));
     }
