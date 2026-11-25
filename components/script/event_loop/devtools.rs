@@ -773,6 +773,50 @@ pub(crate) fn handle_get_xpath(
     reply.send(selector).unwrap();
 }
 
+pub(crate) fn handle_get_background_color(
+    cx: &mut JSContext,
+    state: &DevtoolsState,
+    pipeline: PipelineId,
+    node_id: &str,
+    reply: GenericSender<Vec<f32>>,
+) {
+    let Some(node) = state.find_node_by_unique_id(pipeline, node_id) else {
+        return reply.send(vec![255.0, 255.0, 255.0, 1.0]).unwrap();
+    };
+
+    let background_color = node
+        .inclusive_ancestors(ShadowIncluding::Yes)
+        .find_map(|ancestor| {
+            let element = ancestor.downcast::<Element>()?;
+
+            let computed_values = element.style(cx)?;
+
+            let color =
+                computed_values.resolve_color(&computed_values.get_background().background_color);
+
+            if color.is_transparent() {
+                return None;
+            }
+
+            Some(color)
+        });
+
+    let value = background_color
+        .map(|color| {
+            let color = color.into_srgb_legacy();
+
+            vec![
+                (color.components.0 * 255.0).round(),
+                (color.components.1 * 255.0).round(),
+                (color.components.2 * 255.0).round(),
+                color.alpha,
+            ]
+        })
+        .unwrap_or_else(|| vec![255.0, 255.0, 255.0, 1.0]);
+
+    reply.send(value).unwrap();
+}
+
 pub(crate) fn handle_get_inner_or_outer_html(
     cx: &mut JSContext,
     state: &DevtoolsState,

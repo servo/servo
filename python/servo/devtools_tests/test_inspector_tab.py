@@ -145,6 +145,37 @@ class TestInspectorTab:
             # Assert that the new DOM state is correct
             assert walker.children(body)[0]["attrs"] == [{"name": "foo", "value": "baz"}]
 
+    def test_inspector_get_background_color(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/rules.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker = WalkerActor(devtools.client, inspector.get_walker()["actor"])
+            document_element = walker.document_element("")["actor"]
+            body = walker.query_selector(document_element, "body")["node"]["actor"]
+            div = walker.query_selector(document_element, "div")["node"]["actor"]
+
+            # Get background color of the div
+            reply = devtools.client.send_receive(
+                {
+                    "to": div,
+                    "type": "getBackgroundColor",
+                },
+            )
+
+            # Assert that div's own yellow background color is returned
+            assert reply["value"] == [255, 255, 0, 1]
+
+            # Get the background color of the body
+            body_reply = devtools.client.send_receive(
+                {
+                    "to": body,
+                    "type": "getBackgroundColor",
+                },
+            )
+
+            # Assert that white is returned when no non transparent bakcground is found
+            assert body_reply["value"] == [255, 255, 255, 1]
+
     def test_inspector_modifying_id_attribute_doesnt_crash(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/demo_dom.html")
         with Devtools.connect() as devtools:

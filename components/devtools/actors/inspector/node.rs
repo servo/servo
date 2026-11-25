@@ -66,6 +66,12 @@ struct GetXPathReply {
     value: String,
 }
 
+#[derive(Serialize)]
+struct GetBackgroundColorReply {
+    from: String,
+    value: Vec<f32>,
+}
+
 #[derive(Clone, Serialize)]
 struct AttrMsg {
     name: String,
@@ -249,6 +255,29 @@ impl Actor for NodeActor {
                 let msg = GetXPathReply {
                     from: self.name().into(),
                     value: xpath_selector,
+                };
+                request.reply_final(&msg)?
+            },
+            "getBackgroundColor" => {
+                let target = msg
+                    .get("to")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+
+                let (tx, rx) = generic_channel::channel().unwrap();
+                script_chan
+                    .send(DevtoolScriptControlMsg::GetBackgroundColor(
+                        pipeline_id,
+                        registry.actor_to_script(target.to_owned()),
+                        tx,
+                    ))
+                    .unwrap();
+
+                let background_color = rx.recv().map_err(|_| ActorError::Internal)?;
+                let msg = GetBackgroundColorReply {
+                    from: self.name().into(),
+                    value: background_color,
                 };
                 request.reply_final(&msg)?
             },
