@@ -16,9 +16,10 @@ use style::stylesheets::CssRuleType;
 use style::values::specified::Color;
 use style_traits::{ParsingMode, ToCss};
 
-use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_document};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
+use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -75,7 +76,7 @@ impl ColorInputType {
 
         // Step 3. Let color be the result of parsing value.
         // Step 4. If color is failure, then set color to opaque black.
-        let color = parse_color_value(&value.str());
+        let color = parse_color_value(&input.owner_document(), &value.str());
 
         // Step 5. Set element's value to the result of serializing a color well control color
         // given element and color.
@@ -179,7 +180,7 @@ impl SpecificInputType for ColorInputType {
         let document = input.owner_document();
         let current_value = input.Value();
         let current_color =
-            parse_color_value(&current_value.str()).to_color_space(ColorSpace::Srgb);
+            parse_color_value(&document, &current_value.str()).to_color_space(ColorSpace::Srgb);
         let current_color = RgbColor {
             red: (current_color.components.0 * 255.0).round() as u8,
             green: (current_color.components.1 * 255.0).round() as u8,
@@ -246,17 +247,19 @@ impl SpecificInputActivationType for ColorInputActivation {
     }
 }
 
-fn parse_color_value(value: &str) -> AbsoluteColor {
+fn parse_color_value(document: &Document, value: &str) -> AbsoluteColor {
     // Color-parsing does not use a URL, but ParserContext requires it as a parameter.
     // We pass ANONYMOUS_CONTENT_URL_DATA since that's cheap and it will be ignored anyway.
     let urlextradata = &ANONYMOUS_CONTENT_URL_DATA;
-    let context = parser_context_for_anonymous_content(
+    let context = parser_context_for_document(
+        document,
         CssRuleType::Style,
         ParsingMode::DEFAULT,
         urlextradata,
     );
     let mut input = Parser::new(value);
-    Color::parse_and_compute(&context, &mut input, None)
+    let layout = document.window().layout();
+    Color::parse_and_compute(&context, &mut input, Some(layout.device()))
         .map(|computed_color| computed_color.resolve_to_absolute(&AbsoluteColor::BLACK))
         .unwrap_or(AbsoluteColor::BLACK)
 }
