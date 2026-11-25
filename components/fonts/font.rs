@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::ToOwned;
 use std::collections::HashMap;
 use std::hash::Hash;
 use std::ops::Deref;
@@ -12,10 +11,10 @@ use std::{iter, str};
 use app_units::Au;
 use atomic_refcell::AtomicRef;
 use bitflags::bitflags;
-use euclid::default::{Point2D, Rect};
+use euclid::default::Rect;
 use euclid::num::Zero;
 use font_types::{BigEndian, NameId};
-use fonts_traits::tag::{CBDT, COLR, GPOS, GSUB, ITAL, KERN, SBIX, SLNT, WDTH, WGHT};
+use fonts_traits::tag::{CBDT, COLR, ITAL, SBIX, SLNT, WDTH, WGHT};
 use fonts_traits::{FontDescriptor, SkrifaFont};
 use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
@@ -56,7 +55,7 @@ use crate::platform::font_list::fallback_font_families;
 use crate::{
     EmojiPresentationPreference, FallbackFontSelectionOptions, FontContext, FontData,
     FontDataAndIndex, FontDataError, FontIdentifier, FontTemplateRef, FontTemplateRefMethods,
-    GlyphId, LocalFontIdentifier, ShapedGlyph, ShapedText, Shaper, compute_used_font_features,
+    GlyphId, LocalFontIdentifier, ShapedText, Shaper, compute_used_font_features,
 };
 pub const LAST_RESORT_GLYPH_ADVANCE: FractionalPixel = 10.0;
 
@@ -124,7 +123,6 @@ pub trait PlatformFontMethods: Sized {
 
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, _: GlyphId) -> Option<FractionalPixel>;
-    fn glyph_h_kerning(&self, glyph0: GlyphId, glyph1: GlyphId) -> FractionalPixel;
 
     fn metrics(&self) -> FontMetrics;
     fn table_for_tag(&self, _: Tag) -> Option<FontTable>;
@@ -240,14 +238,6 @@ pub struct Font {
     /// This is cached, because getting table data is expensive.
     has_color_bitmap_or_colr_table: OnceLock<bool>,
 
-    /// Whether or not this font can do fast shaping, ie whether or not it has
-    /// a kern table, but no GSUB and GPOS tables. When this is true, Servo will
-    /// shape Latin horizontal left-to-right text without using Harfbuzz.
-    ///
-    /// FIXME: This should be removed entirely in favor of better caching if necessary.
-    /// See <https://github.com/servo/servo/pull/11273#issuecomment-222332873>.
-    can_do_fast_shaping: OnceLock<bool>,
-
     /// The family name of the font.
     ///
     /// This is the name as it is declared in the `name` table, *not* the name provided by the system
@@ -353,7 +343,6 @@ impl Font {
             font_instance_key: Default::default(),
             synthesized_small_caps,
             has_color_bitmap_or_colr_table: OnceLock::new(),
-            can_do_fast_shaping: OnceLock::new(),
             family_name: Default::default(),
         })
     }
@@ -510,70 +499,17 @@ impl Font {
             return shaped_text.clone();
         }
 
-        let glyphs = if self.can_do_fast_shaping(text, options) {
-            debug!("shape_text: Using ASCII fast path.");
-            self.shape_text_fast(text, options)
-        } else {
-            debug!("shape_text: Using Harfbuzz.");
-            self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
-                self,
-                text,
-                options,
-                &lookup_key.font_features,
-            )
-        };
+        let shaped_text = Arc::new(self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
+            self,
+            text,
+            options,
+            &lookup_key.font_features,
+        ));
 
-        let shaped_text = Arc::new(glyphs);
         let mut cache = self.cached_shape_data.write();
         cache.shaped_text.insert(lookup_key, shaped_text.clone());
 
         shaped_text
-    }
-
-    /// Whether not a particular text and [`ShapingOptions`] combination can use
-    /// "fast shaping" ie shaping without Harfbuzz.
-    ///
-    /// Note: This will eventually be removed.
-    pub fn can_do_fast_shaping(&self, text: &str, options: &ShapingOptions) -> bool {
-        options.script == Script::Latin &&
-            !options.flags.contains(ShapingFlags::RTL_FLAG) &&
-            *self.can_do_fast_shaping.get_or_init(|| {
-                self.table_for_tag(KERN).is_some() &&
-                    self.table_for_tag(GPOS).is_none() &&
-                    self.table_for_tag(GSUB).is_none()
-            }) &&
-            text.is_ascii()
-    }
-
-    /// Fast path for ASCII text that only needs simple horizontal LTR kerning.
-    fn shape_text_fast(&self, text: &str, options: &ShapingOptions) -> ShapedText {
-        let mut glyph_store = ShapedText::new(text.len(), false /* is_rtl */);
-        let mut prev_glyph_id = None;
-        for (string_byte_offset, byte) in text.bytes().enumerate() {
-            let character = byte as char;
-            let Some(glyph_id) = self.glyph_index(character) else {
-                continue;
-            };
-
-            let mut advance = Au::from_f64_px(self.glyph_h_advance(glyph_id));
-            let offset = prev_glyph_id.map(|prev| {
-                let h_kerning = Au::from_f64_px(self.glyph_h_kerning(prev, glyph_id));
-                advance += h_kerning;
-                Point2D::new(h_kerning, Au::zero())
-            });
-
-            let mut glyph = ShapedGlyph {
-                glyph_id,
-                string_byte_offset,
-                advance,
-                offset,
-            };
-            glyph.adjust_for_character(character, options);
-
-            glyph_store.add_glyph(character, &glyph);
-            prev_glyph_id = Some(glyph_id);
-        }
-        glyph_store
     }
 
     pub(crate) fn table_for_tag(&self, tag: Tag) -> Option<FontTable> {
@@ -621,14 +557,6 @@ impl Font {
 
     pub fn has_glyph_for(&self, codepoint: char) -> bool {
         self.glyph_index(codepoint).is_some()
-    }
-
-    pub(crate) fn glyph_h_kerning(
-        &self,
-        first_glyph: GlyphId,
-        second_glyph: GlyphId,
-    ) -> FractionalPixel {
-        self.handle.glyph_h_kerning(first_glyph, second_glyph)
     }
 
     pub fn glyph_h_advance(&self, glyph_id: GlyphId) -> FractionalPixel {

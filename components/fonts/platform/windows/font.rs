@@ -236,15 +236,6 @@ impl PlatformFontMethods for PlatformFont {
         Some((glyph_metric.advanceWidth as f32 * self.scaled_du_to_px) as FractionalPixel)
     }
 
-    fn glyph_h_kerning(&self, first_glyph: GlyphId, second_glyph: GlyphId) -> FractionalPixel {
-        let adjustment = self
-            .face
-            .glyph_pair_kerning_adjustment(first_glyph as u16, second_glyph as u16)
-            .unwrap_or_default();
-
-        (adjustment as f32 * self.scaled_du_to_px) as FractionalPixel
-    }
-
     fn metrics(&self) -> FontMetrics {
         let dm = self.face.metrics().metrics0();
 

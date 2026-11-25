@@ -23,7 +23,6 @@ test-group = 'ohos-device'
 default-filter = '''
 not (
     (package(servo-fonts) & (
-        binary(=font) |
         binary(=font_context) |
         binary(=font_template)
     )) |
