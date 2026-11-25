@@ -707,8 +707,6 @@ impl ServiceWorkerManager {
                 // TODO: Check worker type and cache mode.
 
                 // Step 5.2.1: Invoke Resolve Job Promise with job and registration.
-                // Step 5.2.2: Invoke Finish Job with job and abort these steps.
-                // TODO: Finish Job.
                 let client = job.client.clone();
                 let _ = client.send(ServiceWorkerAlgorithmResult::Job(
                     JobResult::ResolvePromise(JobResultValue::Register(
@@ -732,6 +730,10 @@ impl ServiceWorkerManager {
                         },
                     )),
                 ));
+
+                // Step 5.2.2: Invoke Finish Job with job and abort these steps.
+                // TODO: Finish Job.
+                return;
             }
         } else {
             // Step 6: Else
