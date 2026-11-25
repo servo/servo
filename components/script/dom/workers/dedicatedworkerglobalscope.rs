@@ -401,9 +401,6 @@ impl DedicatedWorkerGlobalScope {
             &scope.origin(),
             scope,
         );
-        scope
-            .upcast::<WorkerGlobalScope>()
-            .register_shared_worker_global();
         #[cfg(feature = "devtools")]
         scope
             .upcast::<WorkerGlobalScope>()
@@ -589,7 +586,7 @@ impl DedicatedWorkerGlobalScope {
                 let worker_global_scope =
                     dedicated_worker_global_scope.upcast::<WorkerGlobalScope>();
                 if let Some(control) = shared_worker_control {
-                    // <https://html.spec.whatwg.org/multipage/workers.html#active-needed-worker>
+                    // <https://html.spec.whatwg.org/multipage/#active-needed-worker>
                     // Step 2.2. If owner is a WorkerGlobalScope that is actively
                     // needed, then return true.
                     worker_global_scope.set_shared_worker_control(control);

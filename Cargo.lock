@@ -8876,6 +8876,7 @@ dependencies = [
  "serde",
  "servo-background-hang-monitor-api",
  "servo-base",
+ "servo-constellation-traits",
  "servo-embedder-traits",
  "servo-fonts",
  "servo-malloc-size-of",

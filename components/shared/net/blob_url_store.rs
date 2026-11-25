@@ -72,10 +72,6 @@ pub struct UrlWithBlobClaim {
 }
 
 impl UrlWithBlobClaim {
-    /// Prepare a move across channels before entering IPC serialization.
-    ///
-    /// Refreshing a token sends an IPC message. Doing that inside an enclosing
-    /// serializer can consume the enclosing message's out-of-band channels.
     pub fn into_transfer(self) -> TransferableUrlWithBlobClaim {
         TransferableUrlWithBlobClaim {
             url: self.url,
@@ -169,7 +165,6 @@ impl TransferableUrlWithBlobClaim {
         self.url.clone()
     }
 
-    /// Keep the sender's claim alive until the enclosing send has completed.
     pub fn transfer_guard(&self) -> BlobUrlTransferGuard {
         BlobUrlTransferGuard(self.token.clone())
     }
@@ -225,8 +220,6 @@ impl<'de> Deserialize<'de> for BlobTransferState {
 pub struct BlobUrlTransferGuard(Option<Arc<BlobTransferState>>);
 
 impl BlobUrlTransferGuard {
-    /// Transfer ownership only after a successful send. In-process sends move
-    /// the original claim instead; they must not disown the receiver's token.
     pub fn commit(self) {
         if let Some(state) = &self.0 &&
             state.serialized.load(Ordering::SeqCst) &&

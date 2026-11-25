@@ -25,12 +25,14 @@ use servo_config::prefs::Preferences;
 
 use crate::event_loop::NewScriptEventLoopProcessInfo;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
+use crate::sharedworker::SharedWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
 #[expect(clippy::large_enum_variant)]
 pub enum UnprivilegedContent {
     ScriptEventLoop(NewScriptEventLoopProcessInfo),
     ServiceWorker(ServiceWorkerUnprivilegedContent),
+    SharedWorker(SharedWorkerUnprivilegedContent),
 }
 
 impl UnprivilegedContent {
@@ -38,6 +40,7 @@ impl UnprivilegedContent {
         match self {
             UnprivilegedContent::ScriptEventLoop(content) => content.opts.clone(),
             UnprivilegedContent::ServiceWorker(content) => content.opts.clone(),
+            UnprivilegedContent::SharedWorker(content) => content.opts.clone(),
         }
     }
 
@@ -45,6 +48,7 @@ impl UnprivilegedContent {
         match self {
             UnprivilegedContent::ScriptEventLoop(content) => &content.prefs,
             UnprivilegedContent::ServiceWorker(content) => &content.prefs,
+            UnprivilegedContent::SharedWorker(content) => &content.prefs,
         }
     }
 }

@@ -48,9 +48,7 @@ use servo_base::generic_channel::{GenericSend, GenericSender, RoutedReceiver};
 use servo_base::id::{PipelineId, PipelineNamespace, WorkerId};
 #[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::WebGLChan;
-use servo_constellation_traits::{
-    ScriptToConstellationMessage, SharedWorkerSource, WorkerGlobalScopeInit,
-};
+use servo_constellation_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use style::Atom;
 use timers::TimerScheduler;
@@ -161,9 +159,6 @@ pub(crate) fn prepare_workerscope_init(
         script_to_constellation_chan: global.script_to_constellation_chan().sender,
         script_to_embedder_chan: global.script_to_embedder_chan().clone(),
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
-        shared_worker: global
-            .downcast::<WorkerGlobalScope>()
-            .and_then(WorkerGlobalScope::shared_worker_source),
         animation_frame_provider_supported,
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
@@ -330,8 +325,6 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     worker_id: WorkerId,
     #[no_trace]
-    shared_worker_parent: Option<SharedWorkerSource>,
-    #[no_trace]
     #[ignore_malloc_size_of = "Shared worker execution control"]
     shared_worker_control: DomRefCell<Option<SharedWorkerContext>>,
     #[no_trace]
@@ -463,7 +456,6 @@ impl WorkerGlobalScope {
             ),
             caches: Default::default(),
             worker_id: init.worker_id,
-            shared_worker_parent: init.shared_worker,
             shared_worker_control: Default::default(),
             worker_name: worker_name.traced(),
             worker_type,
@@ -544,15 +536,6 @@ impl WorkerGlobalScope {
         self.shared_worker_control.borrow_mut().take();
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
-        if self.shared_worker_parent.is_some() {
-            if let Err(error) = self
-                .upcast::<GlobalScope>()
-                .script_to_constellation_chan()
-                .send(ScriptToConstellationMessage::UnregisterSharedWorkerGlobal)
-            {
-                warn!("Failed to unregister shared worker global: {error}");
-            }
-        }
 
         // Drop the runtime.
         let runtime = self.runtime.borrow_mut().take();
@@ -584,10 +567,8 @@ impl WorkerGlobalScope {
             .unwrap_or_else(crossbeam_channel::never)
     }
 
-    /// <https://html.spec.whatwg.org/multipage/workers.html#run-a-worker>
+    /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
     pub(crate) fn wait_until_resumed(&self) -> bool {
-        // Suspending workers: "whenever worker global scope's closing flag is false
-        // and it is suspendable, the user agent suspends execution of script".
         let Some(control) = self.shared_worker_control() else {
             return !self.is_closing();
         };
@@ -596,32 +577,6 @@ impl WorkerGlobalScope {
             return false;
         }
         true
-    }
-
-    pub(crate) fn shared_worker_source(&self) -> Option<SharedWorkerSource> {
-        self.shared_worker_parent.map(|parent| SharedWorkerSource {
-            worker_id: parent.worker_id,
-            global_id: self.worker_id,
-        })
-    }
-
-    pub(crate) fn register_shared_worker_global(&self) {
-        let Some(parent) = self.shared_worker_parent else {
-            return;
-        };
-        let channel = self.upcast::<GlobalScope>().script_to_constellation_chan();
-        if let Err(error) = channel.sender.send((
-            channel.webview_id,
-            channel.pipeline_id,
-            ScriptToConstellationMessage::RegisterSharedWorkerGlobal(
-                parent,
-                self.worker_id,
-                self.origin.immutable().clone(),
-            ),
-        )) {
-            warn!("Failed to register shared worker global: {error}");
-            self.close();
-        }
     }
 
     pub(crate) fn runtime_handle(&self) -> ParentRuntime {
@@ -838,8 +793,6 @@ impl WorkerGlobalScope {
             } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
                 // Step 11. Enable outside port's port message queue.
                 shared.enable_outside_port_message_queue();
-                // Step 13. If the initial Connect arrived before execution-ready,
-                // queue the global task to fire its connect event now.
                 shared.fire_pending_connect(cx);
             }
         }
@@ -1307,10 +1260,10 @@ impl WorkerGlobalScope {
 
         // Step 2. Set workerGlobal's closing flag to true. (This prevents any
         // further tasks from being queued.)
-        if !self.closing.swap(true, Ordering::SeqCst) {
-            if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
-                shared.notify_closing();
-            }
+        if !self.closing.swap(true, Ordering::SeqCst) &&
+            let Some(shared) = self.downcast::<SharedWorkerGlobalScope>()
+        {
+            shared.notify_closing();
         }
         if let Some(control) = self.shared_worker_control() {
             control.wake_waiters();

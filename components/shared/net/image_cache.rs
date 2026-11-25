@@ -205,14 +205,6 @@ pub trait ImageCacheFactory: Sync + Send {
         paint_api: &CrossProcessPaintApi,
         font_resolver: Arc<dyn FontResolver>,
     ) -> Arc<dyn ImageCache>;
-
-    /// Create a cache with its own image-key reply route, independent of a Document's pipeline.
-    fn create_for_worker(
-        &self,
-        webview_id: WebViewId,
-        paint_api: &CrossProcessPaintApi,
-        font_resolver: Arc<dyn FontResolver>,
-    ) -> Result<Arc<dyn ImageCache>, servo_base::generic_channel::SendError>;
 }
 
 /// An [`ImageCache`] manages fetching and decoding images for a single `Pipeline` for its

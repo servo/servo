@@ -10,6 +10,6 @@ mod script_mutation_observers;
 #[expect(unsafe_code)]
 pub(crate) mod script_thread;
 pub(crate) mod script_window_proxies;
-mod svg_font;
+pub(crate) mod svg_font;
 pub(crate) mod timers;
 pub(crate) mod webdriver_handlers;

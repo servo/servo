@@ -31,9 +31,8 @@ use profile_traits::mem::{
 };
 use profile_traits::path;
 use profile_traits::time::{self as profile_time};
-use rustc_hash::FxHashMap;
-use servo_base::generic_channel::{self, GenericCallback, GenericSender, RoutedReceiver};
-use servo_base::id::{PainterId, PipelineId, WebViewId, WorkerId};
+use servo_base::generic_channel::{self, GenericSender, RoutedReceiver};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 #[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use servo_config::pref;
@@ -123,8 +122,6 @@ pub struct Paint {
     /// All of the [`Painters`] for this [`Paint`]. Each [`Painter`] handles painting to
     /// a single [`RenderingContext`].
     painters: Vec<Rc<RefCell<Painter>>>,
-    shared_worker_painters: FxHashMap<WorkerId, PainterId>,
-    shared_worker_painter_actions: RefCell<Vec<SharedWorkerPainterAction>>,
 
     /// A [`PaintProxy`] which can be used to allow other parts of Servo to communicate
     /// with this [`Paint`].
@@ -169,11 +166,6 @@ pub struct Paint {
     /// An map of external images shared between all `WebGpuExternalImages`.
     #[cfg(feature = "webgpu")]
     webgpu_image_map: std::cell::OnceCell<WebGpuExternalImageMap>,
-}
-
-enum SharedWorkerPainterAction {
-    Retain(WorkerId, PainterId, GenericCallback<bool>),
-    Release(WorkerId),
 }
 
 /// Why we need to be repainted. This is used for debugging.
@@ -242,8 +234,6 @@ impl Paint {
         };
         Rc::new(RefCell::new(Paint {
             painters: Default::default(),
-            shared_worker_painters: Default::default(),
-            shared_worker_painter_actions: Default::default(),
             paint_proxy: state.paint_proxy,
             event_loop_waker: state.event_loop_waker,
             shutdown_state: state.shutdown_state,
@@ -310,13 +300,6 @@ impl Paint {
     }
 
     fn remove_painter(&mut self, painter_id: PainterId) {
-        if self
-            .shared_worker_painters
-            .values()
-            .any(|id| *id == painter_id)
-        {
-            return;
-        }
         // The shared details map must be removed first in order to avoid the creation of new
         // devices after `clear_painter_resources` is called.
         self.painter_surfman_details_map.remove(painter_id);
@@ -407,27 +390,10 @@ impl Paint {
             .collect()
     }
 
-    pub fn finish_shutting_down(&mut self) {
+    pub fn finish_shutting_down(&self) {
         // Drain paint port, sometimes messages contain channels that are blocking
         // another thread from finishing (i.e. SetFrameTree).
-        while let Ok(message) = self.paint_receiver.try_recv() {
-            match message {
-                Ok(PaintMessage::ReleaseSharedWorkerPainter(worker)) => {
-                    self.release_shared_worker_painter(worker);
-                },
-                Ok(PaintMessage::RetainSharedWorkerPainter(_, _, reply)) => {
-                    if let Err(error) = reply.send(false) {
-                        warn!(
-                            "Could not reject SharedWorker painter lease during shutdown: {error}"
-                        );
-                    }
-                },
-                Err(error) => warn!("Invalid paint message during shutdown: {error}"),
-                _ => {},
-            }
-        }
-        self.finish_shared_worker_painter_actions();
-        debug_assert!(self.shared_worker_painters.is_empty());
+        while self.paint_receiver.try_recv().is_ok() {}
 
         #[cfg(feature = "webgl")]
         self.webgl_paint.shutdown();
@@ -551,19 +517,6 @@ impl Paint {
             },
             PaintMessage::GenerateImageKeysForPipeline(webview_id, pipeline_id) => {
                 self.handle_generate_image_keys_for_pipeline(webview_id, pipeline_id);
-            },
-            PaintMessage::GenerateImageKeysForWorker(webview_id, callback) => {
-                self.handle_generate_worker_image_keys(webview_id, callback);
-            },
-            PaintMessage::RetainSharedWorkerPainter(worker_id, webview_id, reply) => {
-                self.shared_worker_painter_actions.borrow_mut().push(
-                    SharedWorkerPainterAction::Retain(worker_id, webview_id.into(), reply),
-                );
-            },
-            PaintMessage::ReleaseSharedWorkerPainter(worker_id) => {
-                self.shared_worker_painter_actions
-                    .borrow_mut()
-                    .push(SharedWorkerPainterAction::Release(worker_id));
             },
             PaintMessage::UpdateImages(painter_id, updates) => {
                 if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
@@ -723,19 +676,6 @@ impl Paint {
             },
             PaintMessage::GenerateImageKeysForPipeline(webview_id, pipeline_id) => {
                 self.handle_generate_image_keys_for_pipeline(webview_id, pipeline_id);
-            },
-            PaintMessage::GenerateImageKeysForWorker(webview_id, callback) => {
-                self.handle_generate_worker_image_keys(webview_id, callback);
-            },
-            PaintMessage::RetainSharedWorkerPainter(_, _, reply) => {
-                if let Err(error) = reply.send(false) {
-                    warn!("Could not reject SharedWorker painter lease during shutdown: {error}");
-                }
-            },
-            PaintMessage::ReleaseSharedWorkerPainter(worker_id) => {
-                self.shared_worker_painter_actions
-                    .borrow_mut()
-                    .push(SharedWorkerPainterAction::Release(worker_id));
             },
             PaintMessage::GenerateFontKeys(
                 number_of_font_keys,
@@ -971,63 +911,6 @@ impl Paint {
     ) {
         if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
             painter.notify_input_event_handled(webview_id, input_event_id, result);
-        }
-    }
-
-    pub fn finish_shared_worker_painter_actions(&mut self) {
-        let actions = self.shared_worker_painter_actions.take();
-        for action in actions {
-            match action {
-                SharedWorkerPainterAction::Retain(worker_id, painter_id, reply) => {
-                    let retained = self.shutdown_state() == ShutdownState::NotShuttingDown &&
-                        self.maybe_painter(painter_id).is_some() &&
-                        !self.shared_worker_painters.contains_key(&worker_id);
-                    if retained {
-                        self.shared_worker_painters.insert(worker_id, painter_id);
-                    } else {
-                        warn!("Could not retain SharedWorker painter for {worker_id}");
-                    }
-                    if let Err(error) = reply.send(retained) {
-                        warn!("Could not acknowledge SharedWorker painter lease: {error}");
-                        if retained {
-                            self.release_shared_worker_painter(worker_id);
-                        }
-                    }
-                },
-                SharedWorkerPainterAction::Release(worker_id) => {
-                    self.release_shared_worker_painter(worker_id);
-                },
-            }
-        }
-    }
-
-    fn release_shared_worker_painter(&mut self, worker_id: WorkerId) {
-        let Some(painter_id) = self.shared_worker_painters.remove(&worker_id) else {
-            return;
-        };
-        let empty = self
-            .maybe_painter_mut(painter_id)
-            .is_some_and(|mut painter| painter.is_empty());
-        if empty {
-            self.remove_painter(painter_id);
-        }
-    }
-
-    fn handle_generate_worker_image_keys(
-        &self,
-        webview_id: WebViewId,
-        callback: GenericCallback<Option<Vec<ImageKey>>>,
-    ) {
-        let keys = self.maybe_painter(webview_id.into()).map(|painter| {
-            (0..pref!(image_key_batch_size))
-                .map(|_| painter.webrender_api.generate_image_key())
-                .collect()
-        });
-        if keys.is_none() {
-            warn!("SharedWorker requested image keys from an unavailable painter");
-        }
-        if let Err(error) = callback.send(keys) {
-            warn!("Failed to return SharedWorker image keys: {error}");
         }
     }
 

@@ -2,16 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use content_security_policy::Violation;
-use malloc_size_of_derive::MallocSizeOf;
+use fonts_traits::SystemFontServiceProxySender;
+use net_traits::ResourceThreads;
 use net_traits::blob_url_store::TransferableUrlWithBlobClaim;
 use net_traits::policy_container::PolicyContainer;
+use net_traits::pub_domains::Site;
 use net_traits::request::{CredentialsMode, InsecureRequestsPolicy, Referrer};
+use paint_api::CrossProcessPaintApi;
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::GenericCallback;
-use servo_base::id::{BrowsingContextId, MessagePortId, ScriptEventLoopId, WebViewId, WorkerId};
+use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
+use servo_base::id::{
+    BrowsingContextId, MessagePortId, PipelineId, PipelineNamespaceRequest, WebViewId,
+};
 
 use crate::{MessagePortImpl, WorkerGlobalScopeInit};
 
@@ -29,17 +35,12 @@ pub struct SharedWorkerOptions {
     pub extended_lifetime: bool,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
-pub struct SharedWorkerSource {
-    pub worker_id: WorkerId,
-    pub global_id: WorkerId,
-}
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct SharedWorkerCreationData {
     pub init: WorkerGlobalScopeInit,
     pub webview_id: WebViewId,
     pub browsing_context_id: BrowsingContextId,
+    pub top_level_site: Option<Site>,
     pub options: SharedWorkerOptions,
     pub url: TransferableUrlWithBlobClaim,
     pub referrer: Referrer,
@@ -65,31 +66,23 @@ pub enum SharedWorkerClientMessage {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct SharedWorkerStart {
-    pub creation: SharedWorkerCreationData,
-    pub event_loop_id: ScriptEventLoopId,
-    pub events: GenericCallback<SharedWorkerHostEvent>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum SharedWorkerCommand {
-    Connect {
-        connection_id: MessagePortId,
-        port: MessagePortImpl,
+pub enum SharedWorkerManagerMessage {
+    Connect(Box<SharedWorkerConnect>),
+    UpdateOwners {
+        fully_active: HashMap<PipelineId, bool>,
+        has_loading_document: bool,
     },
-    Terminate,
-    SetSuspended(bool),
+    RemoveOwner(PipelineId),
     SetNetworkOnlineState(bool),
+    Exit,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum SharedWorkerHostEvent {
-    Started(GenericCallback<SharedWorkerCommand>),
-    ScopeCreated { secure_context: bool },
-    ScriptLoaded,
-    ScriptLoadFailed,
-    PortReceived(MessagePortId),
-    CspViolations(Vec<Violation>),
-    Closing,
-    Exited,
+#[derive(Deserialize, Serialize)]
+pub struct SharedWorkerManagerSenders {
+    pub resource_threads: ResourceThreads,
+    pub paint_api: CrossProcessPaintApi,
+    pub system_font_service_sender: SystemFontServiceProxySender,
+    pub receiver: GenericReceiver<SharedWorkerManagerMessage>,
+    pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
+    pub lifeline_sender: Option<GenericSender<()>>,
 }

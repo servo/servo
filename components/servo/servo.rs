@@ -343,9 +343,6 @@ impl ServoInner {
             }
             paint.handle_messages(messages);
         }
-        self.paint
-            .borrow_mut()
-            .finish_shared_worker_painter_actions();
 
         let mut selector = EmbedderMessageSelector::new(
             &self.embedder_receiver,
@@ -1502,6 +1499,16 @@ pub fn run_content_process(token: String) {
         },
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();
+        },
+        UnprivilegedContent::SharedWorker(content) => {
+            media_platform::init();
+            content
+                .start::<script::ScriptThread>(Arc::new(ImageCacheFactoryImpl::new(
+                    resources::read_bytes(resources::Resource::BrokenImageIcon),
+                )))
+                .join()
+                .expect("Failed to join on the shared worker manager thread.");
+            FetchThread::exit();
         },
     }
 }

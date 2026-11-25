@@ -65,6 +65,7 @@ use servo_base::Epoch;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_base::text::{RangeAny, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
+use servo_constellation_traits::SharedWorkerManagerSenders;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use style::Atom;
 use style::animation::DocumentAnimationSet;
@@ -473,6 +474,13 @@ pub enum SegmentGranularity {
 /// and also `LayoutFactory` from this crate. If it was in `script_traits` there would be a
 /// circular dependency.
 pub trait ScriptThreadFactory {
+    /// <https://html.spec.whatwg.org/multipage/#shared-worker-manager>
+    fn create_shared_worker_manager(
+        senders: SharedWorkerManagerSenders,
+        origin: ImmutableOrigin,
+        image_cache_factory: Arc<dyn ImageCacheFactory>,
+    ) -> JoinHandle<()>;
+
     /// Create a `ScriptThread`.
     fn create(
         state: InitialScriptState,

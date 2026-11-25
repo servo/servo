@@ -15,7 +15,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
 use rustc_hash::FxHashMap;
 use servo_base::Epoch;
-use servo_base::id::{PainterId, PipelineId, WebViewId, WorkerId};
+use servo_base::id::{PainterId, PipelineId, WebViewId};
 use smallvec::SmallVec;
 use strum::IntoStaticStr;
 use style_traits::CSSPixel;
@@ -144,9 +144,6 @@ pub enum PaintMessage {
     /// The same as the above but it will be forwarded to the pipeline instead
     /// of send via a channel.
     GenerateImageKeysForPipeline(WebViewId, PipelineId),
-    GenerateImageKeysForWorker(WebViewId, GenericCallback<Option<Vec<ImageKey>>>),
-    RetainSharedWorkerPainter(WorkerId, WebViewId, GenericCallback<bool>),
-    ReleaseSharedWorkerPainter(WorkerId),
     /// Perform a resource update operation.
     UpdateImages(PainterId, SmallVec<[ImageUpdate; 1]>),
     /// Pause all pipeline display list processing for the given pipeline until the
@@ -389,19 +386,6 @@ impl CrossProcessPaintApi {
             pipeline_id,
         )) {
             warn!("Could not send image keys to Paint {}", e);
-        }
-    }
-
-    pub fn generate_image_keys_for_worker(
-        &self,
-        webview_id: WebViewId,
-        callback: &GenericCallback<Option<Vec<ImageKey>>>,
-    ) {
-        if let Err(error) = self.0.send(PaintMessage::GenerateImageKeysForWorker(
-            webview_id,
-            callback.clone(),
-        )) {
-            warn!("Could not request SharedWorker image keys: {error}");
         }
     }
 

@@ -93,7 +93,6 @@ use std::mem::replace;
 use std::rc::{Rc, Weak};
 use std::sync::Arc;
 use std::thread::JoinHandle;
-use std::time::Instant;
 use std::{process, thread};
 
 use accesskit::{ActionRequest, TreeId};
@@ -169,9 +168,10 @@ use servo_constellation_traits::{
     PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
     ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
     ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerManagerMsg, ServiceWorkerMsg,
-    SessionHistoryTraversalRequest, SharedWorkerConnect, SharedWorkerSource,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, UserContentManagerAction,
-    WindowSizeType, WorkerAnimationFrameTick,
+    SessionHistoryTraversalRequest, SharedWorkerClientMessage, SharedWorkerConnect,
+    SharedWorkerManagerMessage, SharedWorkerManagerSenders, StructuredSerializedData,
+    TargetSnapshotParams, TraversalDirection, UserContentManagerAction, WindowSizeType,
+    WorkerAnimationFrameTick,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -195,7 +195,7 @@ use crate::event_loop::EventLoop;
 use crate::pipeline::Pipeline;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 use crate::session_history::{NeedsToReload, SessionHistoryChange, SessionHistoryDiff};
-use crate::sharedworker::{ManagerAction, ManagerEvent, SharedWorkerManager, SharedWorkerOwner};
+use crate::sharedworker::SharedWorkerUnprivilegedContent;
 
 struct PendingApprovalNavigation {
     load_data: LoadData,
@@ -359,7 +359,6 @@ pub struct Constellation<STF, SWF> {
     /// Necessary for algorithms like <https://w3c.github.io/ServiceWorker/#update-state-algorithm>,
     /// which broadcast messages to multiple pipelines.
     sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
-    shared_workers: SharedWorkerManager,
 
     /// Service workers waiting for their state update tasks to complete at step 21 of
     /// <https://w3c.github.io/ServiceWorker/#installation-algorithm>.
@@ -431,6 +430,16 @@ pub struct Constellation<STF, SWF> {
 
     /// A map of origin to sender to a Service worker manager.
     sw_managers: HashMap<ImmutableOrigin, GenericSender<ServiceWorkerMsg>>,
+
+    /// <https://html.spec.whatwg.org/multipage/#shared-worker-manager>
+    shared_worker_managers: HashMap<
+        (ImmutableOrigin, bool),
+        (ScriptEventLoopId, GenericSender<SharedWorkerManagerMessage>),
+    >,
+    shared_worker_manager_threads: Vec<JoinHandle<()>>,
+    shared_worker_manager_lifelines: Vec<(ScriptEventLoopId, RoutedReceiver<()>)>,
+    shared_worker_owner_activity: HashMap<PipelineId, bool>,
+    shared_worker_has_loading_document: bool,
 
     /// A channel for the constellation to send messages to the
     /// time profiler thread.
@@ -703,7 +712,11 @@ where
                     event_loops: Default::default(),
                     sw_manager_sender,
                     sw_manager_receiver,
-                    shared_workers: SharedWorkerManager::default(),
+                    shared_worker_managers: Default::default(),
+                    shared_worker_manager_threads: Vec::new(),
+                    shared_worker_manager_lifelines: Vec::new(),
+                    shared_worker_owner_activity: Default::default(),
+                    shared_worker_has_loading_document: false,
                     service_workers_pending_update: Default::default(),
                     namespace_receiver,
                     namespace_ipc_sender,
@@ -792,13 +805,6 @@ where
         self.online
     }
 
-    pub(crate) fn shared_worker_host_exit_callback(
-        &self,
-        host: ScriptEventLoopId,
-    ) -> Result<GenericCallback<()>, SendError> {
-        self.shared_workers.host_exit_callback(host)
-    }
-
     fn event_loops(&self) -> Vec<Rc<EventLoop>> {
         self.event_loops
             .iter()
@@ -823,14 +829,16 @@ where
 
     /// The main event loop for the constellation.
     fn run(&mut self) {
-        while !self.shutting_down || !self.pipelines.is_empty() || !self.shared_workers.is_empty() {
+        while !self.shutting_down ||
+            !self.pipelines.is_empty() ||
+            !self.shared_worker_manager_lifelines.is_empty()
+        {
             // Randomly close a pipeline if --random-pipeline-closure-probability is set
             // This is for testing the hardening of the constellation.
             self.maybe_close_random_pipeline();
             self.handle_request();
             self.finish_completed_session_history_traversal_requests();
             self.update_shared_worker_lifetimes();
-            self.run_shared_worker_actions();
             self.clean_up_finished_script_event_loops();
         }
         self.handle_shutdown();
@@ -1188,8 +1196,7 @@ where
         #[derive(Debug)]
         enum Request {
             ServiceWorkerManager(ServiceWorkerManagerMsg),
-            SharedWorker(ManagerEvent),
-            SharedWorkerTimeout,
+            SharedWorkerManagerExited(usize),
             PipelineNamespace(PipelineNamespaceRequest),
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangAlert),
@@ -1214,53 +1221,53 @@ where
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
-        sel.recv(self.shared_workers.receiver());
+        for (_, receiver) in &self.shared_worker_manager_lifelines {
+            sel.recv(receiver);
+        }
+        let process_start = 5 + self.shared_worker_manager_lifelines.len();
 
         #[cfg(feature = "multiprocess")]
         self.process_manager.register(&mut sel);
 
         let request = {
-            let operation = {
+            let oper = {
                 let _span = profile_traits::trace_span!("handle_request::select").entered();
-                match self.shared_workers.next_deadline() {
-                    Some(deadline) => sel.select_deadline(deadline).ok(),
-                    None => Some(sel.select()),
-                }
+                sel.select()
             };
-            match operation {
-                None => Ok(Request::SharedWorkerTimeout),
-                Some(oper) => match oper.index() {
-                    0 => oper
-                        .recv(&self.sw_manager_receiver)
-                        .expect("Unexpected service worker manager channel panic in constellation")
-                        .map(Request::ServiceWorkerManager),
-                    1 => oper
-                        .recv(&self.namespace_receiver)
-                        .expect("Unexpected script channel panic in constellation")
-                        .map(Request::PipelineNamespace),
-                    2 => oper
-                        .recv(&self.script_receiver)
-                        .expect("Unexpected script channel panic in constellation")
-                        .map(Request::Script),
-                    3 => oper
-                        .recv(&self.background_hang_monitor_receiver)
-                        .expect("Unexpected BHM channel panic in constellation")
-                        .map(Request::BackgroundHangMonitor),
-                    4 => Ok(Request::Embedder(
-                        oper.recv(&self.embedder_to_constellation_receiver)
-                            .expect("Unexpected embedder channel panic in constellation"),
-                    )),
-                    5 => Ok(Request::SharedWorker(
-                        oper.recv(self.shared_workers.receiver())
-                            .expect("Unexpected shared worker manager channel closure"),
-                    )),
-                    _ => {
-                        // This can only be a error reading on a closed lifeline receiver.
-                        let process_index = oper.index() - 6;
-                        #[cfg(feature = "multiprocess")]
-                        let _ = oper.recv(self.process_manager.receiver_at(process_index));
-                        Ok(Request::RemoveProcess(process_index))
-                    },
+            let index = oper.index();
+
+            match index {
+                0 => oper
+                    .recv(&self.sw_manager_receiver)
+                    .expect("Unexpected service worker manager channel panic in constellation")
+                    .map(Request::ServiceWorkerManager),
+                1 => oper
+                    .recv(&self.namespace_receiver)
+                    .expect("Unexpected script channel panic in constellation")
+                    .map(Request::PipelineNamespace),
+                2 => oper
+                    .recv(&self.script_receiver)
+                    .expect("Unexpected script channel panic in constellation")
+                    .map(Request::Script),
+                3 => oper
+                    .recv(&self.background_hang_monitor_receiver)
+                    .expect("Unexpected BHM channel panic in constellation")
+                    .map(Request::BackgroundHangMonitor),
+                4 => Ok(Request::Embedder(
+                    oper.recv(&self.embedder_to_constellation_receiver)
+                        .expect("Unexpected embedder channel panic in constellation"),
+                )),
+                index if index < process_start => {
+                    let manager_index = index - 5;
+                    let _ = oper.recv(&self.shared_worker_manager_lifelines[manager_index].1);
+                    Ok(Request::SharedWorkerManagerExited(manager_index))
+                },
+                _ => {
+                    // This can only be a error reading on a closed lifeline receiver.
+                    let process_index = index - process_start;
+                    #[cfg(feature = "multiprocess")]
+                    let _ = oper.recv(self.process_manager.receiver_at(process_index));
+                    Ok(Request::RemoveProcess(process_index))
                 },
             }
         };
@@ -1271,10 +1278,11 @@ where
         };
 
         match request {
-            Request::SharedWorker(event) => {
-                self.shared_workers.handle_event(event, Instant::now());
+            Request::SharedWorkerManagerExited(index) => {
+                let (manager_id, _) = self.shared_worker_manager_lifelines.swap_remove(index);
+                self.shared_worker_managers
+                    .retain(|_, (id, _)| *id != manager_id);
             },
-            Request::SharedWorkerTimeout => {},
             Request::ServiceWorkerManager(message) => {
                 self.handle_request_from_service_worker_manager(message);
             },
@@ -1289,11 +1297,7 @@ where
                 self.handle_request_from_background_hang_monitor(message);
             },
             #[cfg(feature = "multiprocess")]
-            Request::RemoveProcess(index) => {
-                if let Some(host) = self.process_manager.remove(index) {
-                    self.shared_workers.host_exited(host, Instant::now());
-                }
-            },
+            Request::RemoveProcess(index) => self.process_manager.remove(index),
             #[cfg(not(feature = "multiprocess"))]
             Request::RemoveProcess(_) => {},
         }
@@ -1689,69 +1693,12 @@ where
         &mut self,
         message: (WebViewId, PipelineId, ScriptToConstellationMessage),
     ) {
-        self.handle_script_message(message, None);
-    }
-
-    fn handle_script_message(
-        &mut self,
-        message: (WebViewId, PipelineId, ScriptToConstellationMessage),
-        worker_source: Option<SharedWorkerSource>,
-    ) {
         let (webview_id, source_pipeline_id, content) = message;
         trace_script_msg!(content, "{source_pipeline_id}: {content:?}");
 
-        if let Some(source) = worker_source {
-            if self.shared_workers.source_origin(source).is_none() {
-                warn!("Message from an unknown SharedWorker global: {source:?}");
-                return;
-            }
-            match &content {
-                ScriptToConstellationMessage::CompleteMessagePortTransfer(..) |
-                ScriptToConstellationMessage::MessagePortTransferResult(..) |
-                ScriptToConstellationMessage::RerouteMessagePort(..) |
-                ScriptToConstellationMessage::MessagePortShipped(..) |
-                ScriptToConstellationMessage::NewMessagePortRouter(..) |
-                ScriptToConstellationMessage::RemoveMessagePortRouter(..) |
-                ScriptToConstellationMessage::NewMessagePort(..) |
-                ScriptToConstellationMessage::EntanglePorts(..) |
-                ScriptToConstellationMessage::DisentanglePorts(..) |
-                ScriptToConstellationMessage::NewBroadcastChannelRouter(..) |
-                ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(..) |
-                ScriptToConstellationMessage::RemoveBroadcastChannelNameInRouter(..) |
-                ScriptToConstellationMessage::RemoveBroadcastChannelRouter(..) |
-                ScriptToConstellationMessage::ScheduleBroadcast(..) |
-                ScriptToConstellationMessage::CreateCanvasPaintThread(..) |
-                ScriptToConstellationMessage::LogEntry(..) |
-                ScriptToConstellationMessage::UnregisterSharedWorkerGlobal => {},
-                #[cfg(feature = "webgpu")]
-                ScriptToConstellationMessage::RequestAdapter(..) |
-                ScriptToConstellationMessage::GetWebGPUChan(..) => {},
-                _ => {
-                    warn!("SharedWorker attempted a window-only operation: {content:?}");
-                    return;
-                },
-            }
-        }
-
         match content {
             ScriptToConstellationMessage::ConnectSharedWorker(request) => {
-                self.handle_shared_worker_connection(webview_id, source_pipeline_id, *request);
-            },
-            ScriptToConstellationMessage::FromSharedWorker(source, message) => {
-                self.handle_script_message(
-                    (webview_id, source_pipeline_id, *message),
-                    Some(source),
-                );
-            },
-            ScriptToConstellationMessage::RegisterSharedWorkerGlobal(parent, global, origin) => {
-                self.shared_workers.register_global(parent, global, origin);
-            },
-            ScriptToConstellationMessage::UnregisterSharedWorkerGlobal => {
-                if let Some(source) = worker_source {
-                    self.shared_workers.unregister_global(source);
-                } else {
-                    warn!("SharedWorker global removal without a worker source");
-                }
+                self.connect_shared_worker(webview_id, source_pipeline_id, request);
             },
             ScriptToConstellationMessage::CompleteMessagePortTransfer(router_id, ports) => {
                 self.handle_complete_message_port_transfer(router_id, ports);
@@ -1771,18 +1718,9 @@ where
                 self.handle_messageport_shipped(port_id);
             },
             ScriptToConstellationMessage::NewMessagePortRouter(router_id, callback) => {
-                if let Some(source) = worker_source {
-                    self.shared_workers.track_message_router(source, router_id);
-                }
                 self.handle_new_messageport_router(router_id, callback);
             },
             ScriptToConstellationMessage::RemoveMessagePortRouter(router_id) => {
-                if let Some(source) = worker_source {
-                    self.shared_workers
-                        .untrack_message_router(source, router_id);
-                    self.remove_shared_worker_message_router(router_id);
-                    return;
-                }
                 self.handle_remove_messageport_router(router_id);
             },
             ScriptToConstellationMessage::NewMessagePort(router_id, port_id) => {
@@ -1800,14 +1738,10 @@ where
                 origin,
             ) => {
                 if self
-                    .check_message_origin(source_pipeline_id, worker_source, &origin)
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
                     .is_err()
                 {
                     return warn!("Attempt to add broadcast router from an unexpected origin.");
-                }
-                if let Some(source) = worker_source {
-                    self.shared_workers
-                        .track_broadcast_router(source, router_id);
                 }
                 self.broadcast_channels
                     .new_broadcast_channel_router(router_id, response_sender);
@@ -1818,7 +1752,7 @@ where
                 origin,
             ) => {
                 if self
-                    .check_message_origin(source_pipeline_id, worker_source, &origin)
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
                     .is_err()
                 {
                     return warn!("Attempt to add channel name from an unexpected origin.");
@@ -1832,7 +1766,7 @@ where
                 origin,
             ) => {
                 if self
-                    .check_message_origin(source_pipeline_id, worker_source, &origin)
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
                     .is_err()
                 {
                     return warn!("Attempt to remove channel name from an unexpected origin.");
@@ -1842,21 +1776,17 @@ where
             },
             ScriptToConstellationMessage::RemoveBroadcastChannelRouter(router_id, origin) => {
                 if self
-                    .check_message_origin(source_pipeline_id, worker_source, &origin)
+                    .check_origin_against_pipeline(&source_pipeline_id, &origin)
                     .is_err()
                 {
                     return warn!("Attempt to remove broadcast router from an unexpected origin.");
-                }
-                if let Some(source) = worker_source {
-                    self.shared_workers
-                        .untrack_broadcast_router(source, router_id);
                 }
                 self.broadcast_channels
                     .remove_broadcast_channel_router(router_id);
             },
             ScriptToConstellationMessage::ScheduleBroadcast(router_id, message) => {
                 if self
-                    .check_message_origin(source_pipeline_id, worker_source, &message.origin)
+                    .check_origin_against_pipeline(&source_pipeline_id, &message.origin)
                     .is_err()
                 {
                     return warn!(
@@ -2157,7 +2087,6 @@ where
                 .handle_wgpu_request(
                     webview_id,
                     source_pipeline_id,
-                    worker_source,
                     ScriptToConstellationMessage::RequestAdapter(response_sender, options, ids),
                 ),
             #[cfg(feature = "webgpu")]
@@ -2165,7 +2094,6 @@ where
                 .handle_wgpu_request(
                     webview_id,
                     source_pipeline_id,
-                    worker_source,
                     ScriptToConstellationMessage::GetWebGPUChan(response_sender),
                 ),
             ScriptToConstellationMessage::TitleChanged(pipeline, title) => {
@@ -2280,43 +2208,40 @@ where
         Err(())
     }
 
-    fn handle_shared_worker_connection(
+    fn reject_shared_worker_connection(&mut self, request: SharedWorkerConnect) {
+        if let Err(error) = request.reply.send(SharedWorkerClientMessage::Error) {
+            warn!("Failed to report SharedWorker connection failure: {error}");
+        }
+        let port_id = *request.port.message_port_id();
+        if let Some(port) = self.message_ports.get(&port_id) {
+            self.handle_disentangle_messageports(port_id, port.entangled_with);
+        }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#shared-worker-manager>
+    fn connect_shared_worker(
         &mut self,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
-        mut request: SharedWorkerConnect,
+        mut request: Box<SharedWorkerConnect>,
     ) {
         let Some(pipeline) = self.pipelines.get(&pipeline_id) else {
-            self.shared_workers
-                .reject_request(request, "unknown owner Document");
+            self.reject_shared_worker_connection(*request);
             return;
         };
-        if pipeline.webview_id != webview_id {
-            self.shared_workers
-                .reject_request(request, "owner WebView does not match");
+        if self.shutting_down || pipeline.webview_id != webview_id {
+            self.reject_shared_worker_connection(*request);
             return;
         }
-        let group = self.browsing_context_group_for_webview_id(&webview_id);
-        if group.is_none() {
-            self.shared_workers
-                .reject_request(request, "owner WebView has closed");
-            return;
-        }
-        let mut top = pipeline;
-        while let Some(parent) = top.parent_pipeline_id {
-            let Some(parent) = self.pipelines.get(&parent) else {
-                self.shared_workers
-                    .reject_request(request, "ancestor Document has closed");
-                return;
-            };
-            top = parent;
-        }
+        let origin = request.creation.init.origin.clone();
         let is_private = pipeline.event_loop.is_private();
-        request.creation.init.resource_threads = if is_private {
+        let key = (origin.clone(), is_private);
+        let resource_threads = if is_private {
             self.private_resource_threads.clone()
         } else {
             self.public_resource_threads.clone()
         };
+        request.creation.init.resource_threads = resource_threads.clone();
         request.creation.init.storage_threads = if is_private {
             self.private_storage_threads.clone()
         } else {
@@ -2324,127 +2249,123 @@ where
         };
         request.creation.init.script_to_constellation_chan = self.script_sender.clone();
         request.creation.init.pipeline_id = pipeline_id;
+        request.creation.init.online = self.online;
         request.creation.webview_id = webview_id;
         request.creation.browsing_context_id = pipeline.browsing_context_id;
-        let owner = SharedWorkerOwner {
-            pipeline_id,
-            host: pipeline.event_loop.clone(),
-            is_private,
-            #[cfg(feature = "webgpu")]
-            browsing_context_group: group.expect("owner WebView exists"),
-            #[cfg(feature = "webgpu")]
-            url: pipeline.url.clone(),
-        };
-        self.shared_workers.request(
-            request,
-            owner,
-            top.event_loop.clone(),
-            top.id,
-            Instant::now(),
-        );
+        if !self.shared_worker_managers.contains_key(&key) {
+            let Some((sender, receiver)) = generic_channel::channel() else {
+                self.reject_shared_worker_connection(*request);
+                return;
+            };
+            let Some((lifeline_sender, lifeline_receiver)) = generic_channel::channel() else {
+                self.reject_shared_worker_connection(*request);
+                return;
+            };
+            let lifeline_receiver = lifeline_receiver.route_preserving_errors();
+            let manager_id = ScriptEventLoopId::new();
+            let senders = SharedWorkerManagerSenders {
+                resource_threads,
+                paint_api: self.paint_proxy.cross_process_paint_api.clone(),
+                system_font_service_sender: self.system_font_service.to_sender(),
+                receiver,
+                lifeline_sender: Some(lifeline_sender),
+                namespace_request_sender: self.namespace_ipc_sender.clone(),
+            };
+            #[cfg(feature = "multiprocess")]
+            if opts::get().multiprocess {
+                let content = SharedWorkerUnprivilegedContent::new(senders, origin);
+                match content.spawn_multiprocess() {
+                    Ok(process) => self.process_manager.add(lifeline_receiver.clone(), process),
+                    Err(error) => {
+                        warn!("Failed to spawn SharedWorker manager process: {error}");
+                        self.reject_shared_worker_connection(*request);
+                        return;
+                    },
+                }
+            } else {
+                self.shared_worker_manager_threads.push(
+                    SharedWorkerUnprivilegedContent::new(senders, origin)
+                        .start::<STF>(self.image_cache_factory.clone()),
+                );
+            }
+            #[cfg(not(feature = "multiprocess"))]
+            self.shared_worker_manager_threads.push(
+                SharedWorkerUnprivilegedContent::new(senders, origin)
+                    .start::<STF>(self.image_cache_factory.clone()),
+            );
+            let _ = sender.send(self.shared_worker_owner_state());
+            let _ = sender.send(SharedWorkerManagerMessage::SetNetworkOnlineState(
+                self.online,
+            ));
+            self.shared_worker_manager_lifelines
+                .push((manager_id, lifeline_receiver));
+            self.shared_worker_managers
+                .insert(key.clone(), (manager_id, sender));
+        }
+        let (_, manager) = &self.shared_worker_managers[&key];
+        let failure_reply = request.reply.clone();
+        let port_id = *request.port.message_port_id();
+        let blob_transfer = request.creation.url.transfer_guard();
+        // <https://html.spec.whatwg.org/multipage/#dom-sharedworker>
+        // Step 11. Enqueue the following steps to the shared worker manager:
+        match manager.send(SharedWorkerManagerMessage::Connect(request)) {
+            Ok(()) => blob_transfer.commit(),
+            Err(error) => {
+                warn!("Failed to send SharedWorker connection: {error}");
+                self.shared_worker_managers.remove(&key);
+                let _ = failure_reply.send(SharedWorkerClientMessage::Error);
+                if let Some(port) = self.message_ports.get(&port_id) {
+                    self.handle_disentangle_messageports(port_id, port.entangled_with);
+                }
+            },
+        }
     }
 
-    fn update_shared_worker_lifetimes(&mut self) {
-        if self.shared_workers.is_empty() {
-            return;
-        }
-        let mut fully_active = HashMap::new();
-        for owner in self.shared_workers.owner_pipeline_ids() {
-            fully_active
-                .entry(owner)
-                .or_insert_with(|| self.get_activity(owner) == DocumentActivity::FullyActive);
-        }
-        // <https://html.spec.whatwg.org/multipage/workers.html#permissible-worker>
+    fn shared_worker_owner_state(&self) -> SharedWorkerManagerMessage {
+        let fully_active = self
+            .pipelines
+            .keys()
+            .map(|id| (*id, self.get_activity(*id) == DocumentActivity::FullyActive))
+            .collect();
+        // <https://html.spec.whatwg.org/multipage/#permissible-worker>
         // "the user agent has a navigable whose active document is not completely loaded"
         let has_loading_document = self.browsing_contexts.values().any(|context| {
             self.pipelines
                 .get(&context.pipeline_id)
                 .is_some_and(|pipeline| !pipeline.completely_loaded)
         });
-        self.shared_workers
-            .update_lifetimes(Instant::now(), &fully_active, has_loading_document);
+        SharedWorkerManagerMessage::UpdateOwners {
+            fully_active,
+            has_loading_document,
+        }
     }
 
-    fn run_shared_worker_actions(&mut self) {
-        loop {
-            let actions = self.shared_workers.take_actions();
-            if actions.is_empty() {
-                break;
-            }
-            for action in actions {
-                match action {
-                    ManagerAction::Start(host, start) => {
-                        let worker_id = start.creation.init.worker_id;
-                        let blob_transfer = start.creation.url.transfer_guard();
-                        match host.send(ScriptThreadMessage::StartSharedWorker(start)) {
-                            Ok(()) => blob_transfer.commit(),
-                            Err(error) => {
-                                error!("Failed to start SharedWorker in script host: {error}");
-                                self.shared_workers.start_failed(worker_id);
-                            },
-                        }
-                    },
-                    ManagerAction::RetainPainter(worker, webview, reply) => {
-                        self.paint_proxy
-                            .send(PaintMessage::RetainSharedWorkerPainter(
-                                worker, webview, reply,
-                            ));
-                    },
-                    ManagerAction::ReleasePainter(worker) => {
-                        self.paint_proxy
-                            .send(PaintMessage::ReleaseSharedWorkerPainter(worker));
-                    },
-                    ManagerAction::ClosePort(port) => self.discard_shared_worker_port(port),
-                    ManagerAction::RemoveMessageRouter(router) => {
-                        self.remove_shared_worker_message_router(router);
-                    },
-                    ManagerAction::RemoveBroadcastRouter(router) => {
-                        self.broadcast_channels
-                            .remove_broadcast_channel_router(router);
-                    },
-                }
+    fn update_shared_worker_lifetimes(&mut self) {
+        if self.shared_worker_managers.is_empty() || self.shutting_down {
+            return;
+        }
+        let SharedWorkerManagerMessage::UpdateOwners {
+            fully_active,
+            has_loading_document,
+        } = self.shared_worker_owner_state()
+        else {
+            unreachable!()
+        };
+        if self.shared_worker_owner_activity == fully_active &&
+            self.shared_worker_has_loading_document == has_loading_document
+        {
+            return;
+        }
+        for (_, manager) in self.shared_worker_managers.values() {
+            if let Err(error) = manager.send(SharedWorkerManagerMessage::UpdateOwners {
+                fully_active: fully_active.clone(),
+                has_loading_document,
+            }) {
+                warn!("Failed to update SharedWorker owners: {error}");
             }
         }
-    }
-
-    fn discard_shared_worker_port(&mut self, port: MessagePortId) {
-        if let Some(info) = self.message_ports.get(&port) {
-            self.handle_disentangle_messageports(port, info.entangled_with);
-        }
-    }
-
-    fn remove_shared_worker_message_router(&mut self, router: MessagePortRouterId) {
-        let ports: Vec<_> = self
-            .message_ports
-            .iter()
-            .filter_map(|(id, info)| match info.state {
-                TransferState::Managed(owner) |
-                TransferState::CompletionInProgress(owner) |
-                TransferState::CompletionRequested(owner, _)
-                    if owner == router =>
-                {
-                    Some(*id)
-                },
-                _ => None,
-            })
-            .collect();
-        for port in ports {
-            self.discard_shared_worker_port(port);
-        }
-        self.handle_remove_messageport_router(router);
-    }
-
-    fn check_message_origin(
-        &self,
-        pipeline: PipelineId,
-        worker: Option<SharedWorkerSource>,
-        origin: &ImmutableOrigin,
-    ) -> Result<(), ()> {
-        match worker {
-            Some(source) if self.shared_workers.source_origin(source) == Some(origin) => Ok(()),
-            Some(_) => Err(()),
-            None => self.check_origin_against_pipeline(&pipeline, origin),
-        }
+        self.shared_worker_owner_activity = fully_active;
+        self.shared_worker_has_loading_document = has_loading_document;
     }
 
     /// Returns `None` on every failure path, so callers can always reply to script.
@@ -2454,6 +2375,8 @@ where
         webview_id: WebViewId,
         source_pipeline_id: PipelineId,
     ) -> Option<WebGPU> {
+        use webgpu::start_webgpu_thread;
+
         let Some(browsing_context_group) = self.browsing_context_group_for_webview_id(&webview_id)
         else {
             warn!("WebView ({webview_id:?}) not found when handling WebGPU request");
@@ -2463,23 +2386,7 @@ where
             warn!("{source_pipeline_id}: ScriptMsg from closed pipeline");
             return None;
         };
-        self.webgpu_chan_for_context(
-            browsing_context_group,
-            &source_pipeline.url,
-            &source_pipeline.event_loop,
-        )
-    }
-
-    #[cfg(feature = "webgpu")]
-    fn webgpu_chan_for_context(
-        &self,
-        browsing_context_group: Rc<RefCell<BrowsingContextGroup>>,
-        url: &ServoUrl,
-        event_loop: &EventLoop,
-    ) -> Option<WebGPU> {
-        use webgpu::start_webgpu_thread;
-
-        let Some(host) = registered_domain_name(url) else {
+        let Some(host) = registered_domain_name(&source_pipeline.url) else {
             warn!("Invalid host url");
             return None;
         };
@@ -2495,8 +2402,11 @@ where
             )
             .map(|webgpu| {
                 let msg = ScriptThreadMessage::SetWebGPUPort(webgpu.1);
-                if let Err(error) = event_loop.send(msg) {
-                    warn!("Failed to send WebGPU receiver to script host: {error}");
+                if let Err(e) = source_pipeline.event_loop.send(msg) {
+                    warn!(
+                        "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
+                        source_pipeline_id, e
+                    );
                 }
                 v.insert(webgpu.0).clone()
             }),
@@ -2510,22 +2420,9 @@ where
         &mut self,
         webview_id: WebViewId,
         source_pipeline_id: PipelineId,
-        worker_source: Option<SharedWorkerSource>,
         request: ScriptToConstellationMessage,
     ) {
-        let webgpu_chan = match worker_source {
-            Some(source) => self
-                .shared_workers
-                .context(source.worker_id)
-                .and_then(|context| {
-                    self.webgpu_chan_for_context(
-                        context.browsing_context_group.clone(),
-                        &context.url,
-                        &context.host,
-                    )
-                }),
-            None => self.webgpu_chan_for_pipeline(webview_id, source_pipeline_id),
-        };
+        let webgpu_chan = self.webgpu_chan_for_pipeline(webview_id, source_pipeline_id);
         match request {
             ScriptToConstellationMessage::RequestAdapter(response_sender, options, adapter_id) => {
                 match webgpu_chan {
@@ -2984,7 +2881,7 @@ where
 
                     if let Ok(process) = content.spawn_multiprocess() {
                         let crossbeam_receiver = receiver.route_preserving_errors();
-                        self.process_manager.add(crossbeam_receiver, process, None);
+                        self.process_manager.add(crossbeam_receiver, process);
                     } else {
                         return warn!("Failed to spawn process for SW manager.");
                     }
@@ -3082,8 +2979,12 @@ where
             return;
         }
         self.shutting_down = true;
-        self.shared_workers.shutdown();
-        self.run_shared_worker_actions();
+
+        for (_, manager) in self.shared_worker_managers.values() {
+            if let Err(error) = manager.send(SharedWorkerManagerMessage::Exit) {
+                warn!("Failed to stop SharedWorker manager: {error}");
+            }
+        }
 
         // Tell all BHMs to exit, and to ensure their monitored components exit even when currently
         // hanging (on JS or sync XHR). This must be done before starting the process of closing all
@@ -3153,6 +3054,12 @@ where
         for join_handle in self.event_loop_join_handles.drain(..) {
             if join_handle.join().is_err() {
                 error!("Failed to join on a script-thread.");
+            }
+        }
+
+        for handle in self.shared_worker_manager_threads.drain(..) {
+            if handle.join().is_err() {
+                error!("Failed to join SharedWorker manager");
             }
         }
         self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
@@ -3398,8 +3305,11 @@ where
 
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId, exit_source: PipelineExitSource) {
         debug!("{}: Exited", pipeline_id);
-        self.shared_workers
-            .remove_owner(pipeline_id, Instant::now());
+        for (_, manager) in self.shared_worker_managers.values() {
+            if let Err(error) = manager.send(SharedWorkerManagerMessage::RemoveOwner(pipeline_id)) {
+                warn!("Failed to remove SharedWorker owner: {error}");
+            }
+        }
         self.remove_worker_animation_frame_providers_for_pipeline(pipeline_id);
 
         let Some(pipeline) = self.pipelines.remove(&pipeline_id) else {
@@ -3462,11 +3372,6 @@ where
         let Some(event_loop_id) = event_loop_id else {
             return;
         };
-        if self.shared_workers.worker_panicked(event_loop_id) {
-            warn!("SharedWorker panicked: {reason}");
-            return;
-        }
-        self.shared_workers.host_panicked(event_loop_id);
         debug!("Panic handler for {event_loop_id:?}: {reason:?}",);
 
         let mut webview_ids = HashSet::new();
@@ -4095,7 +4000,6 @@ where
         let pipeline = Pipeline::new_already_spawned(
             new_pipeline_id,
             browsing_context_id,
-            Some(load_info.info.parent_pipeline_id),
             webview_id,
             None,
             script_sender,
@@ -4195,7 +4099,6 @@ where
         let pipeline = Pipeline::new_already_spawned(
             new_pipeline_id,
             new_browsing_context_id,
-            None,
             new_webview_id,
             Some(opener_browsing_context_id),
             script_sender,
@@ -6919,7 +6822,14 @@ where
         if previously_online == online {
             return;
         }
-        self.shared_workers.set_online(online);
+
+        for (_, manager) in self.shared_worker_managers.values() {
+            if let Err(error) =
+                manager.send(SharedWorkerManagerMessage::SetNetworkOnlineState(online))
+            {
+                warn!("Failed to update SharedWorker network state: {error}");
+            }
+        }
 
         for event_loop in self.event_loops() {
             if let Err(error) = event_loop.send(ScriptThreadMessage::SetNetworkOnlineState(online))

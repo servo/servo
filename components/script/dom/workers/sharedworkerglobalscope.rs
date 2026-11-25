@@ -26,12 +26,9 @@ use script_bindings::interfaces::HasOrigin;
 use script_bindings::trace::RootedTraceableBox;
 #[cfg(feature = "devtools")]
 use servo_base::generic_channel::GenericReceiver;
-use servo_base::generic_channel::{GenericCallback, RoutedReceiver};
-use servo_base::id::{BrowsingContextId, MessagePortId, ScriptEventLoopId, WebViewId};
-use servo_constellation_traits::{
-    MessagePortImpl, SharedWorkerHostEvent, SharedWorkerStart, SharedWorkerType,
-    WorkerGlobalScopeInit,
-};
+use servo_base::generic_channel::RoutedReceiver;
+use servo_base::id::{BrowsingContextId, MessagePortId, ScriptEventLoopId, WebViewId, WorkerId};
+use servo_constellation_traits::{MessagePortImpl, SharedWorkerType, WorkerGlobalScopeInit};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use style::thread_state::{self, ThreadState};
 use stylo_atoms::Atom;
@@ -64,7 +61,8 @@ use crate::dom::workerglobalscope::{
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
 use crate::runtime::script_runtime::{IntroductionType, Runtime};
 use crate::scripting::script_module::fetch_a_module_script_graph;
-use crate::sharedworker_host::SharedWorkerThreadControl;
+use crate::sharedworker_host::{SharedWorkerStart, SharedWorkerThreadControl};
+use crate::sharedworker_manager::SharedWorkerEvent;
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 
 #[derive(MallocSizeOf)]
@@ -146,16 +144,13 @@ pub(crate) struct SharedWorkerGlobalScope {
     webview_id: WebViewId,
     task_queue: TaskQueue<SharedWorkerScriptMsg>,
     own_sender: Sender<SharedWorkerScriptMsg>,
-    // A `SharedWorkerGlobalScope` object has associated constructor origin (an origin), constructor URL (a URL record), and credentials (a credentials mode), and extended lifetime (a boolean).
-    // The manager owns this metadata and receives lifecycle notifications here.
     #[no_trace]
-    events: GenericCallback<SharedWorkerHostEvent>,
+    events: Sender<(WorkerId, SharedWorkerEvent)>,
     #[ignore_malloc_size_of = "ImageCache"]
     #[no_trace]
     image_cache: Arc<dyn ImageCache>,
     #[no_trace]
     browsing_context: Option<BrowsingContextId>,
-    // Shared workers receive message ports through `connect` events on their `SharedWorkerGlobalScope` object for each connection.
     pending_connect: DomRefCell<VecDeque<Dom<MessagePort>>>,
     #[no_trace]
     control_receiver: Receiver<SharedWorkerControlMsg>,
@@ -213,7 +208,7 @@ impl SharedWorkerGlobalScope {
         worker_name: DOMString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
-        events: GenericCallback<SharedWorkerHostEvent>,
+        events: Sender<(WorkerId, SharedWorkerEvent)>,
         from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<SharedWorkerScriptMsg>,
@@ -256,15 +251,7 @@ impl SharedWorkerGlobalScope {
                 debugger_global.expect("debugger global must exist when devtools is enabled"),
             ),
         });
-        let scope = SharedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(
-            cx,
-            &scope.origin(),
-            scope,
-        );
-        scope
-            .upcast::<WorkerGlobalScope>()
-            .register_shared_worker_global();
-        scope
+        SharedWorkerGlobalScopeBinding::Wrap::<crate::DomTypeHolder>(cx, &scope.origin(), scope)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
@@ -304,8 +291,9 @@ impl SharedWorkerGlobalScope {
                 .inherited_upgrade_insecure_navigations_set
                 .clone(),
             has_trustworthy_ancestor_origin: creation.has_trustworthy_ancestor_origin,
-            network_partition_key: None,
+            network_partition_key: creation.top_level_site,
         };
+        // <https://html.spec.whatwg.org/multipage/#set-up-a-worker-environment-settings-object>
         // Step 3. Let origin be a unique opaque origin if worker global scope's url's scheme is "data"; otherwise outside settings's origin.
         if worker_url.scheme() == "data" {
             init.origin = if init.inherited_secure_context == Some(true) {
@@ -315,13 +303,7 @@ impl SharedWorkerGlobalScope {
             };
         }
         let event_loop_sender = ScriptEventLoopSender::SharedWorker(own_sender.clone());
-        // Shared workers currently run on a dedicated script worker thread but
-        // still create their own JS runtime in that thread; this avoids child
-        // runtime lifetime coupling with the embedding script thread.
         let runtime = Runtime::new(Some(event_loop_sender.clone()));
-        // SAFETY: We are in a new thread, so this first cx.
-        // It is OK to have it separated of runtime here,
-        // because it will never outlive it (runtime destruction happens at the end of this function)
         let mut cx = unsafe { runtime.cx() };
         let cx = &mut cx;
 
@@ -349,6 +331,7 @@ impl SharedWorkerGlobalScope {
         #[cfg(not(feature = "devtools"))]
         let (devtools_receiver, debugger_global_for_scope) = (None, None);
 
+        // <https://html.spec.whatwg.org/multipage/#run-a-worker>
         // Step 10.3. Set worker global scope's type to options["type"].
         let worker_type = match creation.options.worker_type {
             SharedWorkerType::Classic => WorkerType::Classic,
@@ -378,8 +361,6 @@ impl SharedWorkerGlobalScope {
             cx,
         );
 
-        /// A data structure that ensures that a panicking SharedWorker will
-        /// always call `clear_js_runtime` in order to prevent it from leaking.
         struct ClearJsRuntime<'a> {
             scope: &'a WorkerGlobalScope,
         }
@@ -402,13 +383,15 @@ impl SharedWorkerGlobalScope {
                 Some(scope.worker_id()),
             );
         }
+        // <https://html.spec.whatwg.org/multipage/#dom-sharedworker>
         // Step 11.5.2. Let workerIsSecureContext be true if insideSettings is a secure context; otherwise, false.
-        if !global.send_event(SharedWorkerHostEvent::ScopeCreated {
+        if !global.send_event(SharedWorkerEvent::ScopeCreated {
             secure_context: global_scope.is_secure_context(),
         }) || scope.is_closing()
         {
             return;
         }
+        // <https://html.spec.whatwg.org/multipage/#run-a-worker>
         // Step 11. Let destination be "sharedworker" if is shared is true, and
         // "worker" otherwise.
         // Step 12. Obtain script by switching on options["type"]:
@@ -442,7 +425,7 @@ impl SharedWorkerGlobalScope {
         }
         global_scope.mem_profiler_chan().run_with_memory_reporting(
             || {
-                // Event loop: Run the responsible event loop specified by inside settings until it is destroyed.
+                // Step 15 of onComplete. Event loop: Run the responsible event loop specified by inside settings until it is destroyed.
                 while !scope.is_closing() {
                     run_worker_event_loop(&*global, None, cx);
                 }
@@ -453,8 +436,11 @@ impl SharedWorkerGlobalScope {
         );
     }
 
-    fn send_event(&self, event: SharedWorkerHostEvent) -> bool {
-        if let Err(error) = self.events.send(event) {
+    fn send_event(&self, event: SharedWorkerEvent) -> bool {
+        if let Err(error) = self
+            .events
+            .send((self.workerglobalscope.worker_id(), event))
+        {
             warn!("Failed to notify SharedWorker manager: {error}");
             self.workerglobalscope.close();
             return false;
@@ -490,22 +476,23 @@ impl SharedWorkerGlobalScope {
     pub(crate) fn forward_simple_error_at_worker(&self) {
         // Step 1.1. Queue a global task on the DOM manipulation task source given
         // worker's relevant global object to fire an event named error at worker.
-        self.send_event(SharedWorkerHostEvent::ScriptLoadFailed);
+        self.send_event(SharedWorkerEvent::ScriptLoadFailed);
     }
 
     pub(crate) fn report_csp_violations(&self, violations: Vec<Violation>) {
-        self.send_event(SharedWorkerHostEvent::CspViolations(violations));
+        self.send_event(SharedWorkerEvent::CspViolations(violations));
     }
 
     /// Step 11 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     pub(crate) fn enable_outside_port_message_queue(&self) {
-        self.send_event(SharedWorkerHostEvent::ScriptLoaded);
+        self.send_event(SharedWorkerEvent::ScriptLoaded);
     }
 
     pub(crate) fn notify_closing(&self) {
-        self.send_event(SharedWorkerHostEvent::Closing);
+        self.send_event(SharedWorkerEvent::Closing);
     }
 
+    /// Step 3 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     fn handle_connect(&self, port: MessagePortImpl, cx: &mut JSContext) -> DomRoot<MessagePort> {
         // Let inside port be a new MessagePort object in inside settings's realm.
         let inside_port = MessagePort::new_transferred(
@@ -519,6 +506,7 @@ impl SharedWorkerGlobalScope {
         inside_port
     }
 
+    /// Step 13 of onComplete of <https://html.spec.whatwg.org/multipage/#run-a-worker>
     // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
     fn dispatch_connect_event(&self, inside_port: &MessagePort) {
         let worker_global = Trusted::new(self);
@@ -575,7 +563,7 @@ impl SharedWorkerGlobalScope {
                 port,
             } => {
                 let port = self.handle_connect(port, cx);
-                self.send_event(SharedWorkerHostEvent::PortReceived(connection_id));
+                self.send_event(SharedWorkerEvent::PortReceived(connection_id));
                 if self.workerglobalscope.is_execution_ready() {
                     // Step 13. If is shared is true, then queue a global task on the DOM manipulation task source given worker global scope to fire an event named connect at worker global scope, using MessageEvent, with the data attribute initialized to the empty string, the ports attribute initialized to a new frozen array containing inside port, and the source attribute initialized to inside port.
                     self.dispatch_connect_event(&port);
@@ -587,8 +575,6 @@ impl SharedWorkerGlobalScope {
                 }
             },
             SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::DOMMessage(_)) => {
-                // SharedWorker messages arrive through the entangled MessagePort and are
-                // surfaced as connect/message events, not as direct WorkerScriptMsg::DOMMessage.
                 debug_assert!(
                     false,
                     "SharedWorker messages must arrive through MessagePorts"

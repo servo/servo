@@ -36,10 +36,12 @@ use profile_traits::mem;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
-use servo_base::generic_channel::{GenericCallback, GenericReceiver, GenericSender};
+#[cfg(feature = "devtools")]
+use servo_base::generic_channel::GenericCallback;
+use servo_base::generic_channel::{GenericReceiver, GenericSender};
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, LCPCandidateID, PipelineId, PipelineNamespaceId,
-    PipelineNamespaceRequest, ScriptEventLoopId, ServiceWorkerId, WebViewId, WorkerId,
+    PipelineNamespaceRequest, ScriptEventLoopId, ServiceWorkerId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
@@ -156,12 +158,6 @@ pub enum UpdatePipelineIdReason {
 /// now) `Layout`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptThreadMessage {
-    /// Start a managed SharedWorker using a settings snapshot, without accessing its creator Window.
-    StartSharedWorker(Box<servo_constellation_traits::SharedWorkerStart>),
-    /// Stop a SharedWorker whose direct control endpoint may not yet have been published.
-    StopSharedWorker(WorkerId),
-    /// Obtain a live Document's immutable origin for shared-worker partitioning without blocking the manager.
-    GetSharedWorkerOrigin(PipelineId, GenericCallback<Option<ImmutableOrigin>>),
     /// Update the state of a service worker.
     UpdateServiceWorkerState {
         /// The identity of the service worker.
@@ -479,8 +475,6 @@ pub struct InitialScriptState {
     /// The id of the script event loop that this state will start. This is used to uniquely
     /// identify an event loop.
     pub id: ScriptEventLoopId,
-    /// Notify the manager after this script host and its shared-worker threads have stopped.
-    pub shared_worker_host_exit: GenericCallback<()>,
     /// The sender to use to install the `Pipeline` namespace into this process (if necessary).
     pub namespace_request_sender: GenericSender<PipelineNamespaceRequest>,
     /// A channel with which messages can be sent to us (the script thread).

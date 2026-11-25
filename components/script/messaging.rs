@@ -20,7 +20,7 @@ use profile_traits::time::{self as profile_time};
 use rustc_hash::FxHashSet;
 use script_traits::{Painter, ScriptThreadMessage};
 use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver};
-use servo_base::id::{PipelineId, WebViewId, WorkerId};
+use servo_base::id::{PipelineId, WebViewId};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
 use servo_constellation_traits::ScriptToConstellationMessage;
@@ -60,9 +60,6 @@ impl MixedMessage {
     pub(crate) fn pipeline_id(&self) -> Option<PipelineId> {
         match self {
             MixedMessage::FromConstellation(inner_msg) => match inner_msg {
-                ScriptThreadMessage::StartSharedWorker(_) => None,
-                ScriptThreadMessage::StopSharedWorker(_) => None,
-                ScriptThreadMessage::GetSharedWorkerOrigin(id, _) => Some(*id),
                 ScriptThreadMessage::UpdateServiceWorkerState { pipeline_id, .. } => {
                     Some(*pipeline_id)
                 },
@@ -122,7 +119,6 @@ impl MixedMessage {
                 ScriptThreadMessage::SetNetworkOnlineState(_) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
-                MainThreadScriptMsg::SharedWorkerExited(_) => None,
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {
                     *pipeline_id
                 },
@@ -161,7 +157,6 @@ impl MixedMessage {
 /// Messages used to control the script event loop.
 #[derive(Debug)]
 pub(crate) enum MainThreadScriptMsg {
-    SharedWorkerExited(WorkerId),
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
     /// Notifies the script thread that a new worklet has been loaded, and thus the page should be

@@ -76,8 +76,6 @@ impl EventLoop {
         let event_loop_id = ScriptEventLoopId::new();
         let initial_script_state = InitialScriptState {
             id: event_loop_id,
-            shared_worker_host_exit: constellation
-                .shared_worker_host_exit_callback(event_loop_id)?,
             script_to_constellation_sender: constellation.script_sender.clone(),
             script_to_embedder_sender,
             namespace_request_sender: constellation.namespace_ipc_sender.clone(),
@@ -177,7 +175,7 @@ impl EventLoop {
         let crossbeam_receiver = lifeline_receiver.route_preserving_errors();
         constellation
             .process_manager
-            .add(crossbeam_receiver, process, Some(id));
+            .add(crossbeam_receiver, process);
 
         Ok(Self {
             script_chan,

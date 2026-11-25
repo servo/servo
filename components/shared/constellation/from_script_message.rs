@@ -51,7 +51,7 @@ use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
     LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, SessionHistoryTraversalRequest,
-    SharedWorkerConnect, SharedWorkerSource, WindowSizeType,
+    SharedWorkerConnect, WindowSizeType,
 };
 
 pub type ScriptToConstellationSender =
@@ -66,16 +66,11 @@ pub struct ScriptToConstellationChan {
     pub webview_id: WebViewId,
     /// Used to identify the origin `Pipeline` of the message.
     pub pipeline_id: PipelineId,
-    pub shared_worker: Option<SharedWorkerSource>,
 }
 
 impl ScriptToConstellationChan {
     /// Send ScriptMsg and attach the pipeline_id to the message.
     pub fn send(&self, msg: ScriptToConstellationMessage) -> SendResult {
-        let msg = match self.shared_worker {
-            Some(source) => ScriptToConstellationMessage::FromSharedWorker(source, Box::new(msg)),
-            None => msg,
-        };
         self.sender.send((self.webview_id, self.pipeline_id, msg))
     }
 }
@@ -584,7 +579,6 @@ pub struct WorkerGlobalScopeInit {
     pub script_to_embedder_chan: ScriptToEmbedderChan,
     /// The worker id
     pub worker_id: WorkerId,
-    pub shared_worker: Option<SharedWorkerSource>,
     /// Whether this worker's `AnimationFrameProvider` is supported.
     pub animation_frame_provider_supported: bool,
     /// The pipeline id
@@ -675,9 +669,6 @@ pub enum ConstellationInterest {
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
     ConnectSharedWorker(Box<SharedWorkerConnect>),
-    FromSharedWorker(SharedWorkerSource, Box<ScriptToConstellationMessage>),
-    RegisterSharedWorkerGlobal(SharedWorkerSource, WorkerId, ImmutableOrigin),
-    UnregisterSharedWorkerGlobal,
     ServiceWorkerStateUpdateDone(ServiceWorkerId, PipelineId),
     ServiceWorkerAlgorithm(ServiceWorkerAlgorithm),
     /// Request to complete the transfer of a set of ports to a router.

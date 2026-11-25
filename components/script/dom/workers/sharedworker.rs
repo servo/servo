@@ -21,6 +21,7 @@ use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::SharedWorkerBinding::{
     SharedWorkerMethods, SharedWorkerOptions,
 };
+use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
 use crate::dom::bindings::codegen::UnionTypes::{
     StringOrSharedWorkerOptions, TrustedScriptURLOrUSVString,
@@ -72,6 +73,7 @@ impl SharedWorker {
             .queue_simple_event(self.upcast(), atom!("error"));
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#dom-sharedworker>
     fn create_entangled_inside_port(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -109,7 +111,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             script_url,
             "SharedWorker constructor",
         )?;
-        // Step 2. If options is a DOMString, set options to a new WorkerOptions
+        // Step 2. If options is a DOMString, set options to a new SharedWorkerOptions
         // dictionary whose name member is set to the value of options and whose other
         // members are set to their default values.
         let options = match options {
@@ -185,6 +187,8 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
         let worker_id = WorkerId(Uuid::new_v4());
         // Step 8. Let callerIsSecureContext be true if outsideSettings is a secure
         // context; otherwise, false.
+        // Step 9. Let outsideStorageKey be the result of running obtain a storage
+        // key for non-storage purposes given outsideSettings.
         let init = prepare_workerscope_init(
             global,
             #[cfg(feature = "devtools")]
@@ -193,9 +197,6 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
             #[cfg(feature = "webgl")]
             window.webgl_chan(),
         );
-        // Step 9. Let outsideStorageKey be the result of running obtain a storage
-        // key for non-storage purposes given outsideSettings.
-        // The snapshot carries its origin; the manager resolves the top-level site.
         let referrer = match global.get_referrer() {
             Referrer::Client(url) => Referrer::ReferrerUrl(url),
             referrer => referrer,
@@ -208,6 +209,7 @@ impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {
                 init,
                 webview_id: window.webview_id(),
                 browsing_context_id: window.window_proxy().browsing_context_id(),
+                top_level_site: window.Document().determine_the_network_partition_key(),
                 options: WorkerOptions {
                     name: options.parent.name.to_string(),
                     worker_type: match options.parent.type_ {

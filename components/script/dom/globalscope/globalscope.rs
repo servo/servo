@@ -2217,9 +2217,6 @@ impl GlobalScope {
             sender: self.script_to_constellation_sender.clone(),
             webview_id: self.webview_id().unwrap_or(TEST_WEBVIEW_ID),
             pipeline_id: self.pipeline_id(),
-            shared_worker: self
-                .downcast::<WorkerGlobalScope>()
-                .and_then(WorkerGlobalScope::shared_worker_source),
         }
     }
 
