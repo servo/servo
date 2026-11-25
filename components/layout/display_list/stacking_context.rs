@@ -420,20 +420,17 @@ pub(crate) struct FragmentTextDecoration {
     pub color: AbsoluteColor,
     pub style: TextDecorationStyle,
     pub thickness: TextDecorationThickness,
-    pub underline_offset: Au,
+    pub underline_offset: AuOrAuto,
 }
 
 /// Resolve the `text-underline-offset` against the used font-size of the element
 ///
 /// <https://drafts.csswg.org/css-text-decor-4/#underline-offset>:
-pub(crate) fn resolve_underline_offset(style: &ComputedValues) -> Au {
-    style
-        .get_text_underline_offset()
-        .map(|offset| {
-            let font_size = style.get_font().font_size.computed_size.0;
-            offset.resolve(font_size).into()
-        })
-        .auto_is(Au::zero)
+pub(crate) fn resolve_underline_offset(style: &ComputedValues) -> AuOrAuto {
+    style.get_text_underline_offset().map(|offset| {
+        let font_size = style.get_font().font_size.computed_size.0;
+        offset.resolve(font_size).into()
+    })
 }
 
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
