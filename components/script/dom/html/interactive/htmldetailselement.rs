@@ -5,6 +5,7 @@
 use std::cell::{Cell, Ref};
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -191,9 +192,9 @@ impl HTMLDetailsElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLDetailsElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLDetailsElement::new_inherited(
+            Rc::new(HTMLDetailsElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

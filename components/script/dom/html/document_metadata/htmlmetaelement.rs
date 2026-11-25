@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
 use std::str::FromStr;
 
 use content_security_policy::{Policy, PolicyDisposition, PolicySource};
@@ -53,9 +54,9 @@ impl HTMLMetaElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLMetaElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
+            Rc::new(HTMLMetaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

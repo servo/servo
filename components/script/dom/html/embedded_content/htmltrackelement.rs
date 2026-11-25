@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use bytes::Bytes;
 use content_security_policy::Destination;
@@ -133,9 +134,9 @@ impl HTMLTrackElement {
             Default::default(),
             None,
         );
-        let track_element = Node::reflect_node_with_proto(
+        let track_element = Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLTrackElement::new_inherited(
+            Rc::new(HTMLTrackElement::new_inherited(
                 local_name, prefix, document, &track,
             )),
             document,

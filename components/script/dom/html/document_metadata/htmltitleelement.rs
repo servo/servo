@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
@@ -50,9 +51,9 @@ impl HTMLTitleElement {
         proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLTitleElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLTitleElement::new_inherited(
+            Rc::new(HTMLTitleElement::new_inherited(
                 local_name,
                 prefix,
                 document,

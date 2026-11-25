@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
 use js::rust::HandleObject;
@@ -49,9 +51,9 @@ impl HTMLTableCellElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLTableCellElement> {
-        let n = Node::reflect_node_with_proto(
+        let n = Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLTableCellElement::new_inherited(
+            Rc::new(HTMLTableCellElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

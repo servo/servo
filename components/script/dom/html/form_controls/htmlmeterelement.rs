@@ -4,6 +4,7 @@
 
 use std::cell::Ref;
 use std::ops::{Add, Div};
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
@@ -85,9 +86,9 @@ impl HTMLMeterElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLMeterElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLMeterElement::new_inherited(
+            Rc::new(HTMLMeterElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use dom_struct::dom_struct;
@@ -86,9 +87,9 @@ impl HTMLStyleElement {
         proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLStyleElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLStyleElement::new_inherited(
+            Rc::new(HTMLStyleElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,

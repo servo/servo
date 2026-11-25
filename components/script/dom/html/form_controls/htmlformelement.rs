@@ -4,6 +4,7 @@
 
 use std::borrow::{Cow, ToOwned};
 use std::cell::Cell;
+use std::rc::Rc;
 
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
@@ -151,9 +152,9 @@ impl HTMLFormElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLFormElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
+            Rc::new(HTMLFormElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use std::cell::Cell;
 use std::default::Default;
 use std::iter;
@@ -218,9 +220,9 @@ impl HTMLSelectElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLSelectElement> {
-        let n = Node::reflect_node_with_proto(
+        let n = Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLSelectElement::new_inherited(
+            Rc::new(HTMLSelectElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

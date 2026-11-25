@@ -155,9 +155,9 @@ impl HTMLScriptElement {
         proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLScriptElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLScriptElement::new_inherited(
+            Rc::new(HTMLScriptElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,
