@@ -191,11 +191,7 @@ impl AudioNodeEngine for AudioBufferSourceNode {
             let loop_start = self.loop_start.unwrap_or(0.) * (buffer.sample_rate as f64);
             let loop_end = self.loop_end.unwrap_or(0.) * (buffer.sample_rate as f64);
 
-            if loop_start >= 0. &&
-                loop_end > 0. &&
-                loop_start < loop_end &&
-                loop_end <= length
-            {
+            if loop_start >= 0. && loop_end > 0. && loop_start < loop_end && loop_end <= length {
                 actual_loop_start = loop_start;
                 actual_loop_end = loop_end;
             }
