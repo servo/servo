@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Reading currentTime and AudioParam values after closing an AudioContext should not crash</title>
+<script>
+  (async () => {
+    const context = new AudioContext();
+    const gain = context.createGain();
+    await context.close();
+    context.currentTime;
+    gain.gain.value;
+    document.documentElement.classList.remove("test-wait");
+  })();
+</script>
+</html>
