@@ -130,7 +130,8 @@ pub(crate) struct CommonTexImage2DValidator<'a> {
     context: &'a WebGLRenderingContext,
     target: u32,
     level: i32,
-    internal_format: u32,
+    /// The new image's internal format; `None` takes the existing image's at `level`.
+    internal_format: Option<u32>,
     width: i32,
     height: i32,
     border: i32,
@@ -173,7 +174,10 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
         };
 
         let texture = bound_texture(self.context, target)?;
-        let internal_format = validate_internal_format(self.context, self.internal_format)?;
+        let internal_format = self
+            .internal_format
+            .map(|internal_format| validate_internal_format(self.context, internal_format))
+            .transpose()?;
 
         // GL_INVALID_VALUE is generated if target is one of the six cube map 2D
         // image targets and the width and height parameters are not equal.
@@ -233,6 +237,15 @@ impl WebGLValidator for CommonTexImage2DValidator<'_> {
             return Err(TexImageValidationError::InvalidBorder);
         }
 
+        let Some(internal_format) = internal_format.or_else(|| {
+            texture
+                .image_info_for_target(&target, level)
+                .map(|image_info| image_info.internal_format())
+        }) else {
+            self.context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::MissingBaseTexture);
+        };
+
         Ok(CommonTexImage2DValidatorResult {
             texture,
             target,
@@ -259,7 +272,7 @@ impl<'a> CommonTexImage2DValidator<'a> {
             context,
             target,
             level,
-            internal_format,
+            internal_format: Some(internal_format),
             width,
             height,
             border,
@@ -309,10 +322,31 @@ impl<'a> TexImage2DValidator<'a> {
         }
     }
 
-    /// Marks `width` and `height` as a region of an existing image.
-    pub(crate) fn for_sub_image(mut self) -> Self {
-        self.common_validator = self.common_validator.for_sub_image();
-        self
+    /// Creates a validator for an upload of `format` and `data_type` pixels into a region of the
+    /// existing image at `level`.
+    pub(crate) fn new_sub_image(
+        context: &'a WebGLRenderingContext,
+        target: u32,
+        level: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data_type: u32,
+    ) -> Self {
+        TexImage2DValidator {
+            common_validator: CommonTexImage2DValidator {
+                context,
+                target,
+                level,
+                internal_format: None,
+                width,
+                height,
+                border: 0,
+                is_sub_image: true,
+            },
+            format,
+            data_type,
+        }
     }
 }
 
@@ -376,8 +410,8 @@ impl WebGLValidator for TexImage2DValidator<'_> {
 
         // NOTE: In WebGL2 data type check should be done based on the internal
         // format, but in some functions this validator is called with the
-        // regular unsized format as parameter (eg. TexSubImage2D). For now
-        // it's left here to avoid duplication.
+        // regular unsized format as parameter. For now it's left here to avoid
+        // duplication.
         //
         // GL_INVALID_OPERATION is generated if type is
         // GL_UNSIGNED_SHORT_4_4_4_4 or GL_UNSIGNED_SHORT_5_5_5_1 and format is

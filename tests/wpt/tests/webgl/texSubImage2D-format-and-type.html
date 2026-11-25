@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>texSubImage2D checks format and type against the internal format of the image</title>
+<link rel="author" title="Maxim Gorin" href="mailto:code@mxmgorin.dev">
+<link rel="help" href="https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf#nameddest=subsection.3.8.5">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+const SIZE = 4;
+const PIXELS = SIZE * SIZE;
+
+const CASES = [
+    ["RG16F", "RG", "HALF_FLOAT", new Uint16Array(PIXELS * 2), "NO_ERROR"],
+    ["R8UI", "RED_INTEGER", "UNSIGNED_BYTE", new Uint8Array(PIXELS), "NO_ERROR"],
+    ["RGBA32I", "RGBA_INTEGER", "INT", new Int32Array(PIXELS * 4), "NO_ERROR"],
+    ["DEPTH_COMPONENT16", "DEPTH_COMPONENT", "UNSIGNED_SHORT", new Uint16Array(PIXELS), "NO_ERROR"],
+    ["RG16F", "RG", "UNSIGNED_BYTE", new Uint8Array(PIXELS * 2), "INVALID_OPERATION"],
+    ["RG16F", "RGBA", "HALF_FLOAT", new Uint16Array(PIXELS * 4), "INVALID_OPERATION"],
+    ["R8UI", "RED", "UNSIGNED_BYTE", new Uint8Array(PIXELS), "INVALID_OPERATION"],
+];
+
+for (const [internalFormat, format, type, data, error] of CASES) {
+    test(function() {
+        const gl = document.createElement("canvas").getContext("webgl2");
+        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+        gl.texStorage2D(gl.TEXTURE_2D, 1, gl[internalFormat], SIZE, SIZE);
+        assert_equals(gl.getError(), gl.NO_ERROR, "texStorage2D");
+
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SIZE, SIZE, gl[format], gl[type], data);
+        assert_equals(gl.getError(), gl[error], "texSubImage2D");
+    }, `${format}/${type} into ${internalFormat}: ${error}`);
+}
+
+</script>

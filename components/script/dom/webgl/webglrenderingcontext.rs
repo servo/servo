@@ -1071,15 +1071,19 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        // The unsized format must be compatible with the sized internal format
-        debug_assert!(!format.is_sized());
-        if format != image_info.internal_format().to_unsized() {
-            return self.webgl_error(InvalidOperation);
-        }
-
         // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#5.1.6
         if self.webgl_version() == WebGLVersion::WebGL1 &&
             data_type != image_info.data_type().unwrap()
+        {
+            return self.webgl_error(InvalidOperation);
+        }
+
+        // GL_INVALID_OPERATION is generated if type is not valid for the image's
+        // internal format.
+        if !image_info
+            .internal_format()
+            .compatible_data_types()
+            .contains(&data_type)
         {
             return self.webgl_error(InvalidOperation);
         }
@@ -5091,10 +5095,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         data_type: u32,
         pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) -> ErrorResult {
-        let validator = TexImage2DValidator::new(
-            self, target, level, format, width, height, 0, format, data_type,
-        )
-        .for_sub_image();
+        let validator = TexImage2DValidator::new_sub_image(
+            self, target, level, width, height, format, data_type,
+        );
         let TexImage2DValidatorResult {
             texture,
             target,
@@ -5194,18 +5197,15 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             None => return Ok(()),
         };
 
-        let validator = TexImage2DValidator::new(
+        let validator = TexImage2DValidator::new_sub_image(
             self,
             target,
             level,
-            format,
             pixels.size().width as i32,
             pixels.size().height as i32,
-            0,
             format,
             data_type,
-        )
-        .for_sub_image();
+        );
         let TexImage2DValidatorResult {
             texture,
             target,
