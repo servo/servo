@@ -1407,15 +1407,13 @@ impl InlineFormattingContextLayout<'_> {
                 start_positioning_context_length,
             );
 
-        self.fragments.push(Fragment::Positioning(
-            PositioningFragment::new_anonymous_with_writing_mode_override(
+        self.fragments
+            .push(Fragment::Positioning(PositioningFragment::new_anonymous(
                 self.root_nesting_level.style.clone(),
                 physical_line_rect,
                 FragmentChildren::Logical(fragments),
                 true, /* is_line_box */
-                containing_block_writing_mode,
-            ),
-        ));
+            )));
     }
 
     fn available_line_space(&self) -> Au {

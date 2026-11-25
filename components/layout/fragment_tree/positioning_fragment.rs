@@ -75,7 +75,7 @@ impl PositioningFragment {
         writing_mode: WritingMode,
     ) -> Arc<Self> {
         let children = children.into_physical_fragments(
-            style.writing_mode,
+            writing_mode,
             LogicalVec2::from_physical_size(&rect.size, writing_mode),
         );
         Self::new_with_base_fragment_info(
