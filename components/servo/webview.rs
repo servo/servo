@@ -846,10 +846,10 @@ impl WebView {
             },
             EmbedderControlRequest::ContextMenu(mut context_menu_request) => {
                 // Close the old open context menu before opening another one anywhere.
-                if let Some(old_id) = self.inner().open_context_menu.replace(Some(control_id)) {
-                    if old_id.pipeline_id != control_id.pipeline_id {
-                        self.delegate().hide_embedder_control(self.clone(), old_id);
-                    }
+                if let Some(old_id) = self.inner().open_context_menu.replace(Some(control_id)) &&
+                    old_id.pipeline_id != control_id.pipeline_id
+                {
+                    self.delegate().hide_embedder_control(self.clone(), old_id);
                 }
 
                 for item in context_menu_request.items.iter_mut() {
