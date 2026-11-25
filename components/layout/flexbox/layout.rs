@@ -182,7 +182,7 @@ impl FlexLineItem<'_> {
         flex_context: &mut FlexContext,
         all_baselines: &mut Baselines,
         main_position_cursor: &mut Au,
-    ) -> (Arc<BoxFragment>, LogicalRect<Au>, PositioningContext) {
+    ) -> (FragmentAndLogicalRect, PositioningContext) {
         // https://drafts.csswg.org/css-flexbox/#algo-main-align
         // “Align the items along the main-axis”
         *main_position_cursor +=
@@ -302,15 +302,14 @@ impl FlexLineItem<'_> {
             content_rect.start_corner += relative_adjustement(style, containing_block);
         }
 
-        let fragment = Arc::new(fragment);
+        let fragment = Fragment::Box(Arc::new(fragment));
         self.item
             .box_
             .independent_formatting_context
             .base
-            .set_fragment(Fragment::Box(fragment.clone()));
+            .set_fragment(fragment.clone());
         (
-            fragment,
-            content_rect,
+            FragmentAndLogicalRect::new(fragment, content_rect),
             self.layout_result.positioning_context,
         )
     }
@@ -321,9 +320,9 @@ impl FlexLineItem<'_> {
 struct FinalFlexLineLayout {
     /// The final cross size of this flex line.
     cross_size: Au,
-    /// The [`BoxFragment`]s and [`PositioningContext`]s of all flex items,
+    /// The [`FragmentAndLogicalRect`]s and [`PositioningContext`]s of all flex items,
     /// one per flex item in "order-modified document order."
-    item_fragments: Vec<(Arc<BoxFragment>, LogicalRect<Au>, PositioningContext)>,
+    item_fragments: Vec<(FragmentAndLogicalRect, PositioningContext)>,
     /// The 'shared alignment baseline' of this flex line. This is the baseline used for
     /// baseline-aligned items if there are any, otherwise `None`.
     shared_alignment_baseline: Option<Au>,
@@ -898,8 +897,8 @@ impl FlexContainer {
                     all_baselines.last = line_all_baselines.last;
                 }
 
-                for (_, content_rect, _) in &mut final_line_layout.item_fragments {
-                    content_rect.start_corner += flow_relative_line_position;
+                for (fragment_and_rect, _) in &mut final_line_layout.item_fragments {
+                    fragment_and_rect.logical_rect.start_corner += flow_relative_line_position;
                 }
                 final_line_layout.item_fragments
             },
@@ -922,15 +921,15 @@ impl FlexContainer {
                 FlexContent::FlexItemPlaceholder => {
                     // The `flex_item_fragments` iterator yields one fragment
                     // per flex item, in the original order.
-                    let (fragment, content_rect, mut child_positioning_context) =
+                    let (fragment_and_rect, mut child_positioning_context) =
                         flex_item_fragments.next().unwrap();
                     child_positioning_context.adjust_static_position_of_hoisted_fragments(
-                        &content_rect,
+                        &fragment_and_rect.logical_rect,
                         self.style.writing_mode,
                         PositioningContextLength::zero(),
                     );
                     positioning_context.append(child_positioning_context);
-                    FragmentAndLogicalRect::new(Fragment::Box(fragment), content_rect)
+                    fragment_and_rect
                 },
             })
             .collect::<Vec<_>>();
