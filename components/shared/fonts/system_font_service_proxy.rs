@@ -10,7 +10,7 @@ use servo_base::id::PainterId;
 use style::values::computed::font::SingleFontFamily;
 use webrender_api::units::Au;
 use webrender_api::{
-    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontKey, FontVariation,
+    FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions, FontKey, FontVariation,
 };
 
 use crate::{FontDescriptor, FontIdentifier, FontTemplate};
@@ -27,7 +27,7 @@ pub enum SystemFontServiceMessage {
         PainterId,
         FontIdentifier,
         Au,
-        FontInstanceFlags,
+        FontInstanceOptions,
         FontInstancePlatformOptions,
         Vec<FontVariation>,
         GenericSender<FontInstanceKey>,

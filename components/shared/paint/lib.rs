@@ -41,7 +41,7 @@ pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
 use webrender_api::{
     BuiltDisplayList, BuiltDisplayListDescriptor, ExternalImage, ExternalImageData,
-    ExternalImageHandler, ExternalImageId, ExternalScrollId, FontInstanceFlags, FontInstanceKey,
+    ExternalImageHandler, ExternalImageId, ExternalScrollId, FontInstanceKey, FontInstanceOptions,
     FontKey, ImageData, ImageDescriptor, ImageKey, NativeFontHandle,
     PipelineId as WebRenderPipelineId,
 };
@@ -170,7 +170,7 @@ pub enum PaintMessage {
         FontInstanceKey,
         FontKey,
         f32,
-        FontInstanceFlags,
+        FontInstanceOptions,
         FontInstancePlatformOptions,
         Vec<FontVariation>,
     ),
@@ -451,7 +451,7 @@ impl CrossProcessPaintApi {
         font_instance_key: FontInstanceKey,
         font_key: FontKey,
         size: f32,
-        flags: FontInstanceFlags,
+        font_instance_options: FontInstanceOptions,
         options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
@@ -460,7 +460,7 @@ impl CrossProcessPaintApi {
             font_instance_key,
             font_key,
             size,
-            flags,
+            font_instance_options,
             options,
             variations,
         ));
