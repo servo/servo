@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>FontFaceSet loadingerror event contains the fonts that failed to load</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#switch-the-fontfaceset-to-loaded">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  await document.fonts.ready;
+
+  // Create a font in JS that points to a file that does not exist, add it to
+  // the set, and wait for it to fail.
+  const font = new FontFace("BrokenFont", "url(/fonts/does-not-exist.ttf)");
+  document.fonts.add(font);
+  await font.load().catch(() => {});
+  assert_equals(font.status, "error", "the font should have failed to load");
+
+  // The loadingerror event for this font is fired from a task queued after
+  // the font failed to load, so start listening only now.
+  const event = await new Promise(resolve => {
+    document.fonts.addEventListener("loadingerror", resolve, { once: true });
+  });
+  assert_equals(event.fontfaces.length, 1, "loadingerror should contain one font");
+  assert_equals(event.fontfaces[0], font, "loadingerror should contain the failed font");
+}, "loadingerror event contains the FontFace that failed to load");
+</script>

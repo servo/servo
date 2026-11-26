@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>FontFaceSet loadingdone event contains the fonts that loaded</title>
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#switch-the-fontfaceset-to-loaded">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+promise_test(async t => {
+  await document.fonts.ready;
+
+  // Create a font in JS, add it to the set, and load it.
+  const font = new FontFace("TestFont", "url(/fonts/Ahem.ttf)");
+  document.fonts.add(font);
+  await font.load();
+
+  // The loadingdone event for this font is fired from a task queued after
+  // the font finished loading, so start listening only now. Listening any
+  // earlier could catch the loadingdone event from the initial page load.
+  const event = await new Promise(resolve => {
+    document.fonts.addEventListener("loadingdone", resolve, { once: true });
+  });
+  assert_equals(event.fontfaces.length, 1, "loadingdone should contain one font");
+  assert_equals(event.fontfaces[0], font, "loadingdone should contain the loaded font");
+}, "loadingdone event contains the FontFace that finished loading");
+</script>
