@@ -86,7 +86,7 @@ use style_traits::{CSSPixel, SpeculativePainter};
 use stylo_atoms::Atom;
 use url::Url;
 use webrender_api::ExternalScrollId;
-use webrender_api::units::{DevicePixel, LayoutVector2D};
+use webrender_api::units::{DevicePixel, LayoutRect, LayoutVector2D};
 
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
@@ -1779,7 +1779,7 @@ impl LayoutThread {
         // Send empty display list.
         let paint_info = PaintDisplayListInfo::new(
             reflow_request.viewport_details,
-            Size2D::zero(),
+            LayoutRect::zero(),
             self.id.into(),
             reflow_request.epoch,
             AxesScrollSensitivity {

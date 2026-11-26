@@ -2631,8 +2631,14 @@ impl Window {
         // and aligning the y-coordinate y of the viewport scrolling area with the top of
         // the viewport.
         let scrolling_area = self.scrolling_area_query(cx, None).to_f32();
-        let x = xfinite.clamp(0.0, 0.0f32.max(scrolling_area.width() - viewport.width));
-        let y = yfinite.clamp(0.0, 0.0f32.max(scrolling_area.height() - viewport.height));
+        let x = xfinite.clamp(
+            0.0f32.min(scrolling_area.min_x()),
+            0.0f32.max(scrolling_area.max_x() - viewport.width),
+        );
+        let y = yfinite.clamp(
+            0.0f32.min(scrolling_area.min_y()),
+            0.0f32.max(scrolling_area.max_y() - viewport.height),
+        );
 
         // Step 10: If position is the same as the viewport’s current scroll position, and
         // the viewport does not have an ongoing smooth scroll, abort these steps.

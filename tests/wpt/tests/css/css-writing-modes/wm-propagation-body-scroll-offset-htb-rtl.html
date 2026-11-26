@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Writing Modes Test: body rtl propagated to viewport - scroll direction</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#principal-flow">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes-3/#direction">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#scrolling">
+<meta name="assert" content="
+    Test that propagating the principal writing mode (the `direction` property in particular)
+    from body to viewport affects scroll direction.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body:not(.result-wm) {
+    direction: rtl;
+    width: 10000px;
+    min-height: 100px;
+  }
+</style>
+<body>
+<script>
+  test(function() {
+    assert_equals(document.scrollingElement.scrollLeft, 0, "scrollLeft should be 0.");
+  }, "Check initial scroll position of viewport.");
+
+  test(function() {
+    document.scrollingElement.scrollLeft = -1000;
+    assert_equals(document.scrollingElement.scrollLeft, -1000, "scrollLeft should be -1000.");
+  }, "Scroll to scrollLeft = -1000 should be possible.");
+
+  test(function() {
+    document.scrollingElement.scrollLeft = 1000;
+    assert_equals(document.scrollingElement.scrollLeft, 0, "scrollLeft should be 0.");
+  }, "Scroll to scrollLeft = 1000 should not be possible.");
+
+  // Reset back to ltr to make the result readable on-screen.
+  document.body.className = "result-wm";
+</script>
