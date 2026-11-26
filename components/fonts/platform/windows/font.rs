@@ -120,7 +120,7 @@ impl PlatformFont {
         // tag bytes, which means that `u32::swap_bytes` must be called here in order to
         // use a byte order compatible with the rest of Servo.
         let variations: Vec<_> = variations
-            .into_iter()
+            .iter()
             .map(|variation| DWRITE_FONT_AXIS_VALUE {
                 axisTag: variation.tag.swap_bytes(),
                 value: variation.value,
@@ -210,9 +210,7 @@ impl PlatformFontMethods for PlatformFont {
         let Ok(glyphs) = self.face.glyph_indices(&[codepoint as u32]) else {
             return None;
         };
-        let Some(glyph) = glyphs.first() else {
-            return None;
-        };
+        let glyph = glyphs.first()?;
         if *glyph == 0 {
             return None;
         }
@@ -226,9 +224,7 @@ impl PlatformFontMethods for PlatformFont {
         let Ok(metrics) = self.face.design_glyph_metrics(&[glyph as u16], false) else {
             return None;
         };
-        let Some(glyph_metric) = metrics.first() else {
-            return None;
-        };
+        let glyph_metric = metrics.first()?;
         Some((glyph_metric.advanceWidth as f32 * self.scaled_du_to_px) as FractionalPixel)
     }
 
