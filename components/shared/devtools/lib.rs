@@ -430,6 +430,9 @@ pub enum DevtoolScriptControlMsg {
     ),
     /// Get a unique XPath selector for the node.
     GetXPath(PipelineId, String, GenericSender<String>),
+    /// Get the computed background color of the node or
+    /// its nearest ancestor with a non-transparent background.
+    GetBackgroundColor(PipelineId, String, GenericSender<Vec<f32>>),
     /// Get inner/outer HTML on a node.
     GetInnerOrOuterHTML(
         PipelineId,

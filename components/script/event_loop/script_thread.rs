@@ -2202,6 +2202,9 @@ impl ScriptThread {
             DevtoolScriptControlMsg::GetXPath(id, node_id, reply) => {
                 devtools::handle_get_xpath(&self.devtools_state, id, &node_id, reply)
             },
+            DevtoolScriptControlMsg::GetBackgroundColor(id, node_id, reply) => {
+                devtools::handle_get_background_color(cx, &self.devtools_state, id, &node_id, reply)
+            },
             DevtoolScriptControlMsg::GetInnerOrOuterHTML(id, node_id, reply, html_type) => {
                 devtools::handle_get_inner_or_outer_html(
                     cx,
