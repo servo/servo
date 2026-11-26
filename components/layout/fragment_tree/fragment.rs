@@ -75,6 +75,13 @@ impl<T> WithLogicalRect<T> {
             logical_rect,
         }
     }
+
+    pub(crate) fn map_fragment<U>(self, f: impl Fn(T) -> U) -> WithLogicalRect<U> {
+        WithLogicalRect {
+            fragment: f(self.fragment),
+            logical_rect: self.logical_rect,
+        }
+    }
 }
 
 #[derive(Clone, MallocSizeOf)]

@@ -176,7 +176,7 @@ impl LineItemLayout<'_, '_> {
         justification_adjustment: Au,
         is_phantom_line: bool,
         for_block_level: bool,
-    ) -> Vec<WithLogicalRect<Fragment>> {
+    ) -> Vec<FragmentAndLogicalRect> {
         let baseline_offset = effective_block_advance.find_baseline_offset();
         LineItemLayout {
             layout,
@@ -284,7 +284,7 @@ impl LineItemLayout<'_, '_> {
         iterator(line_items)
     }
 
-    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<WithLogicalRect<Fragment>> {
+    pub(super) fn layout(&mut self, line_items: Vec<LineItem>) -> Vec<FragmentAndLogicalRect> {
         let line_item_iterator = self.reorder_line_items_for_bidi(line_items);
         for item in line_item_iterator.into_iter().by_ref() {
             // When preparing to lay out a new line item, start and end inline boxes, so that the current
@@ -731,32 +731,25 @@ impl LineItemLayout<'_, '_> {
             ));
     }
 
-    fn layout_float(&mut self, float: FloatLineItem) {
+    fn layout_float(&mut self, mut float: FloatLineItem) {
         // The `BoxFragment` for this float is positioned relative to the IFC, so we need
         // to move it to be positioned relative to our parent InlineBox line item. Float
         // fragments are children of these InlineBoxes and not children of the inline
         // formatting context, so that they are parented properly for StackingContext
         // properties such as opacity & filters.
-        let WithLogicalRect {
-            fragment,
-            mut logical_rect,
-        } = float.fragment;
         let offset = LogicalVec2 {
             inline: Au::zero(),
             block: -self.line_metrics.block_offset,
         } - self.current_state.parent_offset -
             self.cumulative_relative_offset;
-        logical_rect.start_corner += offset;
+        float.fragment.logical_rect.start_corner += offset;
 
         self.current_state
             .fragments_and_logical_rect
-            .push(WithLogicalRect::new(
-                Fragment::Float(fragment),
-                logical_rect,
-            ));
+            .push(float.fragment.map_fragment(Fragment::Float));
     }
 
-    fn layout_block_level(&mut self, mut block_level: WithLogicalRect<Fragment>) {
+    fn layout_block_level(&mut self, mut block_level: FragmentAndLogicalRect) {
         let content_rect = &mut block_level.logical_rect;
         // Block-level boxes are always placed at the logical origin of the line.
         content_rect.start_corner.inline -= self.current_state.parent_offset.inline;
@@ -783,7 +776,7 @@ pub(super) enum LineItem {
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
     Float(Option<InlineBoxIdentifier>, FloatLineItem),
-    BlockLevel(Option<InlineBoxIdentifier>, WithLogicalRect<Fragment>),
+    BlockLevel(Option<InlineBoxIdentifier>, FragmentAndLogicalRect),
     Tab {
         inline_box_identifier: Option<InlineBoxIdentifier>,
         advance: Au,

@@ -290,9 +290,6 @@ impl FlexLineItem<'_> {
         // descendants, then lay out any relevant absolutely-positioned children. This
         // will remove those children from `self.positioning_context`.
         if style.establishes_containing_block_for_absolute_descendants(flags) {
-            // `layout_collected_children()` assumes that the physical content rect
-            // has already been resolved.
-            fragment.base.set_rect(physical_content_rect);
             self.layout_result
                 .positioning_context
                 .layout_collected_children(flex_context.layout_context, &mut fragment);

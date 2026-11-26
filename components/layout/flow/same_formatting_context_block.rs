@@ -112,26 +112,24 @@ impl SameFormattingContextBlock {
         };
 
         let positioning_context_length = positioning_context.len();
-        let WithLogicalRect {
-            fragment,
-            logical_rect,
-        } = positioning_context.layout_maybe_position_relative_fragment(
-            layout_context,
-            containing_block,
-            &self.base,
-            |positioning_context| {
-                self.layout_in_flow_non_replaced_block_level(
-                    layout_context,
-                    positioning_context,
-                    containing_block,
-                    sequential_layout_state,
-                    collapsible_with_parent_start_margin,
-                    ignore_block_margins_for_stretch,
-                    has_inline_parent,
-                )
-            },
-        );
-        let fragment = WithLogicalRect::new(Arc::new(fragment), logical_rect);
+        let fragment = positioning_context
+            .layout_maybe_position_relative_fragment(
+                layout_context,
+                containing_block,
+                &self.base,
+                |positioning_context| {
+                    self.layout_in_flow_non_replaced_block_level(
+                        layout_context,
+                        positioning_context,
+                        containing_block,
+                        sequential_layout_state,
+                        collapsible_with_parent_start_margin,
+                        ignore_block_margins_for_stretch,
+                        has_inline_parent,
+                    )
+                },
+            )
+            .map_fragment(Arc::new);
 
         // We currently do not allow caching `SameFormattingContextBlock` box layout results if they
         // contain absolutely positioned children.
