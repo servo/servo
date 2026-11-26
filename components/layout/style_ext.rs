@@ -1418,6 +1418,7 @@ impl From<stylo::Display> for Display {
                 };
                 return Display::GeneratingBox(DisplayGeneratingBox::LayoutInternal(internal));
             },
+            stylo::DisplayOutside::InternalRuby => unreachable!("Should be disabled behind a pref"),
             // This should not be a value of DisplayInside, but oh well
             // special-case display: contents because we still want it to work despite the early return
             stylo::DisplayOutside::None if inside == stylo::DisplayInside::Contents => {
@@ -1435,7 +1436,6 @@ impl From<stylo::Display> for Display {
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
             stylo::DisplayInside::Grid => DisplayInside::Grid,
-            stylo::DisplayInside::GridLanes => unreachable!("Should be disabled behind a pref"),
             stylo::DisplayInside::Table => DisplayInside::Table,
 
             // These should not be values of DisplayInside, but oh well
@@ -1449,6 +1449,16 @@ impl From<stylo::Display> for Display {
             stylo::DisplayInside::TableFooterGroup |
             stylo::DisplayInside::TableRow |
             stylo::DisplayInside::TableCell => unreachable!("Internal DisplayInside found"),
+
+            stylo::DisplayInside::GridLanes |
+            stylo::DisplayInside::Ruby |
+            stylo::DisplayInside::RubyBase |
+            stylo::DisplayInside::RubyBaseContainer |
+            stylo::DisplayInside::RubyText |
+            stylo::DisplayInside::RubyTextContainer |
+            stylo::DisplayInside::WebkitBox => {
+                unreachable!("Should be disabled behind a pref")
+            },
         };
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
     }
