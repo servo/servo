@@ -270,11 +270,13 @@ impl FlexLineItem<'_> {
         let container_writing_mode = containing_block.style.writing_mode;
         let style = self.item.box_.style();
 
+        let physical_content_rect =
+            content_rect.as_physical_deprecated(flex_context.containing_block);
         let mut fragment = BoxFragment::new(
             fragment_info,
             style.clone(),
             self.layout_result.fragments,
-            Default::default(),
+            physical_content_rect,
             PhysicalBoxSides::from_logical(
                 flex_context.sides_to_flow_relative(self.item.padding),
                 flex_context.sides_to_flow_relative(self.item.border),
@@ -288,11 +290,6 @@ impl FlexLineItem<'_> {
         // descendants, then lay out any relevant absolutely-positioned children. This
         // will remove those children from `self.positioning_context`.
         if style.establishes_containing_block_for_absolute_descendants(flags) {
-            // `layout_collected_children()` assumes that the physical content rect
-            // has already been resolved.
-            fragment
-                .base
-                .set_rect(content_rect.as_physical_deprecated(flex_context.containing_block));
             self.layout_result
                 .positioning_context
                 .layout_collected_children(flex_context.layout_context, &mut fragment);

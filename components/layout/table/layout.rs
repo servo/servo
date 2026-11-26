@@ -40,6 +40,7 @@ use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, ExtraBackground, Fragment, FragmentAndLogicalRect,
     FragmentChildren, FragmentFlags, PhysicalBoxSides, PositioningFragment, SpecificLayoutInfo,
+    WithLogicalRect,
 };
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -1518,7 +1519,7 @@ impl<'a> TableLayout<'a> {
         caption: &TableCaption,
         layout_context: &LayoutContext,
         parent_positioning_context: &mut PositioningContext,
-    ) -> BoxFragment {
+    ) -> WithLogicalRect<BoxFragment> {
         let containing_block = &ContainingBlock {
             size: ContainingBlockSize::new(
                 self.table_width + self.pbm.padding_border_sums.inline, /* inline_size */
@@ -1546,7 +1547,8 @@ impl<'a> TableLayout<'a> {
         );
 
         if let Some(mut positioning_context) = positioning_context.take() {
-            positioning_context.layout_collected_children(layout_context, &mut box_fragment);
+            positioning_context
+                .layout_collected_children(layout_context, &mut box_fragment.fragment);
             parent_positioning_context.append(positioning_context);
         }
 
@@ -1694,8 +1696,10 @@ impl<'a> TableLayout<'a> {
                     }
 
                     let original_positioning_context_length = positioning_context.len();
-                    let caption_fragment =
-                        self.layout_caption(&caption, layout_context, positioning_context);
+                    let WithLogicalRect {
+                        fragment: caption_fragment,
+                        logical_rect,
+                    } = self.layout_caption(&caption, layout_context, positioning_context);
 
                     // The caption is not placed yet. Construct a rectangle for it in the adjusted containing block
                     // for the table children and only then convert the result to physical geometry.
@@ -1717,10 +1721,7 @@ impl<'a> TableLayout<'a> {
                             inline: offset_from_wrapper.inline_start + caption_pbm.inline_start,
                             block: current_block_offset + caption_pbm.block_start,
                         } + caption_relative_offset,
-                        size: LogicalVec2::from_physical_size(
-                            &caption_fragment.content_rect().size,
-                            table_writing_mode,
-                        ),
+                        size: logical_rect.size,
                     };
                     caption_fragment.base.set_rect(
                         logical_caption_rect

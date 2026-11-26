@@ -478,10 +478,6 @@ impl IndependentFormattingContext {
                 // Widget should know the size of the replaced contents.
                 let resolved_block_size =
                     lazy_block_size.resolve(|| replaced_layout.content_block_size);
-                let widget_size = LogicalVec2 {
-                    inline: containing_block_for_children.inline_size(),
-                    block: resolved_block_size,
-                };
                 let widget_containing_block = ContainingBlock {
                     size: ContainingBlockSize::new(
                         containing_block_for_children.inline_size(),
@@ -499,11 +495,7 @@ impl IndependentFormattingContext {
                         &LazySize::intrinsic(),
                     );
 
-                    replaced_layout.fragments.append(
-                        widget_layout.fragments,
-                        self.base.style.writing_mode,
-                        widget_size,
-                    );
+                    replaced_layout.fragments.append(widget_layout.fragments);
                 }
                 replaced_layout
             },
