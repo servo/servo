@@ -484,14 +484,6 @@ impl Element {
         definition: Rc<CustomElementDefinition>,
         no_gc: &NoGC,
     ) {
-        if definition.as_ref().form_associated {
-            // Collection filters could depend on whether an element is
-            // form-associated.
-            // Incrementing the version makes the Collection clear its cache,
-            // such that newly included elements will also be present.
-            // Specifically this was a problem for HTMLFieldSet.elements.
-            self.upcast::<Node>().rev_version(no_gc);
-        }
         self.ensure_rare_data(no_gc).custom_element_definition = Some(definition);
     }
 
