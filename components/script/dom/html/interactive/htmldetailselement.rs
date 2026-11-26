@@ -217,16 +217,21 @@ impl HTMLDetailsElement {
     fn update_shadow_tree_contents(&self, cx: &mut JSContext) {
         let shadow_tree = self.shadow_tree(cx);
 
-        if let Some(summary) = self.find_corresponding_summary_element() {
-            shadow_tree
-                .summary
-                .Assign(cx, vec![ElementOrText::Element(DomRoot::upcast(summary))]);
+        let summary = self.find_corresponding_summary_element();
+        if let Some(summary) = summary.as_ref() {
+            shadow_tree.summary.Assign(
+                cx,
+                vec![ElementOrText::Element(DomRoot::upcast(summary.clone()))],
+            );
         }
 
         let mut slottable_children = vec![];
         for child in self.upcast::<Node>().children() {
             if let Some(element) = child.downcast::<Element>() {
-                if element.local_name() == &local_name!("summary") {
+                if summary
+                    .as_ref()
+                    .is_some_and(|summary| summary.upcast::<Element>() == element)
+                {
                     continue;
                 }
 

@@ -31,6 +31,8 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::CSSFontFaceDescriptors;
 use crate::dom::window::Window;
@@ -40,7 +42,7 @@ use crate::dom::window::Window;
 pub(crate) struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: CSSStyleOwner,
-    /// Whether or not this is a ready only style declaration. Read only declarations
+    /// Whether or not this is a read only style declaration. Read only declarations
     /// are used for `getComputedStyle`, while writable ones are used for the `style`
     /// accessors.
     readonly: bool,
@@ -279,7 +281,18 @@ impl CSSStyleDeclaration {
         match &self.owner {
             CSSStyleOwner::Null => true,
             CSSStyleOwner::Element(element) => {
-                self.readonly && !element.upcast::<Node>().is_in_flat_tree(no_gc)
+                if !self.readonly {
+                    return false;
+                }
+                let node = element.upcast::<Node>();
+                if node.is_in_flat_tree(no_gc) {
+                    return false;
+                }
+                // This is a workaround for https://github.com/servo/servo/issues/50248.
+                // `<option>` and `<optgroup>` are always considered part of the tree
+                // for `getComputedStyle` when they are connected.
+                !node.is_connected() ||
+                    (!node.is::<HTMLOptionElement>() && !node.is::<HTMLOptGroupElement>())
             },
             CSSStyleOwner::CSSRule(..) => false,
         }
@@ -301,11 +314,11 @@ impl CSSStyleDeclaration {
             CSSStyleOwner::CSSRule(..) => {
                 panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner")
             },
-            CSSStyleOwner::Element(ref el) => {
-                let node = el.upcast::<Node>();
-                if !node.is_in_flat_tree(no_gc) {
+            CSSStyleOwner::Element(ref element) => {
+                if self.is_empty(no_gc) {
                     return DOMString::new();
                 }
+                let node = element.upcast::<Node>();
                 let addr = node.to_trusted_node_address();
                 node.owner_window()
                     .resolved_style_query(addr, self.pseudo, property)
