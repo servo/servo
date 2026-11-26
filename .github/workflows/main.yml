@@ -2,9 +2,6 @@ name: Main
 
 on:
   push:
-    # Run the entire pipeline for 'main' even though the merge queue already runs checks
-    # for every change. This just offers an extra layer of testing and covers the case of
-    # random force pushes.
     branches: ["main"]
   pull_request:
     types: ['opened', 'synchronize']
@@ -41,9 +38,16 @@ jobs:
       - name: Get Configuration
         id: configuration
         run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            ARGS="linux-unit-tests lint"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            ARGS="bencher production-bencher coverage"
+          else
+            ARGS="fail-fast full"
+          fi
           {
             echo 'result<<EOF'
-            python ./python/servo/try_parser.py ${{ github.event_name == 'pull_request' && 'linux-unit-tests lint' || github.event_name == 'push' && 'full macos-arm-capi bencher production-bencher coverage' || 'fail-fast full' }}
+            python ./python/servo/try_parser.py $ARGS
             echo EOF
            } >> $GITHUB_OUTPUT
 
