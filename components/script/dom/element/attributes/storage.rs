@@ -635,20 +635,22 @@ impl AttributeStorage {
         index: usize,
         element: &Element,
     ) -> DomRoot<Attr> {
-        let mut attributes = self.0.borrow_mut();
-        let Some(attributes) = &mut *attributes else {
-            assert_valid_index(index, 0);
-            unreachable!("The above should panic with the right message");
-        };
-        assert_valid_index(index, attributes.header.length);
-
-        // Fast path: already materialized.
-        if let AttributeEntry::Dom(attr) = unsafe { attributes.slice()[index].assume_init_ref() } {
-            return DomRoot::from_ref(&**attr);
-        }
-
-        // Extract the raw data, dropping the mutable borrow before allocating.
         let data = {
+            let mut attributes = self.0.safe_borrow_mut(cx.no_gc());
+            let Some(attributes) = &mut *attributes else {
+                assert_valid_index(index, 0);
+                unreachable!("The above should panic with the right message");
+            };
+            assert_valid_index(index, attributes.header.length);
+
+            // Fast path: already materialized.
+            if let AttributeEntry::Dom(attr) =
+                unsafe { attributes.slice()[index].assume_init_ref() }
+            {
+                return DomRoot::from_ref(&**attr);
+            }
+
+            // Extract the raw data, dropping the mutable borrow before allocating.
             let entries = attributes.slice_mut();
             let entry = unsafe { entries[index].assume_init_mut() };
             let placeholder = AttributeEntry::Raw(ContentAttributeData {
@@ -674,7 +676,11 @@ impl AttributeStorage {
             prefix,
             Some(element),
         );
-
+        let mut attributes = self.0.safe_borrow_mut(cx.no_gc());
+        let Some(attributes) = &mut *attributes else {
+            assert_valid_index(index, 0);
+            unreachable!("The above should panic with the right message");
+        };
         let slot = &mut attributes.slice_mut()[index];
         unsafe {
             slot.assume_init_drop();
