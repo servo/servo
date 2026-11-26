@@ -5,39 +5,15 @@
 //! WebView embedder controls API unit tests.
 mod common;
 
-use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::atomic::AtomicUsize;
-use std::sync::{Arc, Mutex};
 
-use dpi::PhysicalSize;
-use embedder_traits::{RefreshDriver, UrlRequest};
-use euclid::default::Size2D as UntypedSize2D;
-use euclid::{Point2D, Size2D, Vector2D};
-use http::{HeaderMap, HeaderName, HeaderValue, StatusCode};
-use http_body_util::combinators::BoxBody;
-use hyper::body::{Bytes, Incoming};
-use hyper::{Request as HyperRequest, Response as HyperResponse};
-use image::RgbaImage;
-use itertools::Itertools;
-use net::test_util::{make_body, make_server, replace_host_table};
-use servo::JSValue::Boolean;
-use servo::profile_traits::mem::MemoryReportResult;
+use euclid::Point2D;
 use servo::{
-    CreateNewWebViewRequest, Cursor, DeviceIntPoint, EmbedderControl, InputEvent, InputMethodType,
-    JSValue, LoadStatus, MouseButton, MouseLeftViewportEvent, MouseMoveEvent, PrefValue,
-    RenderingContext, Scroll, SimpleDialog, Theme, WebView, WebViewBuilder, WebViewDelegate,
+    DeviceIntPoint, EmbedderControl, InputMethodType, MouseButton, Scroll, WebViewBuilder,
     WebViewPoint, WebViewVector,
 };
-use servo_base::generic_channel::GenericCallback;
-use servo_config::prefs::Preferences;
-use servo_url::ServoUrl;
-use surfman::{Error, Surface, SurfaceTexture};
 use url::Url;
-use webrender_api::units::{
-    DeviceIntRect, DeviceIntSize, DevicePoint, DeviceRect, DeviceVector2D, RectExt,
-};
+use webrender_api::units::{DeviceIntSize, DevicePoint};
 
 use crate::common::{
     ServoTest, WebViewDelegateImpl, click_at_point, evaluate_javascript,
@@ -187,4 +163,62 @@ fn test_control_rect_in_iframe() {
         delegate.last_embedder_control_rect().min,
         DeviceIntPoint::new(60, 60)
     );
+}
+
+#[test]
+fn test_input_mode_ime() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(
+            Url::parse(
+                "data:text/html,\
+                    <!DOCTYPE html>\
+                    <input id=default>\
+                    <input id=email inputmode=email>\
+                    <input id=tel inputmode=tel>\
+                    <input id=url inputmode=url>\
+                    <input id=numeric inputmode=numeric>\
+                    <input id=decimal inputmode=decimal>\
+                    <input id=search inputmode=search>\
+                    <input id=text inputmode=text>\
+                    <input id=none inputmode=none>\
+                    <input id=override type=email inputmode=tel>",
+            )
+            .unwrap(),
+        )
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    let cases = [
+        ("default", InputMethodType::Text),
+        ("email", InputMethodType::Email),
+        ("tel", InputMethodType::Tel),
+        ("url", InputMethodType::Url),
+        ("numeric", InputMethodType::Number),
+        ("decimal", InputMethodType::Number),
+        ("search", InputMethodType::Search),
+        ("text", InputMethodType::Text),
+        ("none", InputMethodType::Text),
+        ("override", InputMethodType::Email),
+    ];
+
+    for (id, expected_type) in cases {
+        delegate.reset();
+        let _ = evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            &format!("document.getElementById('{id}').focus()"),
+        );
+        let captured_delegate = delegate.clone();
+        servo_test.spin(move || captured_delegate.number_of_controls_shown.get() != 1);
+        let controls = delegate.controls_shown.borrow();
+        assert_eq!(controls.len(), 1);
+        let EmbedderControl::InputMethod(ime) = &controls[0] else {
+            unreachable!("Expected embedder control to be an IME");
+        };
+        assert_eq!(ime.input_method_type(), expected_type);
+    }
 }
