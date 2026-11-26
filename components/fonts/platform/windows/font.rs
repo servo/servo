@@ -14,7 +14,7 @@ use std::sync::Arc;
 use app_units::Au;
 use dwrote::{
     DWRITE_FONT_AXIS_VALUE, DWRITE_FONT_SIMULATIONS_BOLD, DWRITE_FONT_SIMULATIONS_NONE,
-    FontCollection, FontFace, FontFile, FontSimulations,
+    DWRITE_FONT_SIMULATIONS_OBLIQUE, FontCollection, FontFace, FontFile, FontSimulations,
 };
 use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontData, LocalFontIdentifier, SkrifaFont};
@@ -207,6 +207,14 @@ impl PlatformFontMethods for PlatformFont {
             .face
             .0
             .create_font_face_with_simulations(DWRITE_FONT_SIMULATIONS_BOLD);
+        Self::new(font_face, Some(Au::from_f32_px(self.em_size * 16.)), vec![])
+    }
+
+    fn copy_with_synthetic_italic(mut self) -> Result<Self, &'static str> {
+        let font_face = self
+            .face
+            .0
+            .create_font_face_with_simulations(DWRITE_FONT_SIMULATIONS_OBLIQUE);
         Self::new(font_face, Some(Au::from_f32_px(self.em_size * 16.)), vec![])
     }
 

@@ -1394,6 +1394,7 @@ malloc_size_of_is_0!(unicode_bidi::Level);
 malloc_size_of_is_0!(unicode_script::Script);
 malloc_size_of_is_0!(std::net::TcpStream);
 malloc_size_of_is_0!(memmap2::Mmap);
+malloc_size_of_is_0!(webrender_api::FontInstanceOptions);
 
 malloc_size_of_is_0!(taffy::Layout);
 malloc_size_of_is_0!(taffy::Baselines);
@@ -1604,6 +1605,7 @@ malloc_size_of_is_stylo_malloc_size_of!(style::values::computed::font::SingleFon
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::align::AlignFlags);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::box_::Overflow);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::FontSynthesis);
+malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::FontSynthesisStyle);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::font::XLang);
 malloc_size_of_is_stylo_malloc_size_of!(style::values::specified::TextDecorationLine);
 malloc_size_of_is_stylo_malloc_size_of!(stylo_dom::ElementState);

@@ -58,6 +58,7 @@ pub struct PlatformFont {
     pub(crate) ctfont: CFRetained<CTFont>,
     variations: Vec<FontVariation>,
     pub(crate) synthetic_bold: bool,
+    pub(crate) synthetic_italic: bool,
 }
 
 // From https://developer.apple.com/documentation/coretext:
@@ -84,6 +85,7 @@ impl PlatformFont {
             ctfont,
             variations,
             synthetic_bold: false,
+            synthetic_italic: false,
         }
     }
 
@@ -145,6 +147,11 @@ impl PlatformFontMethods for PlatformFont {
 
     fn copy_with_synthetic_bold(mut self) -> Result<Self, &'static str> {
         self.synthetic_bold = true;
+        Ok(self)
+    }
+
+    fn copy_with_synthetic_italic(mut self) -> Result<Self, &'static str> {
+        self.synthetic_italic = true;
         Ok(self)
     }
 

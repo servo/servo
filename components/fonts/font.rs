@@ -15,7 +15,7 @@ use euclid::default::Rect;
 use euclid::num::Zero;
 use font_types::{BigEndian, NameId};
 use fonts_traits::tag::{CBDT, COLR, ITAL, SBIX, SLNT, WDTH, WGHT};
-use fonts_traits::{FontDescriptor, SkrifaFont};
+use fonts_traits::{FontDescriptor, FontTemplateDescriptor, SkrifaFont};
 use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
@@ -29,7 +29,7 @@ use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use skrifa::font::Variation;
-use skrifa::font::attribute::Weight;
+use skrifa::font::attribute::{Style, Weight};
 use smallvec::SmallVec;
 use style::Atom;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
@@ -40,12 +40,13 @@ use style::values::computed::font::{
     FamilyName, FontFamilyNameSyntax, GenericFontFamily, SingleFontFamily,
 };
 use style::values::computed::{
-    FontFeatureSettings, FontStyle, FontSynthesis, FontVariantEastAsian, FontVariantLigatures,
-    FontVariantNumeric, FontWeight,
+    FontFeatureSettings, FontStyle, FontSynthesis, FontSynthesisStyle, FontVariantEastAsian,
+    FontVariantLigatures, FontVariantNumeric, FontWeight,
 };
 use unicode_script::Script;
 use webrender_api::{
-    FontInstanceFlags, FontInstanceKey, FontInstancePlatformOptions, FontVariation,
+    FontInstanceFlags, FontInstanceKey, FontInstanceOptions, FontInstancePlatformOptions,
+    FontVariation,
 };
 
 use crate::font_context::SkrifaFontCache;
@@ -121,6 +122,8 @@ pub trait PlatformFontMethods: Sized {
     /// returned font is `self`.
     fn copy_with_synthetic_bold(self) -> Result<Self, &'static str>;
 
+    fn copy_with_synthetic_italic(self) -> Result<Self, &'static str>;
+
     fn glyph_index(&self, codepoint: char) -> Option<GlyphId>;
     fn glyph_h_advance(&self, _: GlyphId) -> Option<FractionalPixel>;
 
@@ -130,6 +133,14 @@ pub trait PlatformFontMethods: Sized {
 
     /// Get the necessary [`FontInstanceFlags`] for this font.
     fn webrender_font_instance_flags(&self) -> FontInstanceFlags;
+
+    /// Get the necessary [`FontInstanceOptions`] for this font.
+    fn webrender_font_instance_options(&self, _descriptor: &FontDescriptor) -> FontInstanceOptions {
+        FontInstanceOptions {
+            flags: self.webrender_font_instance_flags(),
+            ..Default::default()
+        }
+    }
 
     /// Get the necessary [`FontInstancePlatformOptions`] for this font.
     fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
@@ -300,7 +311,6 @@ impl Font {
         let variation_axes = servo_config::pref!(layout_css_font_variations_enabled)
             .then(|| VariationAxes::from_skrifa_font(&skrifa_font))
             .unwrap_or_else(VariationAxes::empty);
-
         // Either apply variations or font synthesis, but not both. Variable fonts do not
         // count as font synthesis and their use is not affected by the font-synthesis
         // property. See <https://www.w3.org/TR/css-fonts-4/#font-synthesis-intro>.
@@ -319,14 +329,37 @@ impl Font {
                     .build()
                     .into(),
             );
-        } else {
+        }
+        // Apple's TrueType reference manual (https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6fvar.html)
+        // does not mention that any axis tag is mandatory. Therefore, there is no guarantee that any axis tag exists
+        // even if a font is already known to be a variable font.
+        //
+        // As an additional note, the reference manual did mention the following: 'A set of "standard" axis tags has been defined by Apple.
+        // Other tags may be defined, but should be registered with Apple DTS (Developer Technical Support).'
+        //
+        // The "standard" axis tags do include `wght` and `slnt` tags, but it is rather ambiguous what "standard" (with quotation) means,
+        // so it cannot be used as a hard guarantee that "standard" axis tags must exist in TrueType fonts.
+        {
             let template_descriptor = template.descriptor();
-            let apply_synthetic_bold = descriptor.weight >= FontWeight::BOLD_THRESHOLD &&
-                matches!(descriptor.synthesis_weight, FontSynthesis::Auto) &&
-                template_descriptor.weight.1 < FontWeight::BOLD_THRESHOLD &&
-                skrifa_font.default_attributes().weight < Weight::SEMI_BOLD;
-            if apply_synthetic_bold {
+            if !variation_axes.contains(VariationAxes::WGHT) &&
+                Font::apply_synthetic_bold_if_needed(
+                    &descriptor,
+                    &template_descriptor,
+                    &skrifa_font,
+                )
+            {
                 handle = handle.copy_with_synthetic_bold()?;
+            }
+
+            if !(variation_axes.contains(VariationAxes::ITAL) ||
+                variation_axes.contains(VariationAxes::SLNT)) &&
+                Font::apply_synthetic_italic_if_needed(
+                    &descriptor,
+                    &template_descriptor,
+                    &skrifa_font,
+                )
+            {
+                handle = handle.copy_with_synthetic_italic()?;
             }
         }
 
@@ -347,6 +380,31 @@ impl Font {
         })
     }
 
+    fn apply_synthetic_bold_if_needed(
+        descriptor: &FontDescriptor,
+        template_descriptor: &FontTemplateDescriptor,
+        skrifa_font: &SkrifaFont,
+    ) -> bool {
+        descriptor.weight >= FontWeight::BOLD_THRESHOLD &&
+            matches!(descriptor.synthesis_weight, FontSynthesis::Auto) &&
+            template_descriptor.weight.1 < FontWeight::BOLD_THRESHOLD &&
+            skrifa_font.default_attributes().weight < Weight::SEMI_BOLD
+    }
+
+    fn apply_synthetic_italic_if_needed(
+        descriptor: &FontDescriptor,
+        template_descriptor: &FontTemplateDescriptor,
+        skrifa_font: &SkrifaFont,
+    ) -> bool {
+        descriptor.style != FontStyle::NORMAL &&
+            (matches!(descriptor.synthesis_style, FontSynthesisStyle::Auto) ||
+                (matches!(descriptor.synthesis_style, FontSynthesisStyle::ObliqueOnly) &&
+                    matches!(descriptor.style, FontStyle::OBLIQUE))) &&
+            (template_descriptor.style.0 != FontStyle::NORMAL &&
+                template_descriptor.style.1 != FontStyle::NORMAL) &&
+            skrifa_font.default_attributes().style != Style::Normal
+    }
+
     /// A unique identifier for the font, allowing comparison.
     pub fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
         self.template.identifier()
@@ -361,8 +419,11 @@ impl Font {
         &self.skrifa_font
     }
 
-    pub(crate) fn webrender_font_instance_flags(&self) -> FontInstanceFlags {
-        self.handle.webrender_font_instance_flags()
+    pub(crate) fn webrender_font_instance_options(
+        &self,
+        descriptor: &FontDescriptor,
+    ) -> FontInstanceOptions {
+        self.handle.webrender_font_instance_options(descriptor)
     }
 
     pub(crate) fn webrender_font_instance_platform_options(&self) -> FontInstancePlatformOptions {
@@ -1232,15 +1293,20 @@ bitflags! {
         /// Whether the font has any variation axes at all.
         const IS_VARIABLE = 1;
 
-        /// Whether the font as a `ital` axis.
+        /// Whether the font has a `ital` axis.
         ///
         /// Never set without `IS_VARIABLE`.
         const ITAL = 1 << 1;
 
-        /// Whether the font as a `slnt` axis.
+        /// Whether the font has a `slnt` axis.
         ///
         /// Never set without `IS_VARIABLE`.
         const SLNT = 1 << 2;
+
+        /// Whether the font has a `wght` axis.
+        ///
+        /// Never set without `IS_VARIABLE`
+        const WGHT = 1 << 3;
     }
 }
 
@@ -1255,6 +1321,7 @@ impl VariationAxes {
             match axis.tag() {
                 ITAL => result |= VariationAxes::ITAL,
                 SLNT => result |= VariationAxes::SLNT,
+                WGHT => result |= VariationAxes::WGHT,
                 _ => {},
             }
         }

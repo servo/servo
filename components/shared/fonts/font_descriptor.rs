@@ -14,7 +14,9 @@ use style::font_face::{
 };
 use style::properties::style_structs::Font as FontStyleStruct;
 use style::stylesheets::FontFaceRule;
-use style::values::computed::{Au, FontStyle, FontSynthesis, FontWeight, FontWidth};
+use style::values::computed::{
+    Au, FontStyle, FontSynthesis, FontSynthesisStyle, FontWeight, FontWidth,
+};
 use webrender_api::FontVariation;
 
 /// `FontDescriptor` describes the parameters of a `Font`. It represents rendering a given font
@@ -33,6 +35,7 @@ pub struct FontDescriptor {
     /// This does not include synthesized variations from `font-style`, `font-stretch` etc.
     pub variation_settings: Vec<FontVariation>,
     pub synthesis_weight: FontSynthesis,
+    pub synthesis_style: FontSynthesisStyle,
     pub optical_sizing: FontOpticalSizing,
 }
 
@@ -56,6 +59,7 @@ impl<'a> From<&'a FontStyleStruct> for FontDescriptor {
             pt_size: Au::from_f32_px(style.font_size.computed_size().px()),
             variation_settings,
             synthesis_weight: style.font_synthesis_weight,
+            synthesis_style: style.font_synthesis_style,
             optical_sizing: style.font_optical_sizing,
         }
     }
