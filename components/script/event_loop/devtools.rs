@@ -814,7 +814,7 @@ pub(crate) fn handle_get_background_color(
         })
         .unwrap_or_else(|| vec![255.0, 255.0, 255.0, 1.0]);
 
-    reply.send(value).unwrap();
+    let _ = reply.send(value);
 }
 
 pub(crate) fn handle_get_inner_or_outer_html(

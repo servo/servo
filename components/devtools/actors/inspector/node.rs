@@ -272,7 +272,7 @@ impl Actor for NodeActor {
                         registry.actor_to_script(target.to_owned()),
                         tx,
                     ))
-                    .unwrap();
+                    .map_err(|_| ActorError::Internal)?;
 
                 let background_color = rx.recv().map_err(|_| ActorError::Internal)?;
                 let msg = GetBackgroundColorReply {
