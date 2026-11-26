@@ -155,7 +155,7 @@ mach2 = "0.7"
 malloc_size_of_derive = "0.1"
 markup5ever = "0.40"
 memmap2 = "0.9.10"
-midir = "0.11.0"
+midir = "0.11.2"
 mime = "0.3.13"
 mime_guess = "2.0.5"
 ml-dsa = { version = "0.1", features = ["zeroize"] }

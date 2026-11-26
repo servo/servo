@@ -21,3 +21,6 @@ rustc-hash = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-webmidi-traits = { workspace = true }
+
+[lints]
+workspace = true
