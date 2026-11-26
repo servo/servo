@@ -2,8 +2,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-# fmt: off
-
 from __future__ import annotations
 
 import functools
@@ -38,7 +36,9 @@ EVENT_HANDLER_CALLBACKS = {
 }
 
 
-TargetType = TypeVar('TargetType')
+TargetType = TypeVar("TargetType")
+
+
 def assert_type(object: Any, cls: type[TargetType]) -> TargetType:
     assert isinstance(object, cls)
     return object
@@ -71,12 +71,15 @@ class MethodType(Enum):
     Getter = 2
 
 
-FilterItemsType = TypeVar('FilterItemsType', bound=IDLObjectWithIdentifier)
+FilterItemsType = TypeVar("FilterItemsType", bound=IDLObjectWithIdentifier)
+
+
 class Configuration:
     """
     Represents global configuration state based on IDL parse data and
     the configuration file.
     """
+
     glbl: dict[str, Any]
     enumConfig: dict[str, Any]
     dictConfig: dict[str, Any]
@@ -87,17 +90,17 @@ class Configuration:
     typedefs: list[IDLTypedef]
     dictionaries: list[IDLDictionary]
     callbacks: list[IDLCallback]
-    sub_crates: dict[str,list[str]]
+    sub_crates: dict[str, list[str]]
 
     def __init__(self, filename: str, parseData: list[IDLObjectWithIdentifier]) -> None:
         # Read the configuration file.
         glbl = {}
-        exec(compile(open(filename).read(), filename, 'exec'), glbl)
-        config = glbl['DOMInterfaces']
-        self.enumConfig = glbl['Enums']
-        self.dictConfig = glbl['Dictionaries']
-        self.unionConfig = glbl['Unions']
-        self.sub_crates = glbl['SubCrates']
+        exec(compile(open(filename).read(), filename, "exec"), glbl)
+        config = glbl["DOMInterfaces"]
+        self.enumConfig = glbl["Enums"]
+        self.dictConfig = glbl["Dictionaries"]
+        self.unionConfig = glbl["Unions"]
+        self.sub_crates = glbl["SubCrates"]
 
         # Build descriptors for all the interfaces we have in the parse data.
         # This allows callers to specify a subset of interfaces by filtering
@@ -108,8 +111,7 @@ class Configuration:
         for thing in parseData:
             # Servo does not support external interfaces.
             if isinstance(thing, IDLExternalInterface):
-                raise WebIDLError("Servo does not support external interfaces.",
-                                  [thing.location])
+                raise WebIDLError("Servo does not support external interfaces.", [thing.location])
 
             assert not thing.isType()
 
@@ -126,26 +128,24 @@ class Configuration:
             if not isinstance(entry, list):
                 assert isinstance(entry, dict)
                 entry = [entry]
-            self.descriptors.extend(
-                [Descriptor(self, iface, x) for x in entry])
+            self.descriptors.extend([Descriptor(self, iface, x) for x in entry])
 
         # Mark the descriptors for which only a single nativeType implements
         # an interface.
         for descriptor in self.descriptors:
             interfaceName = descriptor.interface.identifier.name
-            otherDescriptors = [d for d in self.descriptors
-                                if d.interface.identifier.name == interfaceName]
+            otherDescriptors = [d for d in self.descriptors if d.interface.identifier.name == interfaceName]
             descriptor.uniqueImplementation = len(otherDescriptors) == 1
 
         self.enums = [assert_type(e, IDLEnum) for e in parseData if e.isEnum()]
         self.typedefs = [assert_type(e, IDLTypedef) for e in parseData if e.isTypedef()]
         self.dictionaries = [assert_type(d, IDLDictionary) for d in parseData if d.isDictionary()]
-        self.callbacks = [assert_type(c, IDLCallback) for c in parseData if
-                          c.isCallback() and not c.isInterface()]
+        self.callbacks = [assert_type(c, IDLCallback) for c in parseData if c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
         def cmp(x: str, y: str) -> int:
             return (x > y) - (x < y)
+
         self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
     def getInterface(self, ifname: str) -> IDLInterfaceOrNamespace:
@@ -155,36 +155,47 @@ class Configuration:
         """Gets the descriptors that match the given filters."""
         curr = self.descriptors
         for key, val in filters.items():
-            if key == 'webIDLFile':
+            if key == "webIDLFile":
+
                 def getter(x: Descriptor) -> str:
                     return x.interface.location.filename
-            elif key == 'hasInterfaceObject':
+            elif key == "hasInterfaceObject":
+
                 def getter(x: Descriptor) -> bool:
                     return x.interface.hasInterfaceObject()
-            elif key == 'isCallback':
+            elif key == "isCallback":
+
                 def getter(x: Descriptor) -> bool:
                     return x.interface.isCallback()
-            elif key == 'isNamespace':
+            elif key == "isNamespace":
+
                 def getter(x: Descriptor) -> bool:
                     return x.interface.isNamespace()
-            elif key == 'isJSImplemented':
+            elif key == "isJSImplemented":
+
                 def getter(x: Descriptor) -> bool:
                     return x.interface.isJSImplemented()
-            elif key == 'isGlobal':
+            elif key == "isGlobal":
+
                 def getter(x: Descriptor) -> bool:
                     return x.isGlobal()
-            elif key == 'isInline':
+            elif key == "isInline":
+
                 def getter(x: Descriptor) -> bool:
-                    return x.interface.getExtendedAttribute('Inline') is not None
-            elif key == 'isExposedConditionally':
+                    return x.interface.getExtendedAttribute("Inline") is not None
+            elif key == "isExposedConditionally":
+
                 def getter(x: Descriptor) -> bool:
                     return x.interface.isExposedConditionally()
-            elif key == 'isIteratorInterface':
+            elif key == "isIteratorInterface":
+
                 def getter(x: Descriptor) -> bool:
                     return x.interface.isIteratorInterface()
             else:
+
                 def getter(x: Descriptor) -> Any:
                     return getattr(x, key)
+
             curr = [x for x in curr if getter(x) == val]
         return curr
 
@@ -226,8 +237,7 @@ class Configuration:
 
         # We should have exactly one result.
         if len(descriptors) != 1:
-            raise NoSuchDescriptorError("For " + interfaceName + " found "
-                                        + str(len(descriptors)) + " matches")
+            raise NoSuchDescriptorError("For " + interfaceName + " found " + str(len(descriptors)) + " matches")
         return descriptors[0]
 
     def getDescriptorProvider(self) -> DescriptorProvider:
@@ -246,6 +256,7 @@ class DescriptorProvider:
     """
     A way of getting descriptors for interface names
     """
+
     def __init__(self, config: Configuration) -> None:
         self.config = config
 
@@ -256,17 +267,20 @@ class DescriptorProvider:
         """
         return self.config.getDescriptor(interfaceName)
 
+
 def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: Descriptor) -> bool:
-    return ((member.isAttr() or member.isMethod())
-            and not member.isStatic()
-            and (member.isLegacyUnforgeable()
-                 or bool(descriptor.interface.getExtendedAttribute("LegacyUnforgeable"))))
+    return (
+        (member.isAttr() or member.isMethod())
+        and not member.isStatic()
+        and (member.isLegacyUnforgeable() or bool(descriptor.interface.getExtendedAttribute("LegacyUnforgeable")))
+    )
 
 
 class Descriptor(DescriptorProvider):
     """
     Represents a single descriptor for an interface. See Bindings.conf.
     """
+
     interface: IDLInterfaceOrNamespace
     uniqueImplementation: bool
 
@@ -276,9 +290,10 @@ class Descriptor(DescriptorProvider):
 
         if not self.isExposedConditionally():
             if interface.parent and interface.parent.isExposedConditionally():
-                raise TypeError("%s is not conditionally exposed but inherits from "
-                                "%s which is" %
-                                (interface.identifier.name, interface.parent.identifier.name))
+                raise TypeError(
+                    "%s is not conditionally exposed but inherits from "
+                    "%s which is" % (interface.identifier.name, interface.parent.identifier.name)
+                )
 
         # Read the desc, and fill in the relevant defaults.
         ifaceName = self.interface.identifier.name
@@ -297,20 +312,20 @@ class Descriptor(DescriptorProvider):
             nativeTypeDefault = iteratorNativeType(itrDesc)
             prefix = ""
 
-        typeName = desc.get('nativeType', nativeTypeDefault)
+        typeName = desc.get("nativeType", nativeTypeDefault)
         assert isinstance(typeName, str)
 
-        spiderMonkeyInterface = desc.get('spiderMonkeyInterface', False)
+        spiderMonkeyInterface = desc.get("spiderMonkeyInterface", False)
 
         # Callback and SpiderMonkey types do not use JS smart pointers, so we should not use the
         # built-in rooting mechanisms for them.
         if spiderMonkeyInterface:
-            self.returnType = 'Rc<%s>' % typeName
-            self.argumentType = '&%s' % typeName
+            self.returnType = "Rc<%s>" % typeName
+            self.argumentType = "&%s" % typeName
             self.nativeType = typeName
-            pathDefault = 'crate::dom::types::%s' % typeName
+            pathDefault = "crate::dom::types::%s" % typeName
         elif self.interface.isCallback():
-            ty = 'crate::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
+            ty = "crate::codegen::GenericBindings::%sBinding::%s" % (ifaceName, ifaceName)
             pathDefault = ty
             self.returnType = "RootedCallback<%s<D>>" % ty
             self.argumentType = "???"
@@ -320,13 +335,13 @@ class Descriptor(DescriptorProvider):
             self.argumentType = "&%s%s" % (prefix, typeName)
             self.nativeType = "*const %s%s" % (prefix, typeName)
             if self.interface.isIteratorInterface():
-                pathDefault = 'crate::iterable::IterableIterator'
+                pathDefault = "crate::iterable::IterableIterator"
             else:
-                pathDefault = 'crate::dom::types::%s' % MakeNativeName(typeName)
+                pathDefault = "crate::dom::types::%s" % MakeNativeName(typeName)
 
         self.concreteType = "%s%s" % (prefix, typeName)
-        self.register = desc.get('register', True)
-        self.path = desc.get('path', pathDefault)
+        self.register = desc.get("register", True)
+        self.path = desc.get("path", pathDefault)
 
         # Specified here to make it explicit for the typechecker
         self.no_gcMethods: list[str] = []
@@ -338,40 +353,46 @@ class Descriptor(DescriptorProvider):
         for configurationName in configurationMethods:
             setattr(self, configurationName + "Methods", [name for name in desc.get(configurationName, [])])
 
-        assert ("Constructor" not in self.cxMethods), "Constructor implicitly receives a cx argument. Remove it from the `cx` array"
+        assert "Constructor" not in self.cxMethods, (
+            "Constructor implicitly receives a cx argument. Remove it from the `cx` array"
+        )
         for i in range(0, len(configurationMethods)):
             for j in range(i + 1, len(configurationMethods)):
                 first_set = set(getattr(self, configurationMethods[i] + "Methods"))
                 second_set = set(getattr(self, configurationMethods[j] + "Methods"))
-                assert first_set.isdisjoint(second_set), f"In {ifaceName} set {configurationMethods[i]} has overlap with {configurationMethods[j]}. Duplicates: {first_set.intersection(second_set)}"
+                assert first_set.isdisjoint(second_set), (
+                    f"In {ifaceName} set {configurationMethods[i]} has overlap with {configurationMethods[j]}. Duplicates: {first_set.intersection(second_set)}"
+                )
 
-        self.additionalTraits = [name for name in desc.get('additionalTraits', [])]
+        self.additionalTraits = [name for name in desc.get("additionalTraits", [])]
         self.bindingPath = f"{getModuleFromObject(self.interface)}::{ifaceName}_Binding"
-        self.outerObjectHook = desc.get('outerObjectHook', 'None')
+        self.outerObjectHook = desc.get("outerObjectHook", "None")
         self.proxy = False
-        self.weakReferenceable = desc.get('weakReferenceable', False)
-        self.useSystemCompartment = desc.get('useSystemCompartment', False)
-        self.allowDropImpl = desc.get('allowDropImpl', False)
+        self.weakReferenceable = desc.get("weakReferenceable", False)
+        self.useSystemCompartment = desc.get("useSystemCompartment", False)
+        self.allowDropImpl = desc.get("allowDropImpl", False)
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
-        self.concrete = (not self.interface.isCallback()
-                         and not self.interface.isNamespace()
-                         and not self.interface.getExtendedAttribute("Abstract")
-                         and not self.interface.getExtendedAttribute("Inline")
-                         and not spiderMonkeyInterface)
-        self.hasLegacyUnforgeableMembers = (self.concrete
-                                            and any(MemberIsLegacyUnforgeable(m, self) for m in
-                                                    self.interface.members))
+        self.concrete = (
+            not self.interface.isCallback()
+            and not self.interface.isNamespace()
+            and not self.interface.getExtendedAttribute("Abstract")
+            and not self.interface.getExtendedAttribute("Inline")
+            and not spiderMonkeyInterface
+        )
+        self.hasLegacyUnforgeableMembers = self.concrete and any(
+            MemberIsLegacyUnforgeable(m, self) for m in self.interface.members
+        )
 
         self.operations: dict[str, IDLMethod | None] = {
-            'IndexedGetter': None,
-            'IndexedSetter': None,
-            'IndexedDeleter': None,
-            'NamedGetter': None,
-            'NamedSetter': None,
-            'NamedDeleter': None,
-            'Stringifier': None,
+            "IndexedGetter": None,
+            "IndexedSetter": None,
+            "IndexedDeleter": None,
+            "NamedGetter": None,
+            "NamedSetter": None,
+            "NamedDeleter": None,
+            "Stringifier": None,
         }
 
         self.hasDefaultToJSON = False
@@ -384,7 +405,7 @@ class Descriptor(DescriptorProvider):
         # about our own stringifier, not those of our ancestor interfaces.
         for m in self.interface.members:
             if m.isMethod() and m.isStringifier():
-                addOperation('Stringifier', m)
+                addOperation("Stringifier", m)
             if m.isMethod() and m.isDefaultToJSON():
                 self.hasDefaultToJSON = True
 
@@ -399,22 +420,22 @@ class Descriptor(DescriptorProvider):
                         if not self.isGlobal():
                             self.proxy = True
                         if m.isIndexed():
-                            operation = 'Indexed' + operation
+                            operation = "Indexed" + operation
                         else:
                             assert m.isNamed()
-                            operation = 'Named' + operation
+                            operation = "Named" + operation
                         addOperation(operation, m)
 
                     if m.isGetter():
-                        addIndexedOrNamedOperation('Getter', m)
+                        addIndexedOrNamedOperation("Getter", m)
                     if m.isSetter():
-                        addIndexedOrNamedOperation('Setter', m)
+                        addIndexedOrNamedOperation("Setter", m)
                     if m.isDeleter():
-                        addIndexedOrNamedOperation('Deleter', m)
+                        addIndexedOrNamedOperation("Deleter", m)
 
                 iface = iface.parent
                 if iface:
-                    iface.setUserData('hasConcreteDescendant', True)
+                    iface.setUserData("hasConcreteDescendant", True)
 
             if self.isMaybeCrossOriginObject():
                 self.proxy = True
@@ -423,14 +444,14 @@ class Descriptor(DescriptorProvider):
                 iface = self.interface
                 while iface.parent:
                     iface = iface.parent
-                    iface.setUserData('hasProxyDescendant', True)
+                    iface.setUserData("hasProxyDescendant", True)
 
         self.name = interface.identifier.name
 
         # self.extendedAttributes is a dict of dicts, keyed on
         # all/getterOnly/setterOnly and then on member name. Values are an
         # array of extended attributes.
-        self.extendedAttributes = {'all': {}, 'getterOnly': {}, 'setterOnly': {}}
+        self.extendedAttributes = {"all": {}, "getterOnly": {}, "setterOnly": {}}
 
         def addExtendedAttribute(attribute: dict[str, Any], config: Configuration) -> None:
             def add(key: str, members: list[str], attribute: dict[str, Any]) -> None:
@@ -438,19 +459,19 @@ class Descriptor(DescriptorProvider):
                     self.extendedAttributes[key].setdefault(member, []).append(attribute)
 
             if isinstance(config, dict):
-                for key in ['all', 'getterOnly', 'setterOnly']:
+                for key in ["all", "getterOnly", "setterOnly"]:
                     add(key, config.get(key, []), attribute)
             elif isinstance(config, list):
-                add('all', config, attribute)
+                add("all", config, attribute)
             else:
                 assert isinstance(config, str)
-                if config == '*':
+                if config == "*":
                     iface: IDLInterfaceOrNamespace | None = self.interface
                     while iface:
-                        add('all', [m.name for m in iface.members], attribute)
+                        add("all", [m.name for m in iface.members], attribute)
                         iface = iface.parent
                 else:
-                    add('all', [config], attribute)
+                    add("all", [config], attribute)
 
         # Build the prototype chain.
         self.prototypeChain = []
@@ -459,37 +480,38 @@ class Descriptor(DescriptorProvider):
             self.prototypeChain.insert(0, parent.identifier.name)
             parent = parent.parent
         self.prototypeDepth = len(self.prototypeChain) - 1
-        config.maxProtoChainLength = max(config.maxProtoChainLength,
-                                         len(self.prototypeChain))
-        self.implicitCxSetters = desc.get('implicitCxSetters', "Element" in self.prototypeChain)
-        self.implicitNoGCGetters = desc.get('implicitNoGCGetters', False)
+        config.maxProtoChainLength = max(config.maxProtoChainLength, len(self.prototypeChain))
+        self.implicitCxSetters = desc.get("implicitCxSetters", "Element" in self.prototypeChain)
+        self.implicitNoGCGetters = desc.get("implicitNoGCGetters", False)
 
-        self._binaryNames = desc.get('binaryNames', {})
-        self._binaryNames.setdefault(('__legacycaller', False), 'LegacyCall')
-        self._binaryNames.setdefault(('__stringifier', False), 'Stringifier')
+        self._binaryNames = desc.get("binaryNames", {})
+        self._binaryNames.setdefault(("__legacycaller", False), "LegacyCall")
+        self._binaryNames.setdefault(("__stringifier", False), "Stringifier")
 
-        self._internalNames = desc.get('internalNames', {})
+        self._internalNames = desc.get("internalNames", {})
 
         for member in self.interface.members:
             if not member.isAttr() and not member.isMethod():
                 continue
             if member.isAttr() and not member.readonly and self.implicitCxSetters:
                 setterName = f"Set{MakeNativeName(member.identifier.name)}"
-                assert setterName not in self.cxMethods, f"Setter {setterName} in {ifaceName} is implicitly called with cx. Remove it from the list of cx methods"
+                assert setterName not in self.cxMethods, (
+                    f"Setter {setterName} in {ifaceName} is implicitly called with cx. Remove it from the list of cx methods"
+                )
             binaryName = member.getExtendedAttribute("BinaryName")
             if binaryName:
                 assert isinstance(binaryName, list)
                 assert len(binaryName) == 1
-                self._binaryNames.setdefault((member.identifier.name, member.isStatic()),
-                                             binaryName[0])
-            self._internalNames.setdefault(member.identifier.name,
-                                           member.identifier.name.replace('-', '_'))
+                self._binaryNames.setdefault((member.identifier.name, member.isStatic()), binaryName[0])
+            self._internalNames.setdefault(member.identifier.name, member.identifier.name.replace("-", "_"))
 
     def lengthGetterNeedsCx(self) -> bool:
-        return ("Length" in self.cxMethods
+        return (
+            "Length" in self.cxMethods
             or "Length" in self.cx_no_gcMethods
             or "Length" in self.no_gcMethods
-            or self.implicitNoGCGetters)
+            or self.implicitNoGCGetters
+        )
 
     def contextForMember(self, member: IDLInterfaceMember, nativeName: str, methodType: MethodType) -> Context:
         if nativeName in self.realmMethods:
@@ -539,9 +561,11 @@ class Descriptor(DescriptorProvider):
         return self.isGlobal() and self.supportsNamedProperties()
 
     def supportsNamedProperties(self) -> bool:
-        return self.operations['NamedGetter'] is not None
+        return self.operations["NamedGetter"] is not None
 
-    def getExtendedAttributes(self, member: IDLInterfaceMember, methodType: MethodType = MethodType.Normal) -> list[str]:
+    def getExtendedAttributes(
+        self, member: IDLInterfaceMember, methodType: MethodType = MethodType.Normal
+    ) -> list[str]:
         def maybeAppendInfallibleToAttrs(attrs: list[str], throws: bool | None) -> None:
             if throws is None:
                 attrs.append("infallible")
@@ -552,15 +576,15 @@ class Descriptor(DescriptorProvider):
 
         name = member.identifier.name
         if member.isMethod():
-            attrs = self.extendedAttributes['all'].get(name, [])
+            attrs = self.extendedAttributes["all"].get(name, [])
             throws = member.getExtendedAttribute("Throws")
             maybeAppendInfallibleToAttrs(attrs, throws)
             return attrs
 
         assert member.isAttr()
         assert methodType != MethodType.Normal
-        key = 'getterOnly' if methodType == MethodType.Getter else 'setterOnly'
-        attrs = self.extendedAttributes['all'].get(name, []) + self.extendedAttributes[key].get(name, [])
+        key = "getterOnly" if methodType == MethodType.Getter else "setterOnly"
+        attrs = self.extendedAttributes["all"].get(name, []) + self.extendedAttributes[key].get(name, [])
         throws = member.getExtendedAttribute("Throws")
         if throws is None:
             throwsAttr = "GetterThrows" if methodType == MethodType.Getter else "SetterThrows"
@@ -577,7 +601,7 @@ class Descriptor(DescriptorProvider):
         return None
 
     def supportsIndexedProperties(self) -> bool:
-        return self.operations['IndexedGetter'] is not None
+        return self.operations["IndexedGetter"] is not None
 
     def isMaybeCrossOriginObject(self) -> bool:
         # If we're isGlobal and have cross-origin members, we're a Window, and
@@ -588,8 +612,11 @@ class Descriptor(DescriptorProvider):
         return self.concrete and self.interface.hasCrossOriginMembers
 
     def hasDescendants(self) -> bool:
-        return (self.interface.getUserData("hasConcreteDescendant", False)
-                or self.interface.getUserData("hasProxyDescendant", False) or False)
+        return (
+            self.interface.getUserData("hasConcreteDescendant", False)
+            or self.interface.getUserData("hasProxyDescendant", False)
+            or False
+        )
 
     def hasHTMLConstructor(self) -> bool:
         ctor = self.interface.ctor()
@@ -599,8 +626,13 @@ class Descriptor(DescriptorProvider):
         assert self.interface.hasInterfaceObject()
         if self.interface.getExtendedAttribute("Inline"):
             return False
-        return (self.interface.isCallback() or self.interface.isNamespace()
-                or self.hasDescendants() or self.hasHTMLConstructor() or False)
+        return (
+            self.interface.isCallback()
+            or self.interface.isNamespace()
+            or self.hasDescendants()
+            or self.hasHTMLConstructor()
+            or False
+        )
 
     def shouldCacheConstructor(self) -> bool:
         return self.hasDescendants() or self.hasHTMLConstructor()
@@ -613,8 +645,9 @@ class Descriptor(DescriptorProvider):
         Returns true if this is the primary interface for a global object
         of some sort.
         """
-        return bool(self.interface.getExtendedAttribute("Global")
-                    or self.interface.getExtendedAttribute("PrimaryGlobal"))
+        return bool(
+            self.interface.getExtendedAttribute("Global") or self.interface.getExtendedAttribute("PrimaryGlobal")
+        )
 
 
 # Some utility methods
@@ -625,11 +658,11 @@ def MakeNativeName(name: str) -> str:
 
 
 def getIdlFileName(object: IDLObject) -> str:
-    return os.path.basename(object.location.filename).split('.webidl')[0]
+    return os.path.basename(object.location.filename).split(".webidl")[0]
 
 
 def getModuleFromObject(object: IDLObject) -> str:
-    return ('crate::codegen::GenericBindings::' + getIdlFileName(object) + 'Binding')
+    return "crate::codegen::GenericBindings::" + getIdlFileName(object) + "Binding"
 
 
 def getTypesFromDescriptor(descriptor: Descriptor) -> list[IDLType]:
@@ -687,9 +720,12 @@ def getUnwrappedType(type: IDLType) -> IDLType:
 def iteratorNativeType(descriptor: Descriptor, infer: bool = False) -> str:
     assert descriptor.interface.maplikeOrSetlikeOrIterable is not None
     iterableDecl = descriptor.interface.maplikeOrSetlikeOrIterable
-    assert (iterableDecl.isIterable() and iterableDecl.isPairIterator()) \
-        or iterableDecl.isSetlike() or iterableDecl.isMaplike()
-    res = "IterableIterator%s" % ("" if infer else '<D, D::%s>' % descriptor.interface.identifier.name)
+    assert (
+        (iterableDecl.isIterable() and iterableDecl.isPairIterator())
+        or iterableDecl.isSetlike()
+        or iterableDecl.isMaplike()
+    )
+    res = "IterableIterator%s" % ("" if infer else "<D, D::%s>" % descriptor.interface.identifier.name)
     # todo: this hack is telling us that something is still wrong in codegen
     if iterableDecl.isSetlike() or iterableDecl.isMaplike():
         res = f"crate::iterable::{res}"
