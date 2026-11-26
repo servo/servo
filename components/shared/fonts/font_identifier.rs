@@ -229,7 +229,6 @@ mod platform {
                 .and_then(|files| files.first().cloned())
                 .expect("Could not get FontFace files")
                 .font_file_path()
-                .ok()
                 .expect("Could not get FontFace files path");
             NativeFontHandle {
                 path,

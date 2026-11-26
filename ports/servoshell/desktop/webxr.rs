@@ -15,6 +15,7 @@ use winit::event_loop::ActiveEventLoop;
 
 use crate::window::PlatformWindow;
 
+#[cfg_attr(target_os = "windows", expect(clippy::large_enum_variant))]
 enum XrDiscovery {
     GlWindow(GlWindowDiscovery),
     #[cfg(target_os = "windows")]
