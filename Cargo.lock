@@ -8743,6 +8743,7 @@ version = "0.8.0"
 dependencies = [
  "atomic_refcell",
  "dwrote",
+ "harfrust",
  "log",
  "malloc_size_of_derive",
  "memmap2",

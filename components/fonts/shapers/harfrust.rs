@@ -7,7 +7,10 @@ use std::sync::Arc;
 use app_units::Au;
 use euclid::default::Point2D;
 use fonts_traits::SkrifaFont;
-use harfrust::{Buffer, ClusterLevel, Feature, Language, Script, ShapeOptions, ShaperFont, Tag};
+use harfrust::{
+    Buffer, ClusterLevel, Feature, Language, Script, ShapeOptions, ShapePlan, ShapePlanKey,
+    ShaperFont, Tag,
+};
 use num_traits::Zero as _;
 use read_fonts::types::GlyphId;
 
@@ -117,30 +120,41 @@ impl Shaper {
         options: &crate::ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> HarfrustGlyphShapingResult {
-        let mut buffer = Buffer::new();
-
-        buffer.set_cluster_level(ClusterLevel::MonotoneCharacters);
-        buffer.set_direction(if options.flags.contains(ShapingFlags::RTL_FLAG) {
+        let direction = if options.flags.contains(ShapingFlags::RTL_FLAG) {
             harfrust::Direction::RightToLeft
         } else {
             harfrust::Direction::LeftToRight
-        });
-
+        };
         let script_tag = Tag::from_u32(unicode_script_to_iso15924_tag(options.script));
-        buffer.set_script(Script::from_iso15924_tag(script_tag));
-
+        let script = Script::from_iso15924_tag(script_tag);
         let language = match options.language_override {
             Some(language_override) => Language::from_tag(language_override),
             None => options.language.as_str().parse::<Language>().ok(),
         };
-        buffer.set_language(language);
-
-        buffer.push_str(text);
-
         let features: Vec<_> = font_features
             .iter()
             .map(|(tag, value)| Feature::new(*tag, *value, ..))
             .collect();
+
+        let shape_plan_key = ShapePlanKey::new(&self.skrifa_font, script, direction)
+            .language(language.as_ref())
+            .features(&features);
+        let shape_plan = self.skrifa_font.shape_plan(shape_plan_key, || {
+            ShapePlan::new(
+                &self.skrifa_font,
+                direction,
+                script,
+                language.as_ref(),
+                &features,
+            )
+        });
+
+        let mut buffer = Buffer::new();
+        buffer.set_cluster_level(ClusterLevel::MonotoneCharacters);
+        buffer.set_direction(direction);
+        buffer.set_script(script);
+        buffer.set_language(language);
+        buffer.push_str(text);
 
         let font_funcs = FontFuncs { font };
         let shaper_font = ShaperFont::new(&self.skrifa_font)
@@ -150,7 +164,9 @@ impl Shaper {
         harfrust::shape(
             &shaper_font,
             &mut buffer,
-            ShapeOptions::new().features(&features),
+            ShapeOptions::new()
+                .features(&features)
+                .plan(Some(shape_plan.as_ref())),
         )
         .expect("Error shaping text with HarfRust");
 
