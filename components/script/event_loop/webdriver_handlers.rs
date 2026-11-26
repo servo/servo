@@ -1725,7 +1725,6 @@ pub(crate) fn handle_get_name(
 }
 
 pub(crate) fn handle_get_attribute(
-    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
@@ -1736,14 +1735,14 @@ pub(crate) fn handle_get_attribute(
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 if is_boolean_attribute(&name) {
-                    if element.HasAttribute(cx, DOMString::from(name)) {
+                    if element.HasAttribute(DOMString::from(name)) {
                         Some(String::from("true"))
                     } else {
                         None
                     }
                 } else {
                     element
-                        .GetAttribute(cx, DOMString::from(name))
+                        .GetAttribute(DOMString::from(name))
                         .map(String::from)
                 }
             }),

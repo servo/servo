@@ -2390,6 +2390,19 @@ impl Element {
             .map(map_func)
     }
 
+    /// Like [`Self::with_attribute`], for the attribute whose qualified name is `name`, as
+    /// returned by [`Self::parsed_name`].
+    pub(crate) fn with_attribute_by_name<R, F>(&self, name: &LocalName, map_func: F) -> Option<R>
+    where
+        F: FnOnce(AttrRef<'_>) -> R,
+    {
+        self.attrs
+            .borrow()
+            .iter()
+            .find(|attribute| attribute.name() == name)
+            .map(map_func)
+    }
+
     pub(crate) fn attribute_str_ref<'a>(
         &'a self,
         namespace: &Namespace,
@@ -3395,19 +3408,23 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattribute>
-    fn GetAttribute(&self, cx: &mut JSContext, name: DOMString) -> Option<DOMString> {
-        self.GetAttributeNode(cx, name).map(|s| s.Value())
+    fn GetAttribute(&self, name: DOMString) -> Option<DOMString> {
+        self.with_attribute_by_name(&self.parsed_name(name), |attribute| {
+            attribute.to_dom_string()
+        })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributens>
     fn GetAttributeNS(
         &self,
-        cx: &mut JSContext,
         namespace: Option<DOMString>,
         local_name: DOMString,
     ) -> Option<DOMString> {
-        self.GetAttributeNodeNS(cx, namespace, local_name)
-            .map(|attr| attr.Value())
+        self.with_attribute(
+            &namespace_from_domstring(namespace),
+            &LocalName::from(local_name),
+            |attribute| attribute.to_dom_string(),
+        )
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributenode>
@@ -3441,12 +3458,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             )));
         }
 
-        // Step 3.
-        let attribute = self.GetAttribute(cx, name.clone());
-
         // Step 2.
         let name = self.parsed_name(name);
-        match attribute {
+
+        // Step 3.
+        match self.with_attribute_by_name(&name, |_| ()) {
             // Step 4
             None => match force {
                 // Step 4.1.
@@ -3465,7 +3481,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 // Step 4.2.
                 Some(false) => Ok(false),
             },
-            Some(_index) => match force {
+            Some(()) => match force {
                 // Step 5.
                 None | Some(false) => {
                     self.remove_attribute_by_name(cx, &name);
@@ -3604,18 +3620,19 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
-    fn HasAttribute(&self, cx: &mut JSContext, name: DOMString) -> bool {
-        self.GetAttribute(cx, name).is_some()
+    fn HasAttribute(&self, name: DOMString) -> bool {
+        self.with_attribute_by_name(&self.parsed_name(name), |_| ())
+            .is_some()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattributens>
-    fn HasAttributeNS(
-        &self,
-        cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        local_name: DOMString,
-    ) -> bool {
-        self.GetAttributeNS(cx, namespace, local_name).is_some()
+    fn HasAttributeNS(&self, namespace: Option<DOMString>, local_name: DOMString) -> bool {
+        self.with_attribute(
+            &namespace_from_domstring(namespace),
+            &LocalName::from(local_name),
+            |_| (),
+        )
+        .is_some()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getelementsbytagname>
