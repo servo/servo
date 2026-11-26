@@ -1334,4 +1334,3 @@ fn test_favicon_fallback_to_favicon_ico() {
 
     let _ = server.close();
 }
-
