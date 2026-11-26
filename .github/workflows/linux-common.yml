@@ -49,7 +49,7 @@ on:
         required: false
         default: false
         type: boolean
-      build-libservo:
+      msrv-check:
         required: false
         default: false
         type: boolean
@@ -249,9 +249,9 @@ jobs:
         run: |
           echo "artifact_ids=${{steps.upload-tarball.outputs.artifact-id}}" >> $GITHUB_OUTPUT
 
-  build-libservo:
-    if: ${{ inputs.build-libservo }}
-    name: Build libservo / Check MSRV
+  msrv-check:
+    if: ${{ inputs.msrv-check }}
+    name: Build libservo with MSRV
     runs-on: ${{ inputs.github-runner-label }}
     steps:
       - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
@@ -282,7 +282,7 @@ jobs:
       # installing lld is the easiest way to get it in path.
       - name: install lld
         run: sudo apt-get install -y lld
-      - name: Compile libservo with MSRV
+      - name: Build
         env:
           # lld seems to use less memory and prevents OOM errors during linking.
           # We can remove this after upgrading to Rust 1.90, where lld will be the default.

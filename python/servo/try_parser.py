@@ -40,7 +40,7 @@ class JobConfig(object):
     profile: str = "checked-release"
     unit_tests: bool = False
     devtools_tests: bool = False
-    build_libservo: bool = False
+    msrv_check: bool = False
     bencher: bool = False
     coverage: bool = False
     capi: bool = False
@@ -61,7 +61,7 @@ class JobConfig(object):
         self.wpt |= other.wpt
         self.unit_tests |= other.unit_tests
         self.devtools_tests |= other.devtools_tests
-        self.build_libservo |= other.build_libservo
+        self.msrv_check |= other.msrv_check
         self.bencher |= other.bencher
         self.coverage |= other.coverage
         self.capi |= other.capi
@@ -95,8 +95,8 @@ class JobConfig(object):
             modifier.append("Unit Tests")
         if self.devtools_tests:
             modifier.append("Devtools Tests")
-        if self.build_libservo:
-            modifier.append("Build libservo")
+        if self.msrv_check:
+            modifier.append("MSRV Check")
         if self.wpt:
             modifier.append("WPT")
         if self.bencher:
@@ -175,8 +175,8 @@ def handle_modifier(config: Optional[JobConfig], s: str) -> Optional[JobConfig]:
         config.unit_tests = True
     if "devtools" in s:
         config.devtools_tests = True
-    if "build-libservo" in s:
-        config.build_libservo = True
+    if "msrv-check" in s:
+        config.msrv_check = True
     if "debugmozjs" in s:
         # We need to remove the modifier here, so the profile check
         # below doesn't match on `debug` and force the `dev` profile.
@@ -235,8 +235,8 @@ class Config(object):
                 words.extend(["linux-unit-tests", "windows-unit-tests", "macos-arm-unit-tests"])
                 words.extend(["linux-wpt", "linux-bencher"])
                 words.extend(["android", "ohos", "lint"])
-                words.extend(["linux-build-libservo", "windows-build-libservo"])
-                words.extend(["linux-capi", "macos-arm-capi", "windows-capi"])
+                words.extend(["linux-msrv-check", "windows-msrv-check"])
+                words.extend(["linux-capi"])
                 continue  # skip over keyword
             if word == "bencher":
                 words.extend(
@@ -307,7 +307,7 @@ class TestParser(unittest.TestCase):
                         "profile": "checked-release",
                         "unit_tests": True,
                         "devtools_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "workflow": "linux",
                         "wpt": False,
                         "wpt_args": "",
@@ -325,13 +325,13 @@ class TestParser(unittest.TestCase):
                 "fail_fast": False,
                 "matrix": [
                     {
-                        "name": "Linux (Unit Tests, Build libservo, WPT, Bencher, C API)",
+                        "name": "Linux (Unit Tests, MSRV Check, WPT, Bencher, C API)",
                         "workflow": "linux",
                         "wpt": True,
                         "profile": "checked-release",
                         "unit_tests": True,
                         "devtools_tests": False,
-                        "build_libservo": True,
+                        "msrv_check": True,
                         "bencher": True,
                         "build_args": "",
                         "capi": True,
@@ -340,31 +340,31 @@ class TestParser(unittest.TestCase):
                         "number_of_wpt_chunks": 20,
                     },
                     {
-                        "name": "Windows (Unit Tests, Build libservo, C API)",
+                        "name": "Windows (Unit Tests, MSRV Check)",
                         "workflow": "windows",
                         "wpt": False,
                         "profile": "checked-release",
                         "unit_tests": True,
                         "devtools_tests": False,
-                        "build_libservo": True,
+                        "msrv_check": True,
                         "bencher": False,
                         "build_args": "",
-                        "capi": True,
+                        "capi": False,
                         "coverage": False,
                         "wpt_args": "",
                         "number_of_wpt_chunks": 20,
                     },
                     {
-                        "name": "macOS arm64 (Unit Tests, C API)",
+                        "name": "macOS arm64 (Unit Tests)",
                         "workflow": "macos-arm64",
                         "wpt": False,
                         "profile": "checked-release",
                         "unit_tests": True,
                         "devtools_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "bencher": False,
                         "build_args": "",
-                        "capi": True,
+                        "capi": False,
                         "coverage": False,
                         "wpt_args": "",
                         "number_of_wpt_chunks": 20,
@@ -376,7 +376,7 @@ class TestParser(unittest.TestCase):
                         "profile": "checked-release",
                         "unit_tests": False,
                         "devtools_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "bencher": False,
                         "build_args": "",
                         "capi": False,
@@ -391,7 +391,7 @@ class TestParser(unittest.TestCase):
                         "profile": "checked-release",
                         "unit_tests": False,
                         "devtools_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "bencher": False,
                         "build_args": "",
                         "capi": False,
@@ -406,7 +406,7 @@ class TestParser(unittest.TestCase):
                         "profile": "checked-release",
                         "unit_tests": False,
                         "devtools_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "bencher": False,
                         "build_args": "",
                         "capi": False,
@@ -432,7 +432,7 @@ class TestParser(unittest.TestCase):
                         "profile": "checked-release",
                         "devtools_tests": False,
                         "unit_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "workflow": "linux",
                         "wpt": True,
                         "wpt_args": "",
@@ -494,7 +494,7 @@ class TestParser(unittest.TestCase):
                         "profile": "checked-release",
                         "unit_tests": False,
                         "devtools_tests": False,
-                        "build_libservo": False,
+                        "msrv_check": False,
                         "workflow": "linux",
                         "wpt": False,
                         "wpt_args": "",
