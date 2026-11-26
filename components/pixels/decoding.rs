@@ -285,7 +285,7 @@ pub(crate) fn decode_static_image(
         DynamicImage::ImageLumaA8(image) => image.into_vec(),
         DynamicImage::ImageRgb8(image) => image.into_vec(),
         DynamicImage::ImageRgba8(image) => image.into_vec(),
-        _ => dynamic_image.clone().into_rgba8().into_vec(),
+        _ => dynamic_image.into_rgba8().into_vec(),
     };
 
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
