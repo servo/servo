@@ -8,7 +8,7 @@ use std::sync::LazyLock;
 
 use dom_struct::dom_struct;
 use html5ever::local_name;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_arc::Arc;
 use servo_url::ServoUrl;
@@ -31,6 +31,8 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
+use crate::dom::htmloptgroupelement::HTMLOptGroupElement;
+use crate::dom::htmloptionelement::HTMLOptionElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::types::CSSFontFaceDescriptors;
 use crate::dom::window::Window;
@@ -40,6 +42,9 @@ use crate::dom::window::Window;
 pub(crate) struct CSSStyleDeclaration {
     reflector_: Reflector,
     owner: CSSStyleOwner,
+    /// Whether or not this is a read only style declaration. Read only declarations
+    /// are used for `getComputedStyle`, while writable ones are used for the `style`
+    /// accessors.
     readonly: bool,
     #[no_trace]
     pseudo: Option<PseudoElement>,
@@ -203,12 +208,12 @@ pub(crate) enum CSSModificationAccess {
 macro_rules! css_properties(
     ( $([$getter:ident, $setter:ident, $id:expr],)* ) => (
         $(
-            fn $getter(&self) -> DOMString {
+            fn $getter(&self, no_gc: &NoGC) -> DOMString {
                 debug_assert!(
                     $id.enabled_for_all_content(),
                     "Someone forgot a #[Pref] annotation"
                 );
-                self.get_property_value($id)
+                self.get_property_value(no_gc, $id)
             }
             fn $setter(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
                 debug_assert!(
@@ -272,6 +277,27 @@ impl CSSStyleDeclaration {
         )
     }
 
+    fn is_empty(&self, no_gc: &NoGC) -> bool {
+        match &self.owner {
+            CSSStyleOwner::Null => true,
+            CSSStyleOwner::Element(element) => {
+                if !self.readonly {
+                    return false;
+                }
+                let node = element.upcast::<Node>();
+                if node.is_in_flat_tree(no_gc) {
+                    return false;
+                }
+                // This is a workaround for https://github.com/servo/servo/issues/50248.
+                // `<option>` and `<optgroup>` are always considered part of the tree
+                // for `getComputedStyle` when they are connected.
+                !node.is_connected() ||
+                    (!node.is::<HTMLOptionElement>() && !node.is::<HTMLOptGroupElement>())
+            },
+            CSSStyleOwner::CSSRule(..) => false,
+        }
+    }
+
     pub(crate) fn update_property_declaration_block(
         &self,
         pdb: &Arc<Locked<PropertyDeclarationBlock>>,
@@ -283,16 +309,16 @@ impl CSSStyleDeclaration {
         }
     }
 
-    fn get_computed_style(&self, property: PropertyId) -> DOMString {
+    fn get_computed_style(&self, no_gc: &NoGC, property: PropertyId) -> DOMString {
         match self.owner {
             CSSStyleOwner::CSSRule(..) => {
                 panic!("get_computed_style called on CSSStyleDeclaration with a CSSRule owner")
             },
-            CSSStyleOwner::Element(ref el) => {
-                let node = el.upcast::<Node>();
-                if !node.is_connected() {
+            CSSStyleOwner::Element(ref element) => {
+                if self.is_empty(no_gc) {
                     return DOMString::new();
                 }
+                let node = element.upcast::<Node>();
                 let addr = node.to_trusted_node_address();
                 node.owner_window()
                     .resolved_style_query(addr, self.pseudo, property)
@@ -301,14 +327,14 @@ impl CSSStyleDeclaration {
         }
     }
 
-    fn get_property_value(&self, id: PropertyId) -> DOMString {
+    fn get_property_value(&self, no_gc: &NoGC, id: PropertyId) -> DOMString {
         if matches!(self.owner, CSSStyleOwner::Null) {
             return DOMString::new();
         }
 
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
-            return self.get_computed_style(id);
+            return self.get_computed_style(no_gc, id);
         }
 
         let mut string = String::new();
@@ -460,8 +486,8 @@ enum PotentiallyParsedPropertyId {
 
 impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-length>
-    fn Length(&self) -> u32 {
-        if matches!(self.owner, CSSStyleOwner::Null) {
+    fn Length(&self, no_gc: &NoGC) -> u32 {
+        if self.is_empty(no_gc) {
             return 0;
         }
 
@@ -474,19 +500,19 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-item>
-    fn Item(&self, index: u32) -> DOMString {
-        self.IndexedGetter(index).unwrap_or_default()
+    fn Item(&self, no_gc: &NoGC, index: u32) -> DOMString {
+        self.IndexedGetter(no_gc, index).unwrap_or_default()
     }
 
     /// <https://dev.w3.org/csswg/cssom/#dom-cssstyledeclaration-getpropertyvalue>
-    fn GetPropertyValue(&self, property: DOMString) -> DOMString {
+    fn GetPropertyValue(&self, no_gc: &NoGC, property: DOMString) -> DOMString {
         if let Some(css_font_face_descriptors) = self.downcast::<CSSFontFaceDescriptors>() {
             css_font_face_descriptors.get_property_value(&property.str())
         } else {
             let Ok(id) = PropertyId::parse_enabled_for_all_content(&property.str()) else {
                 return DOMString::new();
             };
-            self.get_property_value(id)
+            self.get_property_value(no_gc, id)
         }
     }
 
@@ -558,7 +584,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-parentrule>
-    fn GetParentRule(&self) -> Option<DomRoot<CSSRule>> {
+    fn GetParentRule(&self, _: &NoGC) -> Option<DomRoot<CSSRule>> {
         if let CSSStyleOwner::CSSRule(rule, _) = &self.owner {
             Some(rule.as_rooted())
         } else {
@@ -567,8 +593,8 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
-    fn CssFloat(&self) -> DOMString {
-        self.get_property_value(PropertyId::NonCustom(LonghandId::Float.into()))
+    fn CssFloat(&self, no_gc: &NoGC) -> DOMString {
+        self.get_property_value(no_gc, PropertyId::NonCustom(LonghandId::Float.into()))
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyleproperties-cssfloat>
@@ -582,8 +608,8 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://dev.w3.org/csswg/cssom/#the-cssstyledeclaration-interface>
-    fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
-        if matches!(self.owner, CSSStyleOwner::Null) {
+    fn IndexedGetter(&self, no_gc: &NoGC, index: u32) -> Option<DOMString> {
+        if self.is_empty(no_gc) {
             return None;
         }
         if self.readonly {
@@ -599,7 +625,7 @@ impl CSSStyleDeclarationMethods<crate::DomTypeHolder> for CSSStyleDeclaration {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstyledeclaration-csstext>
-    fn CssText(&self) -> DOMString {
+    fn CssText(&self, _: &NoGC) -> DOMString {
         if self.readonly {
             // Readonly style declarations are used for getComputedStyle.
             return DOMString::new();

@@ -366,7 +366,7 @@ pub(crate) fn handle_get_children(
                 return false;
             };
             let computed_style = window.GetComputedStyle(cx, elem, None);
-            let display = computed_style.Display();
+            let display = computed_style.Display(cx.no_gc());
             display == "inline"
         })
         .collect();
@@ -629,7 +629,9 @@ pub(crate) fn handle_get_stylesheet_style(
         let style_rule = find_rule_by_block_id(cx, &list, matched_rule.block_id)?;
         let declaration = style_rule.Style(cx);
 
-        Some(node_styles_from_css_text(&declaration.CssText().str()))
+        Some(node_styles_from_css_text(
+            &declaration.CssText(cx.no_gc()).str(),
+        ))
     })();
 
     reply.send(msg).unwrap();
@@ -653,11 +655,11 @@ pub(crate) fn handle_get_computed_style(
         .expect("This should be an element");
     let computed_style = window.GetComputedStyle(cx, elem, None);
 
-    let msg = (0..computed_style.Length())
+    let msg = (0..computed_style.Length(cx.no_gc()))
         .map(|i| {
-            let name = computed_style.Item(i);
+            let name = computed_style.Item(cx.no_gc(), i);
             NodeStyle {
-                value: String::from(computed_style.GetPropertyValue(name.clone())),
+                value: String::from(computed_style.GetPropertyValue(cx.no_gc(), name.clone())),
                 priority: String::from(computed_style.GetPropertyPriority(name.clone())),
                 name: String::from(name),
             }
@@ -690,22 +692,22 @@ pub(crate) fn handle_get_layout(
     let window = node.owner_window();
     let computed_style = window.GetComputedStyle(cx, element, None);
     let computed_layout = ComputedNodeLayout {
-        display: computed_style.Display().into(),
-        position: computed_style.Position().into(),
-        z_index: computed_style.ZIndex().into(),
-        box_sizing: computed_style.BoxSizing().into(),
-        margin_top: computed_style.MarginTop().into(),
-        margin_right: computed_style.MarginRight().into(),
-        margin_bottom: computed_style.MarginBottom().into(),
-        margin_left: computed_style.MarginLeft().into(),
-        border_top_width: computed_style.BorderTopWidth().into(),
-        border_right_width: computed_style.BorderRightWidth().into(),
-        border_bottom_width: computed_style.BorderBottomWidth().into(),
-        border_left_width: computed_style.BorderLeftWidth().into(),
-        padding_top: computed_style.PaddingTop().into(),
-        padding_right: computed_style.PaddingRight().into(),
-        padding_bottom: computed_style.PaddingBottom().into(),
-        padding_left: computed_style.PaddingLeft().into(),
+        display: computed_style.Display(cx.no_gc()).into(),
+        position: computed_style.Position(cx.no_gc()).into(),
+        z_index: computed_style.ZIndex(cx.no_gc()).into(),
+        box_sizing: computed_style.BoxSizing(cx.no_gc()).into(),
+        margin_top: computed_style.MarginTop(cx.no_gc()).into(),
+        margin_right: computed_style.MarginRight(cx.no_gc()).into(),
+        margin_bottom: computed_style.MarginBottom(cx.no_gc()).into(),
+        margin_left: computed_style.MarginLeft(cx.no_gc()).into(),
+        border_top_width: computed_style.BorderTopWidth(cx.no_gc()).into(),
+        border_right_width: computed_style.BorderRightWidth(cx.no_gc()).into(),
+        border_bottom_width: computed_style.BorderBottomWidth(cx.no_gc()).into(),
+        border_left_width: computed_style.BorderLeftWidth(cx.no_gc()).into(),
+        padding_top: computed_style.PaddingTop(cx.no_gc()).into(),
+        padding_right: computed_style.PaddingRight(cx.no_gc()).into(),
+        padding_bottom: computed_style.PaddingBottom(cx.no_gc()).into(),
+        padding_left: computed_style.PaddingLeft(cx.no_gc()).into(),
         width,
         height,
     };
