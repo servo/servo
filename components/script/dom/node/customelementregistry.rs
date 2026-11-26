@@ -1396,11 +1396,7 @@ impl CustomElementReactionStack {
             },
             CallbackReaction::AttributeChanged(local_name, old_val, val, namespace) => {
                 // Step 5.
-                if !definition
-                    .observed_attributes
-                    .iter()
-                    .any(|attr| *attr == local_name)
-                {
+                if !definition.observed_attributes.contains(&local_name) {
                     return;
                 }
 
