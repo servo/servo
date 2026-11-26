@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -313,15 +314,21 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
             let granted_features = init.validate(mode, &supported_features)?;
             let context_menu_provider = self.context_menu_provider.take();
             let painter_id = init.painter_id;
-            xr.spawn(move |grand_manager| {
+            let session_active = self.poller.session_active.clone();
+            let result = xr.spawn(move |grand_manager| {
                 OpenXrDevice::new(
                     instance,
                     granted_features,
                     context_menu_provider,
                     grand_manager,
                     painter_id,
+                    session_active,
                 )
-            })
+            });
+            self.poller
+                .session_active
+                .store(result.is_ok(), Ordering::Relaxed);
+            result
         } else {
             Err(Error::NoMatchingDevice)
         }
@@ -374,6 +381,7 @@ impl DiscoveryAPI<SurfmanGL> for OpenXrDiscovery {
 
 struct OpenXrDevice {
     session: Arc<Session<Backend>>,
+    session_active: Arc<AtomicBool>,
     instance: Instance,
     events: EventBuffer,
     frame_waiter: FrameWaiter,
@@ -854,6 +862,7 @@ impl OpenXrDevice {
         context_menu_provider: Option<Box<dyn ContextMenuProvider>>,
         grand_manager: LayerGrandManager<SurfmanGL>,
         painter_id: PainterId,
+        session_active: Arc<AtomicBool>,
     ) -> Result<OpenXrDevice, Error> {
         let CreatedInstance {
             instance,
@@ -1067,6 +1076,7 @@ impl OpenXrDevice {
             instance,
             events: Default::default(),
             session,
+            session_active,
             frame_waiter,
             viewer_space,
             clip_planes: Default::default(),
@@ -1485,6 +1495,7 @@ impl DeviceAPI for OpenXrDevice {
         // We clear this data to remove the outstanding reference to XrSpace,
         // which keeps other OpenXR objects alive.
         *self.shared_data.lock().unwrap() = None;
+        self.session_active.store(false, Ordering::Relaxed);
     }
 
     fn set_quitter(&mut self, _: Quitter) {
