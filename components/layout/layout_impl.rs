@@ -850,6 +850,7 @@ impl Layout for LayoutThread {
         self.pending_accessibility_actions
             .borrow_mut()
             .push(action_request);
+        self.set_force_accessibility_update_if_active();
     }
 
     fn font_context(&self) -> &Arc<FontContext> {
