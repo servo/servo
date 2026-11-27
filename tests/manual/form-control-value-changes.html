@@ -1,0 +1,64 @@
+<style>
+    .set {
+        display: inline-block;
+        margin: 5px;
+        padding: 5px;
+        vertical-align: top;
+        border: 1px solid grey;
+    }
+
+    .group {
+        display: inline-block;
+        margin: 5px;
+        padding: 5px;
+        vertical-align: top;
+        border: 1px solid grey;
+    }
+
+    input[type=text] {
+        width: 200px;
+    }
+</style>
+
+<div class="group">
+    <div class="set">
+        <input type="text" id="content"></input><span id="text-value-output"></span><br>
+        <input type="text" id="attr"></input><span id="text-attr-value-output"></span><br>
+        <input type="text" id="both"></input><span id="text-both-value-output"></span><br>
+    </div>
+</div>
+
+<button>Clone all text inputs</button>
+
+<script>
+    const contentInput = document.getElementById('content');
+    const contentOutput = document.getElementById('text-value-output');
+    contentInput.value = "Here is some text via IDL setter";
+
+    contentInput.addEventListener('input', () => {
+        contentOutput.innerText = contentInput.value;
+    });
+
+    const attrInput = document.getElementById('attr');
+    const attrOutput = document.getElementById('text-attr-value-output');
+    attrInput.setAttribute('value', "Here is some text via attribute");
+
+    attrInput.addEventListener('input', () => {
+        attrOutput.innerText = attrInput.value;
+    });
+
+    const bothInput = document.getElementById('both');
+    const bothOutput = document.getElementById('text-both-value-output');
+    bothInput.setAttribute('value', "Here is some text via attribute");
+    bothInput.value = "Here is some text via IDL setter";
+
+    bothInput.addEventListener('input', () => {
+        bothOutput.innerText = bothInput.value;
+    });
+
+    document.querySelector('button').addEventListener('click', () => {
+        for (const element of [contentInput, attrInput, bothInput]) {
+            element.parentNode.insertBefore(element.cloneNode(), element.nextSibling);
+        }
+    });
+</script>

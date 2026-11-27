@@ -139,6 +139,8 @@ pub(crate) struct HTMLInputElement {
     pending_webdriver_response: RefCell<Option<Box<PendingWebDriverResponse>>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
     value_dirty: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-fe-value>
+    internal_value: DomRefCell<TracedDOMString>,
     /// <https://html.spec.whatwg.org/multipage/#user-validity>
     user_validity: Cell<bool>,
     changed_by_user_while_focused: Cell<bool>,
@@ -198,6 +200,7 @@ impl HTMLInputElement {
                 },
             )),
             value_dirty: Cell::new(false),
+            internal_value: Default::default(),
             user_validity: Cell::new(false),
             changed_by_user_while_focused: Cell::new(false),
             form_owner: Default::default(),
@@ -1036,23 +1039,24 @@ impl HTMLInputElement {
         match self.value_mode() {
             ValueMode::Value => {
                 {
+                    // Step 1. Let oldValue be the element's value.
+                    let old_value = self.internal_value.borrow().clone().root();
+
                     // Step 3. Set the element's dirty value flag to true.
                     self.value_dirty.set(true);
 
+                    // Step 2. Set the element's value to the new value.
                     // Step 4. Invoke the value sanitization algorithm, if the element's type
                     // attribute's current state defines one.
                     self.sanitize_value(&mut value);
-
-                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
 
                     // Step 5. If the element's value (after applying the value sanitization algorithm)
                     // is different from oldValue, and the element has a text entry cursor position,
                     // move the text entry cursor position to the end of the text control,
                     // unselecting any selected text and resetting the selection direction to "none".
-                    if text_input.get_content() != value {
-                        // Step 2. Set the element's value to the new value.
+                    if old_value != value {
+                        let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
                         text_input.set_content(value);
-
                         text_input.clear_selection_to_end();
                     }
                 }
@@ -1089,6 +1093,14 @@ impl HTMLInputElement {
     pub(crate) fn set_checked(&self, cx: &mut JSContext, checked: bool, changed_by_user: bool) {
         self.update_checkedness(cx, checked, true);
         self.value_changed(cx, changed_by_user);
+    }
+
+    pub(crate) fn set_internal_value(&self, value: DOMString) {
+        *self.internal_value.borrow_mut() = value.traced();
+    }
+
+    pub(crate) fn internal_value(&self) -> TracedDOMString {
+        self.internal_value.borrow().clone()
     }
 }
 
@@ -1251,6 +1263,8 @@ impl TextControlElement for HTMLInputElement {
     }
 
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
+        *self.internal_value.safe_borrow_mut(cx.no_gc()) =
+            self.text_input.borrow().get_content().traced();
         self.update_placeholder_shown_state(cx.no_gc());
         self.upcast::<Node>()
             .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
@@ -1264,8 +1278,7 @@ impl TextControlElement for HTMLInputElement {
             KeyReaction::DispatchInput(text, input_type) => {
                 self.queue_input_event(text, input_type);
                 self.value_dirty.set(true);
-                self.update_placeholder_shown_state(cx.no_gc());
-                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+                self.handle_text_content_changed(cx);
                 self.maybe_update_shared_selection();
             },
             KeyReaction::RedrawSelection => {
@@ -1408,7 +1421,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
     fn Value(&self) -> DOMString {
         match self.value_mode() {
-            ValueMode::Value => self.text_input.borrow().get_content(),
+            ValueMode::Value => self.internal_value.borrow().clone().root(),
             ValueMode::Default => self
                 .upcast::<Element>()
                 .get_attribute_string_value(&local_name!("value"))
@@ -2212,9 +2225,7 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.text_input
-            .safe_borrow_mut(cx.no_gc())
-            .set_content(DOMString::new());
+        *self.internal_value.borrow_mut() = Default::default();
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
@@ -2227,9 +2238,9 @@ impl HTMLInputElement {
         // Step 5. Invoke the value sanitization algorithm iff the type attribute's
         // current state defines one.
         {
-            let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
-            let mut value = text_input.get_content();
+            let mut value = Default::default();
             self.sanitize_value(&mut value);
+            let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
             text_input.set_content(value);
         }
 
@@ -2274,6 +2285,7 @@ impl HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
     fn sanitize_value(&self, value: &mut DOMString) {
         self.input_type().as_specific().sanitize_value(self, value);
+        *self.internal_value.borrow_mut() = value.clone().traced();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#implicit-submission>
@@ -2869,6 +2881,7 @@ impl VirtualMethods for HTMLInputElement {
             s.cloning_steps(cx, copy, maybe_doc, clone_children);
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
+        *elem.internal_value.borrow_mut() = self.internal_value.borrow().clone();
         elem.value_dirty.set(self.value_dirty.get());
         elem.update_checkedness(cx, self.Checked(), false);
         elem.checked_changed.set(self.checked_changed.get());
