@@ -357,6 +357,35 @@ impl DocumentEventHandler {
         }
     }
 
+    /// Reply to the embedder for pending input events that will never be dispatched.
+    pub(crate) fn notify_embedder_of_undispatched_input_events(&self) {
+        let pending_input_events = mem::take(&mut *self.pending_input_events.borrow_mut());
+        let coalesced_mouse_move_event_ids =
+            mem::take(&mut *self.coalesced_mouse_move_event_ids.borrow_mut());
+        let coalesced_wheel_event_ids =
+            mem::take(&mut *self.coalesced_wheel_event_ids.borrow_mut());
+
+        let outcomes: Vec<_> = pending_input_events
+            .iter()
+            .map(|event| event.event.id)
+            .chain(coalesced_mouse_move_event_ids)
+            .chain(coalesced_wheel_event_ids)
+            .map(|id| InputEventOutcome {
+                id,
+                result: InputEventResult::DispatchFailed,
+            })
+            .collect();
+
+        if outcomes.is_empty() {
+            return;
+        }
+        self.window
+            .send_to_embedder(EmbedderMsg::InputEventsHandled(
+                self.window.webview_id(),
+                outcomes,
+            ));
+    }
+
     pub(crate) fn handle_pending_input_events(&self, cx: &mut JSContext) {
         debug_assert!(
             !self.pending_input_events.borrow().is_empty(),

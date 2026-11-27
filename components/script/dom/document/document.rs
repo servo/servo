@@ -1165,6 +1165,13 @@ impl Document {
             return;
         }
 
+        if activity == DocumentActivity::Inactive {
+            // This document is no longer the active document of its browsing context, so
+            // "update the rendering" will never dispatch its pending input events.
+            self.event_handler()
+                .notify_embedder_of_undispatched_input_events();
+        }
+
         // Set the document's activity level, reflow if necessary, and suspend or resume timers.
         self.activity.set(activity);
         let media = ServoMedia::get();
