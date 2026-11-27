@@ -1906,7 +1906,8 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         || None, /* ratio_dependent_block_size */
     );
 
-    // Make the block size definite so children can resolve block percentages against it.
+    // If there is a preferred aspect ratio, adjust `tentative_block_size` for margin collapse
+    // purposes, and `block_size_for_children` so that children can resolve block percentages.
     if let Some(ratio_dependent_block_size) =
         compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size)
     {
@@ -1919,8 +1920,6 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             is_table,
             || Some(ratio_dependent_block_size),
         ));
-        // A block size that is definite due to the aspect ratio
-        // doesn't allow margins to collapse through the box.
         tentative_block_size = block_size_for_children;
     }
 
