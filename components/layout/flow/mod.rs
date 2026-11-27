@@ -1922,6 +1922,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         // TODO: Should we override `has_quirky_block_size` mode to false?
         // It seems only Blink does, while WebKit doesn't.
         // See https://github.com/servo/servo/pull/50247#issuecomment-7208906274
+        has_quirky_block_size = false;
     }
 
     let containing_block_for_children = ContainingBlock {
