@@ -3297,6 +3297,7 @@ impl ScriptThread {
                     let browsing_context_id = window.window_proxy().browsing_context_id();
                     window.discard_browsing_context();
                     self.window_proxies.remove(browsing_context_id);
+                    #[cfg(feature = "devtools")]
                     if let Some(ref chan) = self.senders.devtools_server_sender {
                         let _ = chan.send(ScriptToDevtoolsControlMsg::BrowsingContextDiscarded(
                             browsing_context_id,
