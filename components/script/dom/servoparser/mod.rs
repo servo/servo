@@ -976,8 +976,6 @@ pub(crate) struct ParserContext {
     pipeline_id: PipelineId,
     /// The URL for this document.
     url: ServoUrl,
-    /// The buffer index of the navigation timing entry.
-    pushed_entry_index: Option<usize>,
     /// params required in document load algorithms
     navigation_params: NavigationParams,
     /// To report CSP violations to the global that initiated the navigation
@@ -1010,7 +1008,6 @@ impl ParserContext {
             pipeline_id,
             url,
             parent_info,
-            pushed_entry_index: None,
             navigation_params: NavigationParams {
                 policy_container: Default::default(),
                 content_type: None,
@@ -1358,12 +1355,10 @@ impl ParserContext {
         let document = &parser.document;
 
         let performance_entry = PerformanceNavigationTiming::new(cx, &document.global(), document);
-        self.pushed_entry_index = Some(
-            document
-                .global()
-                .performance(cx)
-                .add_navigation_entry(performance_entry.upcast::<PerformanceEntry>()),
-        );
+        document
+            .global()
+            .performance(cx)
+            .add_navigation_entry(performance_entry.upcast::<PerformanceEntry>());
     }
 
     fn finish_synchronous_load_for_initial_about_blank(
@@ -1709,16 +1704,6 @@ impl ParserContext {
             // and navigationParams's response's body info.
             full_timing_info.redirect_count = redirect_count;
             document.set_resource_fetch_timing(full_timing_info);
-        }
-
-        // TODO: Only update if this is the current document resource.
-        if let Some(pushed_index) = self.pushed_entry_index {
-            let performance_entry =
-                PerformanceNavigationTiming::new(cx, &document.global(), &document);
-            document
-                .global()
-                .performance(cx)
-                .update_entry(pushed_index, performance_entry.upcast::<PerformanceEntry>());
         }
 
         if let Some(parser) = parser {
