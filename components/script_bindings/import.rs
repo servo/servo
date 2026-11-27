@@ -119,7 +119,9 @@ pub(crate) mod module {
     pub(crate) use crate::iterable::{Iterable, IterableIterator, IteratorType};
     pub(crate) use crate::js::{JS_DefineProperty, JS_GetProperty, PropertyFlags};
     pub(crate) use crate::like::{Maplike, Setlike};
-    pub(crate) use crate::mem::malloc_size_of_including_raw_self;
+    pub(crate) use crate::mem::{
+        malloc_size_of_including_raw_self, malloc_size_of_including_raw_self_in_rc,
+    };
     pub(crate) use crate::namespace::NamespaceObjectClass;
     pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
     #[cfg(feature = "testbinding")]
