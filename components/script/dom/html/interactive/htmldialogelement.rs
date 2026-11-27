@@ -79,9 +79,9 @@ impl HTMLDialogElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLDialogElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLDialogElement::new_inherited(
+            Rc::new(HTMLDialogElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

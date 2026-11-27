@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
@@ -49,9 +51,9 @@ impl HTMLFontElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLFontElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
+            Rc::new(HTMLFontElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

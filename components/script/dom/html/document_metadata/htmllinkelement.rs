@@ -5,6 +5,7 @@
 use std::borrow::{Borrow, ToOwned};
 use std::cell::Cell;
 use std::default::Default;
+use std::rc::Rc;
 use std::str::FromStr;
 
 use bytes::BytesMut;
@@ -148,9 +149,9 @@ impl HTMLLinkElement {
         proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLLinkElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLLinkElement::new_inherited(
+            Rc::new(HTMLLinkElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,

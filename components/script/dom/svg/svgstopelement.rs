@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::rc::Rc;
+
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
@@ -42,9 +44,9 @@ impl SVGStopElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<SVGStopElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(SVGStopElement::new_inherited(local_name, prefix, document)),
+            Rc::new(SVGStopElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

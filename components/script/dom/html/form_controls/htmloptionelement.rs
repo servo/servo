@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::convert::TryInto;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -85,9 +86,9 @@ impl HTMLOptionElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLOptionElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLOptionElement::new_inherited(
+            Rc::new(HTMLOptionElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

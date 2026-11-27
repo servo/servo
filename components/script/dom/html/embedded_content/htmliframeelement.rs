@@ -749,9 +749,9 @@ impl HTMLIFrameElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLIFrameElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLIFrameElement::new_inherited(
+            Rc::new(HTMLIFrameElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

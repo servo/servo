@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 
 use atomic_refcell::AtomicRefCell;
 use base64::Engine as _;
@@ -74,9 +75,9 @@ impl SVGSVGElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<SVGSVGElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
+            Rc::new(SVGSVGElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

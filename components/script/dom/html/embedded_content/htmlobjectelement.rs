@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::default::Default;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
@@ -58,9 +59,9 @@ impl HTMLObjectElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLObjectElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLObjectElement::new_inherited(
+            Rc::new(HTMLObjectElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

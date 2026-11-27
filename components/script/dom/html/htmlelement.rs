@@ -170,9 +170,9 @@ impl HTMLElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLElement::new_inherited(local_name, prefix, document)),
+            Rc::new(HTMLElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

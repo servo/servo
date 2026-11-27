@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::default::Default;
+use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
@@ -80,9 +81,9 @@ impl HTMLButtonElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLButtonElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLButtonElement::new_inherited(
+            Rc::new(HTMLButtonElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
@@ -1318,9 +1319,9 @@ impl HTMLImageElement {
         proto: Option<HandleObject>,
         creator: ElementCreator,
     ) -> DomRoot<HTMLImageElement> {
-        let image_element = Node::reflect_node_with_proto(
+        let image_element = Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLImageElement::new_inherited(
+            Rc::new(HTMLImageElement::new_inherited(
                 local_name, prefix, document, creator,
             )),
             document,

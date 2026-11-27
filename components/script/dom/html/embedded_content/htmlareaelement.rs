@@ -4,6 +4,7 @@
 
 use std::cell::Cell;
 use std::default::Default;
+use std::rc::Rc;
 use std::{f32, str};
 
 use cssparser::match_ignore_ascii_case;
@@ -292,9 +293,9 @@ impl HTMLAreaElement {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<HTMLAreaElement> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
+            Rc::new(HTMLAreaElement::new_inherited(local_name, prefix, document)),
             document,
             proto,
         )

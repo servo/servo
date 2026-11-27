@@ -361,9 +361,9 @@ impl Element {
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<Element> {
-        Node::reflect_node_with_proto(
+        Node::reflect_weak_referenceable_node_with_proto(
             cx,
-            Box::new(Element::new_inherited(
+            Rc::new(Element::new_inherited(
                 local_name, namespace, prefix, document,
             )),
             document,
