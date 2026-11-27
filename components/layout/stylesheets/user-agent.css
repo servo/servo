@@ -1,4 +1,26 @@
 @namespace url(http://www.w3.org/1999/xhtml);
+@namespace math url(http://www.w3.org/1998/Math/MathML);
+
+/* https://w3c.github.io/mathml-core/#user-agent-stylesheet
+ * Servo doesn't implement MathML math layout yet, so `block math` would render
+ * MathML content as stacked block boxes. Use `inline math` instead to keep math
+ * content rendering inline until math layout is implemented. */
+math|* {
+  display: inline math;
+}
+math|math[display="block" i] {
+  display: block math;
+}
+/* <mtable>/<mtr>/<mtd> use native CSS table layout. */
+math|mtable {
+  display: inline-table;
+}
+math|mtr {
+  display: table-row;
+}
+math|mtd {
+  display: table-cell;
+}
 
 /* https://html.spec.whatwg.org/multipage#hidden-elements */
 area, base, basefont, datalist, head, link, meta, noembed,
