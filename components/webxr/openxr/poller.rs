@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -19,6 +20,7 @@ pub struct OpenXRDevicePoller {
     device_receiver: GenericReceiver<Option<(u64, String)>>,
     shutdown_sender: GenericSender<()>,
     waker: Arc<Mutex<Option<GenericCallback<()>>>>,
+    pub session_active: Arc<AtomicBool>,
 }
 
 impl OpenXRDevicePoller {
@@ -29,6 +31,8 @@ impl OpenXRDevicePoller {
             generic_channel::channel().expect("Failed to create generic channel!");
         let waker: Arc<Mutex<Option<GenericCallback<()>>>> = Arc::new(Mutex::new(None));
         let thread_waker = waker.clone();
+        let session_active = Arc::new(AtomicBool::new(false));
+        let thread_session_active = session_active.clone();
         let handle = std::thread::spawn(move || {
             let app_info = AppInfo {
                 application_name: "XR Device Poll".to_string(),
@@ -39,6 +43,10 @@ impl OpenXRDevicePoller {
                 match shutdown_receiver.try_recv_timeout(Duration::from_secs(5)) {
                     Ok(()) => break,
                     Err(TryReceiveError::Empty) => {
+                        if thread_session_active.load(Ordering::Relaxed) {
+                            continue;
+                        }
+
                         let device = openxr_device_check(&app_info);
                         let _ = device_sender.send(device);
 
@@ -59,6 +67,7 @@ impl OpenXRDevicePoller {
             device_receiver,
             shutdown_sender,
             waker,
+            session_active,
         }
     }
 
@@ -81,6 +90,7 @@ impl OpenXRDevicePoller {
 impl Drop for OpenXRDevicePoller {
     fn drop(&mut self) {
         let _ = self.shutdown_sender.send(());
+        self.session_active.store(false, Ordering::Relaxed);
         if let Some(handle) = self.handle.take() {
             let _ = handle.join().map_err(|e| {
                 warn!(
