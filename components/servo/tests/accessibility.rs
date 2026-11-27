@@ -1272,6 +1272,111 @@ fn test_accessibility_display_none_change_scroll() {
 }
 
 #[test]
+fn test_accessibility_a_element_with_href_mapping_static() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <a href='about:blank'>this is a link</a>";
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let anchor = find_first_matching_node(root, |node| node.data().html_tag() == Some("a"))
+        .expect("Should be one <a> element");
+
+    assert_eq!(anchor.role(), Role::Link);
+    assert_eq!(anchor.url(), Some("about:blank"));
+    assert_eq!(anchor.data().supports_action(Action::Click), true);
+    assert_eq!(anchor.data().supports_action(Action::Focus), true);
+    assert_eq!(anchor.data().supports_action(Action::Blur), true);
+}
+
+#[test]
+fn test_accessibility_a_element_with_no_href_mapping_static() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <a>ceci n'est pas un lien</a>";
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
+
+    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let anchor = find_first_matching_node(root, |node| node.data().html_tag() == Some("a"))
+        .expect("Should be one <a> element");
+
+    assert_eq!(anchor.role(), Role::GenericContainer);
+    assert_eq!(anchor.url(), None);
+    assert_eq!(anchor.data().supports_action(Action::Click), false);
+    assert_eq!(anchor.data().supports_action(Action::Focus), false);
+    assert_eq!(anchor.data().supports_action(Action::Blur), false);
+}
+
+#[test]
+fn test_accessibility_a_element_dynamic() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <a id='a'>banana</a>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    {
+        let root = assert_tree_structure_and_get_root_web_area(&tree);
+        let anchor = find_first_matching_node(root, |node| node.data().html_tag() == Some("a"))
+            .expect("Should be one <a> element");
+
+        assert_eq!(anchor.role(), Role::GenericContainer);
+        assert_eq!(anchor.url(), None);
+        assert_eq!(anchor.data().supports_action(Action::Click), false);
+        assert_eq!(anchor.data().supports_action(Action::Focus), false);
+        assert_eq!(anchor.data().supports_action(Action::Blur), false);
+    }
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "a.href = 'about:blank';");
+
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 1);
+
+    {
+        let root = assert_tree_structure_and_get_root_web_area(&tree);
+        let anchor = find_first_matching_node(root, |node| node.data().html_tag() == Some("a"))
+            .expect("Should be one <a> element");
+
+        assert_eq!(anchor.role(), Role::Link);
+        assert_eq!(anchor.url(), Some("about:blank"));
+        assert_eq!(anchor.data().supports_action(Action::Click), true);
+        assert_eq!(anchor.data().supports_action(Action::Focus), true);
+        assert_eq!(anchor.data().supports_action(Action::Blur), true);
+    }
+
+    let _ = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "a.href = 'https://servo.org';",
+    );
+
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 1);
+
+    {
+        let root = assert_tree_structure_and_get_root_web_area(&tree);
+        let anchor = find_first_matching_node(root, |node| node.data().html_tag() == Some("a"))
+            .expect("Should be one <a> element");
+
+        assert_eq!(anchor.role(), Role::Link);
+        assert_eq!(anchor.url(), Some("https://servo.org"));
+        assert_eq!(anchor.data().supports_action(Action::Click), true);
+        assert_eq!(anchor.data().supports_action(Action::Focus), true);
+        assert_eq!(anchor.data().supports_action(Action::Blur), true);
+    }
+
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "a.removeAttribute('href');");
+
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 1);
+
+    {
+        let root = assert_tree_structure_and_get_root_web_area(&tree);
+        let anchor = find_first_matching_node(root, |node| node.data().html_tag() == Some("a"))
+            .expect("Should be one <a> element");
+
+        assert_eq!(anchor.role(), Role::GenericContainer);
+        assert_eq!(anchor.url(), None);
+        assert_eq!(anchor.data().supports_action(Action::Click), false);
+        assert_eq!(anchor.data().supports_action(Action::Focus), false);
+        assert_eq!(anchor.data().supports_action(Action::Blur), false);
+    }
+}
+
+#[test]
 fn test_accessibility_click_link() {
     let url = "data:text/html,<!DOCTYPE html>\
                <a id='link' href='data:text/html,just%20a%20text%20node'>this is a link</a>";
