@@ -85,12 +85,12 @@ pub trait ProcessingInstruction {
 pub trait Document {
     type Node: Node<Document = Self>;
 
-    /// Return an iterator over elements with the given ID in tree order.
-    fn get_elements_with_id(
+    /// Return the first element with the given ID in tree order, if any.
+    fn get_element_by_id(
         &self,
         cx: &mut <Self::Node as Node>::Context,
         id: &str,
-    ) -> impl Iterator<Item = <Self::Node as Node>::Element>;
+    ) -> Option<<Self::Node as Node>::Element>;
 }
 
 pub trait Element {
@@ -282,12 +282,8 @@ mod dummy_implementation {
     impl Document for DummyDocument {
         type Node = DummyNode;
 
-        fn get_elements_with_id(
-            &self,
-            _: &mut (),
-            _: &str,
-        ) -> impl Iterator<Item = <Self::Node as Node>::Element> {
-            iter::empty()
+        fn get_element_by_id(&self, _: &mut (), _: &str) -> Option<<Self::Node as Node>::Element> {
+            None
         }
     }
 

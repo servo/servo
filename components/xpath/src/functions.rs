@@ -193,11 +193,14 @@ impl CoreFunction {
                 // > of applying id to the string-value of each of the nodes in the argument node-set.
                 let mut extend_result_with_matching_nodes = |cx: &mut D::Context, input: &str| {
                     for id in normalize_space(input).split(' ') {
-                        result.extend(
-                            document
-                                .get_elements_with_id(cx, id)
-                                .map(|element| element.as_node()),
-                        );
+                        // https://www.w3.org/TR/1999/REC-xpath-19991116/#unique-id
+                        // > If an XML processor reports two elements in a document as having the
+                        // > same unique ID (which is possible only if the document is invalid) then
+                        // > the second element in document order must be treated as not having a
+                        // > unique ID.
+                        if let Some(element) = document.get_element_by_id(cx, id) {
+                            result.push(element.as_node());
+                        }
                     }
                 };
 
