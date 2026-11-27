@@ -578,7 +578,7 @@ impl DocumentEventHandler {
             self.current_cursor.set(None);
         }
 
-        self.window.Document().embedder_controls().hide_tooltip();
+        self.hide_alt_image_tooltip();
 
         self.current_hover_target.set(None);
         self.most_recent_mousemove_point.set(None);
@@ -953,6 +953,7 @@ impl DocumentEventHandler {
             current.and_then(|element| element.downcast::<HTMLImageElement>()),
             self.most_recent_mousemove_point.get(),
         ) else {
+            *last_tooltip = None;
             embedder_controls.hide_tooltip();
             return;
         };
@@ -964,6 +965,11 @@ impl DocumentEventHandler {
             image_element.upcast::<HTMLElement>(),
             point.cast_unit(),
         );
+    }
+
+    fn hide_alt_image_tooltip(&self) {
+        *self.last_tooltip.borrow_mut() = None;
+        self.window.Document().embedder_controls().hide_tooltip();
     }
 
     pub(crate) fn handle_refresh_cursor(&self, cx: &mut JSContext) {
@@ -1118,7 +1124,7 @@ impl DocumentEventHandler {
 
         let mouse_button = mouse_button_event.button;
         if mouse_button_event.action == MouseButtonAction::Down {
-            self.window.Document().embedder_controls().hide_tooltip();
+            self.hide_alt_image_tooltip();
             self.button_click_state
                 .safe_borrow_mut(cx.no_gc())
                 .on_mouse_down(mouse_button, hit_test_result.point_in_frame);
