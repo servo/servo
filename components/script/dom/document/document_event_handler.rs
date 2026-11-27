@@ -889,10 +889,7 @@ impl DocumentEventHandler {
         let previous_hover_target = self.current_hover_target.get();
         self.current_hover_target.set(new_hover_target.as_deref());
 
-        self.update_image_alt_text(
-            cx,
-            new_hover_target.as_deref(),
-        );
+        self.update_image_alt_text(cx, new_hover_target.as_deref());
 
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
@@ -926,11 +923,7 @@ impl DocumentEventHandler {
     }
 
     /// Notify the embedder about the current image alt text, if found.
-    fn update_image_alt_text(
-        &self,
-        cx: &mut JSContext,
-        current: Option<&Element>,
-    ) {
+    fn update_image_alt_text(&self, cx: &mut JSContext, current: Option<&Element>) {
         let alt_text_of = |element: Option<&Element>| {
             element
                 .filter(|element| element.is::<HTMLImageElement>())

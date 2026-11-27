@@ -845,7 +845,7 @@ impl Gui {
     /// restart the delay if a tooltip is waiting to be shown. Return true if this did.
     pub(crate) fn restart_pending_tooltip_delay(&mut self) -> bool {
         match self.tooltip {
-            Some(ref mut tooltip) if tooltip.shown_at.elapsed() != Duration::from_millis(0)  => {
+            Some(ref mut tooltip) if tooltip.shown_at.elapsed() != Duration::from_millis(0) => {
                 tooltip.shown_at = Instant::now();
                 true
             },
