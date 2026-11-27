@@ -2455,7 +2455,7 @@ checksum = "89253175e704ab869b04f9db224d38630e0211a53841a79181deae0889e169f5"
 dependencies = [
  "cfg-if",
  "core_detect",
- "multiversion 0.9.2",
+ "multiversion",
  "multiversion_no_op",
  "rustversion",
  "scopeguard",
@@ -2644,7 +2644,7 @@ dependencies = [
  "half",
  "lebe",
  "miniz_oxide",
- "multiversion 0.8.1",
+ "multiversion",
  "rayon-core",
  "smallvec",
  "zune-inflate",
@@ -5545,17 +5545,8 @@ version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eb8a68be21d0755f83bfe47e79b896cc732687cf1903f0e50585e8d6ecc53076"
 dependencies = [
- "multiversion-macros 0.8.1",
+ "multiversion-macros",
  "target-features",
-]
-
-[[package]]
-name = "multiversion"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18f07d0ab403c0c662001890da44da2500990d86e15788489cf9a94895f19e4e"
-dependencies = [
- "multiversion-macros 0.9.2",
 ]
 
 [[package]]
@@ -5568,18 +5559,6 @@ dependencies = [
  "quote",
  "syn 2.0.119",
  "target-features",
-]
-
-[[package]]
-name = "multiversion-macros"
-version = "0.9.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5e521b4032cf166c0d10a5d8598abd9858696612b9e2a4576ef97c7af4626bd6"
-dependencies = [
- "proc-macro2",
- "quote",
- "rustversion",
- "syn 3.0.4",
 ]
 
 [[package]]
@@ -8042,7 +8021,7 @@ dependencies = [
 [[package]]
 name = "selectors"
 version = "0.43.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "bitflags 2.13.2",
  "cssparser",
@@ -9964,7 +9943,7 @@ dependencies = [
 [[package]]
 name = "servo_arc"
 version = "0.6.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "serde",
  "stable_deref_trait",
@@ -10469,7 +10448,7 @@ dependencies = [
 [[package]]
 name = "stylo"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "app_units",
  "arrayvec",
@@ -10528,7 +10507,7 @@ dependencies = [
 [[package]]
 name = "stylo_atoms"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "string_cache",
  "string_cache_codegen",
@@ -10537,7 +10516,7 @@ dependencies = [
 [[package]]
 name = "stylo_derive"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
@@ -10549,7 +10528,7 @@ dependencies = [
 [[package]]
 name = "stylo_dom"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "bitflags 2.13.2",
  "stylo_malloc_size_of",
@@ -10558,7 +10537,7 @@ dependencies = [
 [[package]]
 name = "stylo_malloc_size_of"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "app_units",
  "cssparser",
@@ -10577,7 +10556,7 @@ dependencies = [
 [[package]]
 name = "stylo_static_prefs"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "toml 1.2.1+spec-1.1.0",
 ]
@@ -10585,7 +10564,7 @@ dependencies = [
 [[package]]
 name = "stylo_traits"
 version = "0.24.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "app_units",
  "bitflags 2.13.2",
@@ -11003,7 +10982,7 @@ checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
 [[package]]
 name = "to_shmem"
 version = "0.8.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "cssparser",
  "hashbrown 0.17.1",
@@ -11017,7 +10996,7 @@ dependencies = [
 [[package]]
 name = "to_shmem_derive"
 version = "0.3.0"
-source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0d78087b4f7911b119f8478111a303007d3f880b"
+source = "git+https://github.com/RichardTjokroutomo/stylo.git?branch=synthetic-italic#0a3e870ab0e6b19b12ae73d74821978e43e8b2ef"
 dependencies = [
  "darling 0.20.11",
  "proc-macro2",
