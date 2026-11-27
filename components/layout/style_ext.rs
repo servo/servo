@@ -1437,6 +1437,13 @@ impl From<stylo::Display> for Display {
             stylo::DisplayInside::Flex => DisplayInside::Flex,
             stylo::DisplayInside::Grid => DisplayInside::Grid,
             stylo::DisplayInside::Table => DisplayInside::Table,
+            // Servo doesn't implement MathML math layout yet, so lay out `math` containers
+            // as flow-root boxes: inline math is an atomic inline-level box, block math is
+            // a block-level flow-root.
+            // <https://w3c.github.io/mathml-core/#new-display-math-value>
+            stylo::DisplayInside::Math => DisplayInside::FlowRoot {
+                is_list_item: packed.is_list_item(),
+            },
 
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,
