@@ -1859,7 +1859,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let tentative_block_content_size = context.and_then(|context| {
         context.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size)
     });
-    let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
+    let mut tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
         SizeConstraint::Definite(content_box_sizes.block.resolve(
             LogicalAxis::Block,
             automatic_block_size,
@@ -1904,10 +1904,8 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         || None, /* ratio_dependent_block_size */
     );
 
-    // Make the block size definite so children can resolve block percentages against it.
-    // TODO: This doesn't update `tentative_block_size`, which e.g. is checked in order to
-    // determine whether margins can collapse through the box. That logic should take the
-    // ratio-dependent block size into account as well.
+    // If there is a preferred aspect ratio, adjust `tentative_block_size` for margin collapse
+    // purposes, and `block_size_for_children` so that children can resolve block percentages.
     if let Some(ratio_dependent_block_size) =
         compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size)
     {
@@ -1920,6 +1918,10 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             is_table,
             || Some(ratio_dependent_block_size),
         ));
+        tentative_block_size = block_size_for_children;
+        // TODO: Should we override `has_quirky_block_size` mode to false?
+        // It seems only Blink does, while WebKit doesn't.
+        // See https://github.com/servo/servo/pull/50247#issuecomment-7208906274
     }
 
     let containing_block_for_children = ContainingBlock {
