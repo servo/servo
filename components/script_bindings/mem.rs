@@ -18,3 +18,15 @@ pub(crate) unsafe fn malloc_size_of_including_raw_self<T: MallocSizeOf>(
 ) -> usize {
     unsafe { ops.malloc_size_of(obj) + (*(obj as *const T)).size_of(ops) }
 }
+
+/// Like [`malloc_size_of_including_raw_self`], but for weak-referenceable DOM objects living
+/// inside an `Rc`. The `obj` pointer must be adjusted to the allocation base before asking the
+/// allocator, as not all allocators can handle pointers pointing inside the allocation.
+#[expect(unsafe_code)]
+pub(crate) unsafe fn malloc_size_of_including_raw_self_in_rc<T: MallocSizeOf>(
+    ops: &mut MallocSizeOfOps,
+    obj: *const c_void,
+) -> usize {
+    let base = malloc_size_of::refcounted_allocation_base(obj as *const T);
+    unsafe { ops.malloc_size_of(base) + (*(obj as *const T)).size_of(ops) }
+}

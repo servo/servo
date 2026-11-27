@@ -730,7 +730,7 @@ impl<T: MallocSizeOf> MallocConditionalSizeOf for servo_arc::Arc<T> {
 
 /// Recover the allocation base: `Arc::as_ptr`/`Rc::as_ptr` point at the data
 /// after the two reference counts in the `#[repr(C)]` heap allocation.
-fn refcounted_allocation_base<T>(data: *const T) -> *const T {
+pub fn refcounted_allocation_base<T>(data: *const T) -> *const T {
     let data_offset = std::mem::align_of::<T>().max(std::mem::size_of::<usize>() * 2);
     data.wrapping_byte_sub(data_offset)
 }

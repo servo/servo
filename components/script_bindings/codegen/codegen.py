@@ -2651,7 +2651,12 @@ def DOMClass(descriptor: Descriptor) -> str:
     # padding.
     protoList.extend(["PrototypeList::ID::Last"] * (descriptor.config.maxProtoChainLength - len(protoList)))
     prototypeChainString = ", ".join(protoList)
-    mallocSizeOf = f"malloc_size_of_including_raw_self::<{descriptor.concreteType}>"
+    mallocSizeOfFn = (
+        "malloc_size_of_including_raw_self_in_rc"
+        if descriptor.weakReferenceable
+        else "malloc_size_of_including_raw_self"
+    )
+    mallocSizeOf = f"{mallocSizeOfFn}::<{descriptor.concreteType}>"
     if descriptor.isGlobal():
         globals_ = camel_to_upper_snake(descriptor.name)
     else:
