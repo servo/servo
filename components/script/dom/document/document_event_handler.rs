@@ -954,7 +954,7 @@ impl DocumentEventHandler {
         *last_tooltip = Some(alt_text.clone());
         embedder_controls.show_tooltip(
             cx,
-            alt_text.to_string(),
+            alt_text,
             image_element.upcast::<HTMLElement>(),
             point.cast_unit(),
         );
