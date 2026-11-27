@@ -22,6 +22,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Sender};
 use std::sync::{Arc, LazyLock, Mutex, OnceLock, Weak};
 use std::thread;
+use std::time::Duration;
 use std::vec::Vec;
 
 use data_url::mime::Mime;
@@ -119,11 +120,19 @@ impl GStreamerBackend {
             });
         }
 
+        let plugins_remaining = Arc::new(Mutex::new(0));
+
+        let registry = gstreamer::Registry::get();
+        registry.connect_plugin_added({
+            let plugins_remaining = plugins_remaining.clone();
+            move |_, _| *plugins_remaining.lock().unwrap() -= 1
+        });
+
         let mut errors = vec![];
         for plugin in plugins {
             let mut path = plugin_dir.clone();
             path.push(plugin.as_ref());
-            let registry = gstreamer::Registry::get();
+            *plugins_remaining.lock().unwrap() += 1;
             if gstreamer::Plugin::load_file(&path)
                 .is_ok_and(|plugin| registry.add_plugin(&plugin).is_ok())
             {
@@ -134,6 +143,10 @@ impl GStreamerBackend {
 
         if !errors.is_empty() {
             return Err(ErrorLoadingPlugins(errors));
+        }
+
+        while *plugins_remaining.lock().unwrap() > 0 {
+            thread::sleep(Duration::from_millis(10));
         }
 
         type MediaInstancesVec = Vec<(usize, Weak<Mutex<dyn MediaInstance>>)>;
