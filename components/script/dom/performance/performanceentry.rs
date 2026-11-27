@@ -19,9 +19,11 @@ use time::Duration;
 use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
+use crate::dom::bindings::codegen::Bindings::PerformanceNavigationTimingBinding::PerformanceNavigationTimingMethods;
 use crate::dom::bindings::codegen::Bindings::PerformanceResourceTimingBinding::PerformanceResourceTimingMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::performance::performancenavigationtiming::PerformanceNavigationTiming;
 use crate::dom::performance::performanceresourcetiming::PerformanceResourceTiming;
 
 /// All supported entry types, in alphabetical order.
@@ -188,7 +190,18 @@ impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-duration>
     fn Duration(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
-        if let Some(resource_timing) = self.downcast::<PerformanceResourceTiming>() {
+        if let Some(navigation_timing) = self.downcast::<PerformanceNavigationTiming>() {
+            // From: <https://w3c.github.io/navigation-timing/#performanceentry>
+            // The duration getter step is to return a DOMHighResTimeStamp equal to
+            // the difference between loadEventEnd and this’s startTime.
+            Finite::new(*navigation_timing.LoadEventEnd(cx) - *self.StartTime(cx))
+                .unwrap_or(Finite::default())
+        } else if let Some(resource_timing) = self.downcast::<PerformanceResourceTiming>() {
+            // Refer: <https://github.com/w3c/resource-timing/issues/433>
+            // The duration getter step is to return a DOMHighResTimeStamp equal to
+            // the difference between responseEnd and this’s startTime.
+            //
+            // TODO: Needs Revisit after the issue is resolved and spec is updated.
             Finite::new(*resource_timing.ResponseEnd(cx) - *self.StartTime(cx))
                 .unwrap_or(Finite::default())
         } else {
