@@ -305,6 +305,8 @@ struct LCPCandidateAndElement {
     candidate: LCPCandidate,
 }
 
+impl js::gc::Rootable for LCPCandidateAndElement {}
+
 /// A Container Timing update paired with its resolved elements, parked until paint
 /// reports the time at which the frame carrying it was composited.
 ///
@@ -3928,7 +3930,6 @@ impl Document {
             .collect()
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn handle_paint_metric(&self, cx: &mut JSContext, event: PaintMetricEvent) {
         let metrics = self.interactive_time.borrow();
         let entry = match event {
@@ -3954,7 +3955,8 @@ impl Document {
                 ))
             },
             PaintMetricEvent::LargestContentfulPaint(paint_timing_info, id) => {
-                let Some(stored_candidate) = self.lcp_candidates.borrow_mut().remove(&id) else {
+                rooted!(&in(cx) let stored_candidate = self.lcp_candidates.borrow_mut().remove(&id));
+                let Some(stored_candidate) = &*stored_candidate else {
                     warn!("Received LCP paint metric for unknown candidate: {id:?}");
                     return;
                 };
