@@ -103,8 +103,6 @@ const CREATE_SCENES: &str = r#"
 /// thread runs its final GC. With the default `hard_fail` option, a panic in
 /// the script thread aborts this test process.
 #[test]
-#[ignore = "VertexArrayObject touches finalized WebGLBuffers during GC: \
-            https://github.com/servo/servo/issues/49570"]
 fn test_vertex_array_objects_and_buffers_collected_together() {
     assert!(
         cfg!(feature = "webgl"),
