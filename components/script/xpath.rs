@@ -4,7 +4,6 @@
 
 //! Bindings to the `xpath` crate
 
-use std::cell::Ref;
 use std::cmp::Ordering;
 use std::fmt::Debug;
 
@@ -13,7 +12,6 @@ use js::context::JSContext;
 use script_bindings::callback::{ExceptionHandling, RootedCallback};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
-use script_bindings::root::Dom;
 use script_bindings::str::DOMString;
 use style::Atom;
 use style::dom::OpaqueNode;
@@ -177,30 +175,14 @@ impl xpath::Node for XPathWrapper<DomRoot<Node>> {
 impl xpath::Document for XPathWrapper<DomRoot<Document>> {
     type Node = XPathWrapper<DomRoot<Node>>;
 
-    fn get_elements_with_id(
+    fn get_element_by_id(
         &self,
         cx: &mut JSContext,
         id: &str,
-    ) -> impl Iterator<Item = XPathWrapper<DomRoot<Element>>> {
-        struct ElementIterator<'a> {
-            elements: Ref<'a, [Dom<Element>]>,
-            position: usize,
-        }
-
-        impl<'a> Iterator for ElementIterator<'a> {
-            type Item = XPathWrapper<DomRoot<Element>>;
-
-            fn next(&mut self) -> Option<Self::Item> {
-                let element = self.elements.get(self.position)?;
-                self.position += 1;
-                Some(element.as_rooted().into())
-            }
-        }
-
-        ElementIterator {
-            elements: self.0.get_elements_with_id(cx, &Atom::from(id)),
-            position: 0,
-        }
+    ) -> Option<XPathWrapper<DomRoot<Element>>> {
+        self.0
+            .get_element_by_id(cx.no_gc(), &Atom::from(id))
+            .map(XPathWrapper)
     }
 }
 
