@@ -8452,6 +8452,7 @@ version = "0.8.0"
 dependencies = [
  "dpi",
  "euclid",
+ "http",
  "libc",
  "log",
  "servo",
