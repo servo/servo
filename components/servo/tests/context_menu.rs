@@ -361,3 +361,79 @@ fn test_contextual_context_menu_select_all_and_copy() {
     assert_eq!(test.clipboard_delegate.data(), "abcdef");
     test.clipboard_delegate.clear(test.webview);
 }
+
+/// A page with a link in the top-level document (y = 0..50) followed by an `<iframe>`
+/// (y = 50..150) that contains a different link. Both documents have no margins, so the
+/// points below hit exactly one link each.
+fn outside_link_point() -> DevicePoint {
+    DevicePoint::new(25.0, 25.0)
+}
+
+fn iframe_link_point() -> DevicePoint {
+    DevicePoint::new(25.0, 100.0)
+}
+
+fn page_with_iframe() -> String {
+    let html_cod = "<!DOCTYPE html><body style=\"margin: 0\">\
+     <a href=\"about::blank\"><div style=\"width: 100px; height: 50px;\">Outside</div></a>\
+     <iframe style=\"display: block; border: 0; width: 100px; height: 100px;\" \
+      srcdoc=\"<body style='margin: 0'><a href='https://servo.org'>\
+      <div style='width: 100px; height: 100px;'>Inside</div></a>\"></iframe>
+      </body>";
+
+    html_cod.into()
+}
+
+impl ContextMenuTest {
+    fn new_with_iframe() -> Self {
+        let test = Self::new(&page_with_iframe());
+        let webview = test.webview.clone();
+        let result = evaluate_javascript(
+            &test.servo_test,
+            webview,
+            "document.querySelector('iframe').contentDocument.querySelector('a').href",
+        );
+        assert_eq!(result, Ok(JSValue::String("https://servo.org/".into())));
+        test
+    }
+}
+
+#[test]
+fn test_context_menu_link_outside_iframe() {
+    let test = ContextMenuTest::new_with_iframe();
+    let context_menu = test.open_context_menu(outside_link_point());
+    let info = context_menu.element_info();
+    assert_eq!(info.flags, ContextMenuElementInformationFlags::Link);
+    assert_eq!(info.link_url, Some(Url::parse("about::blank").unwrap()));
+    context_menu.dismiss();
+}
+
+#[test]
+fn test_context_menu_link_inside_iframe() {
+    let test = ContextMenuTest::new_with_iframe();
+    let context_menu = test.open_context_menu(iframe_link_point());
+    let info = context_menu.element_info();
+    assert_eq!(info.flags, ContextMenuElementInformationFlags::Link);
+    assert_eq!(
+        info.link_url,
+        Some(Url::parse("https://servo.org").unwrap())
+    );
+    context_menu.dismiss();
+}
+
+#[test]
+fn test_open_context_menu_outside_iframe_closes_menu_inside_iframe() {
+    let test = ContextMenuTest::new_with_iframe();
+
+    test.right_click(iframe_link_point());
+    let _menu_in_iframe = test.find_open_context_menu();
+    assert_eq!(test.delegate.number_of_controls_hidden.get(), 0);
+
+    test.right_click(outside_link_point());
+    let _menu_outside = test.find_open_context_menu();
+
+    let captured_delegate = test.delegate.clone();
+    test.servo_test
+        .spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
+    assert_eq!(test.delegate.number_of_controls_shown.get(), 2);
+}
