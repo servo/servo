@@ -331,8 +331,6 @@ impl SameFormattingContextBlock {
             }
         }
 
-        // Gecko would not collapse through for a definite block size if it is 0.
-        // We follow the practice of WebKit and Blink which collapses in this case.
         let collapsed_through = collapsible_margins_in_children.collapsed_through &&
             pbm.padding_border_sums.block.is_zero() &&
             tentative_block_size.definite_or_min().is_zero();
