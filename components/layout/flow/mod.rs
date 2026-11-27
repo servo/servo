@@ -1921,6 +1921,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             || Some(ratio_dependent_block_size),
         ));
         tentative_block_size = block_size_for_children;
+        // TODO: Should we override `has_quirky_block_size` mode to false?
+        // It seems only Blink does, while WebKit doesn't.
+        // See https://github.com/servo/servo/pull/50247#issuecomment-7208906274
     }
 
     let containing_block_for_children = ContainingBlock {
