@@ -261,6 +261,8 @@ pub(crate) struct DocumentEventHandler {
     /// The current drag gesture, if one exists. Events that affect this drag
     /// gesture will be forwarded to it.
     drag_gesture: DomRefCell<Option<DragGesture>>,
+
+    last_tooltip: DomRefCell<Option<String>>,
 }
 
 impl DocumentEventHandler {
@@ -288,6 +290,7 @@ impl DocumentEventHandler {
             pending_pointer_capture: Default::default(),
             pointer_capture_target: Default::default(),
             drag_gesture: Default::default(),
+            last_tooltip: Default::default(),
         }
     }
 
@@ -888,7 +891,6 @@ impl DocumentEventHandler {
 
         self.update_image_alt_text(
             cx,
-            previous_hover_target.as_deref(),
             new_hover_target.as_deref(),
         );
 
@@ -927,18 +929,19 @@ impl DocumentEventHandler {
     fn update_image_alt_text(
         &self,
         cx: &mut JSContext,
-        previous: Option<&Element>,
         current: Option<&Element>,
     ) {
         let alt_text_of = |element: Option<&Element>| {
             element
                 .filter(|element| element.is::<HTMLImageElement>())
-                .map(|image| image.get_string_attribute(&local_name!("alt")).to_string())
+                .and_then(|image| image.get_attribute_string_ref(&local_name!("alt")))
                 .filter(|alt| !alt.is_empty())
+                .map(|alt| alt.value().to_string())
         };
 
         let new_alt_text = alt_text_of(current);
-        if alt_text_of(previous) == new_alt_text {
+        let mut last_tooltip = self.last_tooltip.borrow_mut();
+        if last_tooltip.as_deref() == new_alt_text.as_deref() {
             return;
         }
 
@@ -954,9 +957,10 @@ impl DocumentEventHandler {
             return;
         };
 
+        *last_tooltip = Some(alt_text.clone());
         embedder_controls.show_tooltip(
             cx,
-            alt_text,
+            alt_text.to_string(),
             image_element.upcast::<HTMLElement>(),
             point.cast_unit(),
         );
