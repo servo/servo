@@ -3968,7 +3968,7 @@ impl Window {
             let last_painted_element = record.last_painted_element.and_then(resolve);
             document.store_container_timing_record(
                 record,
-                identifier.into(),
+                identifier,
                 &root_element,
                 last_painted_element.as_deref(),
             );
