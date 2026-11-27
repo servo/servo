@@ -267,11 +267,7 @@ impl Handler {
         // return error with error code no such window.
         self.verify_top_level_browsing_context_is_open(webview_id)?;
 
-        let (sender, receiver) = generic_channel::oneshot().unwrap();
-
-        self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
-
-        match wait_for_oneshot_response(receiver)? {
+        match self.current_user_prompt(webview_id)? {
             // Step 4. If the current user prompt is null, return error with error code no such alert.
             None => Err(WebDriverError::new(
                 ErrorStatus::NoSuchAlert,
@@ -311,11 +307,7 @@ impl Handler {
         &self,
         webview_id: WebViewId,
     ) -> WebDriverResult<WebDriverResponse> {
-        let (sender, receiver) = generic_channel::oneshot().unwrap();
-
-        self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
-
-        match wait_for_oneshot_response(receiver)? {
+        match self.current_user_prompt(webview_id)? {
             // Step 1. If the current user prompt is null, return success with data null.
             None => Ok(WebDriverResponse::Void),
             Some(prompt_type) => {
@@ -347,5 +339,15 @@ impl Handler {
                 }
             },
         }
+    }
+
+    /// The type of the user prompt currently open for `webview_id`, if any.
+    pub(crate) fn current_user_prompt(
+        &self,
+        webview_id: WebViewId,
+    ) -> WebDriverResult<Option<WebDriverUserPrompt>> {
+        let (sender, receiver) = generic_channel::oneshot().unwrap();
+        self.send_message_to_embedder(WebDriverCommandMsg::CurrentUserPrompt(webview_id, sender))?;
+        wait_for_oneshot_response(receiver)
     }
 }
