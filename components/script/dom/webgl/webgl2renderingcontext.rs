@@ -3839,6 +3839,61 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         )
     }
 
+    /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.6>
+    fn TexSubImage2D__(
+        &self,
+        no_gc: &NoGC,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        type_: u32,
+        source: TexImageSource,
+    ) -> Fallible<()> {
+        if self.bound_pixel_unpack_buffer.get().is_some() {
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
+        }
+
+        let validator = TexImage2DValidator::new_sub_image(
+            &self.base, target, level, width, height, format, type_,
+        );
+        let TexImage2DValidatorResult {
+            texture,
+            target,
+            width,
+            height,
+            level,
+            format,
+            data_type,
+            ..
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return Ok(()),
+        };
+
+        let pixels = match self.base.get_image_pixels(no_gc, source)? {
+            Some(pixels) => pixels,
+            None => return Ok(()),
+        };
+        // <https://registry.khronos.org/webgl/specs/latest/2.0/#DOM_UPLOAD_UNPACK_PARAMS>
+        let layout = self.base.texture_unpack_layout();
+        let origin = Point2D::new(layout.skip_pixels, layout.skip_rows);
+        let Some(pixels) = pixels.sub_rect(origin, Size2D::new(width, height)) else {
+            self.base.webgl_error(InvalidOperation);
+            return Ok(());
+        };
+
+        // UNPACK_ALIGNMENT does not apply to TexImageSource uploads, whose rows are packed.
+        self.base.tex_sub_image_2d(
+            texture, target, level, xoffset, yoffset, format, data_type, 1, pixels,
+        );
+        Ok(())
+    }
+
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn TexParameterf(&self, target: u32, name: u32, value: f32) {
         self.base.TexParameterf(target, name, value)

@@ -1041,7 +1041,7 @@ impl WebGLRenderingContext {
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn tex_sub_image_2d(
+    pub(crate) fn tex_sub_image_2d(
         &self,
         texture: DomRoot<WebGLTexture>,
         target: TexImageTarget,
