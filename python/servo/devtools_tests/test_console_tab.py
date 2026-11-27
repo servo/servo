@@ -7,6 +7,7 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
+import time
 from concurrent.futures import Future
 from queue import Queue
 
@@ -38,6 +39,30 @@ def evaluate_and_capture_console_log_output(js: str, timeout: float = 1) -> dict
 
         console.evaluate_js_async(js)
         return evaluation_result.result(timeout)
+
+
+def evaluate(devtools: Devtools, js: str) -> dict:
+    """Evaluates `js` in the console of the first target and returns the evaluation result."""
+    console = WebConsoleActor(devtools.client, devtools.targets[0]["consoleActor"])
+    evaluation_result = Future()
+
+    def on_evaluation(data):
+        if not evaluation_result.done():
+            evaluation_result.set_result(data)
+
+    devtools.client.add_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+    console.evaluate_js_async(js)
+    result = evaluation_result.result(1)
+    devtools.client.remove_event_listener(console.actor_id, Events.WebConsole.EVALUATION_RESULT, on_evaluation)
+    return result
+
+
+def wait_for_load(devtools: Devtools, timeout: float = 5):
+    """Waits until the page and its iframes have loaded, so the iframes no longer have their initial about:blank."""
+    deadline = time.monotonic() + timeout
+    while evaluate(devtools, "document.readyState")["result"] != "complete":
+        assert time.monotonic() < deadline, "page did not finish loading"
+        time.sleep(0.1)
 
 
 class TestConsoleTab:
@@ -612,3 +637,45 @@ class TestConsoleTab:
         # Spec: "Fall back to just logging the argument if it can't be parsed as tabular."
         assert result["level"] == "log"
         assert result["arguments"] == expected
+
+    # Code evaluated from the console should see the page's location, like the page's own scripts do.
+
+    def test_console_location_getters(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/console/location.html?q=1#frag")
+
+        with Devtools.connect() as devtools:
+            wait_for_load(devtools)
+            url = f"{web_server_urls[0]}/console/location.html?q=1#frag"
+            assert evaluate(devtools, "location.href")["result"] == url
+            assert evaluate(devtools, "location.toString()")["result"] == url
+            assert evaluate(devtools, "location.pathname")["result"] == "/console/location.html"
+            assert evaluate(devtools, "location.search")["result"] == "?q=1"
+            assert evaluate(devtools, "location.hash")["result"] == "#frag"
+            assert evaluate(devtools, "location.origin")["result"] == web_server_urls[0]
+            assert evaluate(devtools, "frames[0].location.pathname")["result"] == "/console/location_frame.html"
+
+    def test_console_location_cross_origin_iframe(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/console/location.html")
+
+        with Devtools.connect() as devtools:
+            wait_for_load(devtools)
+            result = evaluate(devtools, "(() => { try { frames[1].location.href; } catch (e) { return e.name; } })()")
+            assert result["result"] == "SecurityError"
+
+    def test_console_location_relative_navigation(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/console/location.html")
+
+        with Devtools.connect() as devtools:
+            new_url = f"{web_server_urls[0]}/console/location_frame.html"
+            navigated = Future()
+
+            def on_target_available(data):
+                if data["target"].get("url") == new_url and not navigated.done():
+                    navigated.set_result(None)
+
+            devtools.client.add_event_listener(
+                devtools.watcher.actor_id, Events.Watcher.TARGET_AVAILABLE_FORM, on_target_available
+            )
+            result = evaluate(devtools, "location.href = 'location_frame.html'")
+            assert not result["exception"]
+            navigated.result(2)
