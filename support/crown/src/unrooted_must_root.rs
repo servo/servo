@@ -109,6 +109,40 @@ fn is_unrooted_ty<'tcx>(
     ty: ty::Ty<'tcx>,
     in_new_function: bool,
 ) -> bool {
+    let ptr_like_paths: &[&[Symbol]] = &[
+        &[sym::core, sym.cell, sym.Ref],
+        &[sym::core, sym.cell, sym.RefMut],
+        &[sym.atomic_refcell, sym.AtomicRef],
+        &[sym.atomic_refcell, sym.AtomicRefMut],
+        &[sym::core, sym::slice, sym::iter, sym.Iter],
+        &[sym::core, sym::slice, sym::iter, sym.IterMut],
+        &[sym::std, sym.collections, sym.hash, sym.map, sym.Entry],
+        &[
+            sym::std,
+            sym.collections,
+            sym.hash,
+            sym.map,
+            sym.OccupiedEntry,
+        ],
+        &[
+            sym::std,
+            sym.collections,
+            sym.hash,
+            sym.map,
+            sym.VacantEntry,
+        ],
+        &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
+        &[sym::std, sym.collections, sym.hash, sym.map, sym.Values],
+        &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
+        &[
+            sym::alloc,
+            sym.collections,
+            sym.vec_deque,
+            sym.iter,
+            sym.Iter,
+        ],
+    ];
+
     let mut ret = false;
     let mut walker = ty.walk();
     while let Some(generic_arg) = walker.next() {
@@ -149,69 +183,9 @@ fn is_unrooted_ty<'tcx>(
                         ) => !has_attr(*def_id, sym.allow_unrooted_in_rc),
                         _ => true,
                     }
-                } else if match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.Ref]) ||
-                    match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.RefMut]) ||
-                    match_def_path(cx, did.did(), &[sym.atomic_refcell, sym.AtomicRef]) ||
-                    match_def_path(cx, did.did(), &[sym.atomic_refcell, sym.AtomicRefMut]) ||
-                    match_def_path(cx, did.did(), &[sym::core, sym::slice, sym::iter, sym.Iter]) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::core, sym::slice, sym::iter, sym.IterMut],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Entry],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[
-                            sym::std,
-                            sym.collections,
-                            sym.hash,
-                            sym.map,
-                            sym.OccupiedEntry,
-                        ],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[
-                            sym::std,
-                            sym.collections,
-                            sym.hash,
-                            sym.map,
-                            sym.VacantEntry,
-                        ],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Iter],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.map, sym.Values],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[sym::std, sym.collections, sym.hash, sym.set, sym.Iter],
-                    ) ||
-                    match_def_path(
-                        cx,
-                        did.did(),
-                        &[
-                            sym::alloc,
-                            sym.collections,
-                            sym.vec_deque,
-                            sym.iter,
-                            sym.Iter,
-                        ],
-                    )
+                } else if ptr_like_paths
+                    .iter()
+                    .any(|path| match_def_path(cx, did.did(), path))
                 {
                     // Structures which are semantically similar to an &ptr.
                     false
