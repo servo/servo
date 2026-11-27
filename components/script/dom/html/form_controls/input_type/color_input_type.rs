@@ -32,7 +32,6 @@ use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
-use crate::dom::text_control::TextControlElement;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -211,10 +210,9 @@ impl SpecificInputType for ColorInputType {
                 // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
                 // > Whenever the element's alpha or colorspace attributes are changed,
                 // the user agent must run update a color well control color given the element.
-                let mut text_input = input.text_input_mut();
-                let mut value = text_input.get_content();
+                let mut value = input.internal_value().root();
                 Self::update_a_color_well_control_color(input, &mut value);
-                text_input.set_content(value);
+                input.set_internal_value(value);
             },
             _ => {},
         }
