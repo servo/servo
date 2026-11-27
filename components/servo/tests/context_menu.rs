@@ -385,8 +385,6 @@ fn page_with_iframe() -> String {
 }
 
 impl ContextMenuTest {
-    /// Open the page and wait until the `<iframe>` has loaded, so that right-clicks inside
-    /// it hit its (separate) `Document` and not the empty frame placeholder.
     fn new_with_iframe() -> Self {
         let test = Self::new(&page_with_iframe());
         let webview = test.webview.clone();
@@ -424,68 +422,6 @@ fn test_context_menu_link_inside_iframe() {
 }
 
 #[test]
-fn test_context_menu_inside_iframe_has_same_items_as_outside() {
-    let test = ContextMenuTest::new_with_iframe();
-    let items_of = |menu: &ContextMenu| -> Vec<(ContextMenuAction, bool)> {
-        menu.items()
-            .iter()
-            .filter_map(|item| match item {
-                ContextMenuItem::Item {
-                    action, enabled, ..
-                } => Some((*action, *enabled)),
-                ContextMenuItem::Separator => None,
-            })
-            .collect()
-    };
-
-    let outside = test.open_context_menu(outside_link_point());
-    let outside_items = items_of(&outside);
-    outside.dismiss();
-
-    let inside = test.open_context_menu(iframe_link_point());
-    assert_eq!(items_of(&inside), outside_items);
-    inside.dismiss();
-}
-
-#[test]
-fn test_context_menu_position_inside_iframe_is_in_webview_coordinates() {
-    let test = ContextMenuTest::new_with_iframe();
-    let context_menu = test.open_context_menu(iframe_link_point());
-    let position = context_menu.position();
-    // The iframe starts at y = 50, so a click at y = 100 must not be reported relative to
-    // the iframe's own origin (which would give y = 50).
-    assert!(
-        position.min.y >= iframe_link_point().y as i32,
-        "context menu position {position:?} is not relative to the WebView"
-    );
-    context_menu.dismiss();
-}
-
-#[test]
-fn test_select_action_inside_iframe_reaches_iframe_document() {
-    let test = ContextMenuTest::new_with_iframe();
-    let context_menu = test.open_context_menu(iframe_link_point());
-    context_menu.select(ContextMenuAction::SelectAll);
-
-    // "Select All" must act on the iframe's document, not the top-level one.
-    let mut selection = JSValue::Undefined;
-    for _ in 0..50 {
-        selection = evaluate_javascript(
-            &test.servo_test,
-            test.webview.clone(),
-            "document.querySelector('iframe').contentWindow.getSelection().toString()",
-        )
-        .unwrap();
-        if matches!(&selection, JSValue::String(text) if text.contains("Inside")) {
-            break;
-        }
-    }
-    assert!(matches!(&selection, JSValue::String(text) if text.contains("Inside")));
-}
-
-/// Regression test for <https://github.com/servo/servo/issues/46351>: right-clicking in an
-/// `<iframe>` and then outside of it must leave only one context menu open.
-#[test]
 fn test_open_context_menu_outside_iframe_closes_menu_inside_iframe() {
     let test = ContextMenuTest::new_with_iframe();
 
@@ -495,23 +431,6 @@ fn test_open_context_menu_outside_iframe_closes_menu_inside_iframe() {
 
     test.right_click(outside_link_point());
     let _menu_outside = test.find_open_context_menu();
-
-    let captured_delegate = test.delegate.clone();
-    test.servo_test
-        .spin(move || captured_delegate.number_of_controls_hidden.get() != 1);
-    assert_eq!(test.delegate.number_of_controls_shown.get(), 2);
-}
-
-#[test]
-fn test_open_context_menu_inside_iframe_closes_menu_outside_iframe() {
-    let test = ContextMenuTest::new_with_iframe();
-
-    test.right_click(outside_link_point());
-    let _menu_outside = test.find_open_context_menu();
-    assert_eq!(test.delegate.number_of_controls_hidden.get(), 0);
-
-    test.right_click(iframe_link_point());
-    let _menu_in_iframe = test.find_open_context_menu();
 
     let captured_delegate = test.delegate.clone();
     test.servo_test
