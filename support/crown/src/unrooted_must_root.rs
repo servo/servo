@@ -110,6 +110,7 @@ fn is_unrooted_ty<'tcx>(
     in_new_function: bool,
 ) -> bool {
     let ptr_like_paths: &[&[Symbol]] = &[
+        &[sym.alloc, sym.rc, sym.Weak],
         &[sym::core, sym.cell, sym.Ref],
         &[sym::core, sym.cell, sym.RefMut],
         &[sym.atomic_refcell, sym.AtomicRef],
@@ -556,6 +557,7 @@ symbols! {
     alloc
     rc
     Rc
+    Weak
     cell
     Ref
     RefMut
