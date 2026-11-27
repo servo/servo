@@ -2225,7 +2225,7 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        *self.internal_value.borrow_mut() = Default::default();
+        *self.internal_value.safe_borrow_mut(cx.no_gc()) = Default::default();
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
