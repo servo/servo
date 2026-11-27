@@ -64,7 +64,6 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 #[cfg(feature = "webgl_backtrace")]
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::node::NodeTraits;
 #[cfg(feature = "webxr")]
 use crate::dom::promise::Promise;
 use crate::dom::webgl::extensions::WebGLExtensions;
@@ -819,21 +818,12 @@ impl WebGLRenderingContext {
                 )
             },
             TexImageSource::HTMLImageElement(image) => {
-                let document = match self.canvas {
-                    HTMLCanvasElementOrOffscreenCanvas::HTMLCanvasElement(ref canvas) => {
-                        canvas.owner_document()
-                    },
-                    HTMLCanvasElementOrOffscreenCanvas::OffscreenCanvas(ref _canvas) => {
-                        // TODO: Support retrieving image pixels here for OffscreenCanvas
-                        return Ok(None);
-                    },
-                };
                 // `same_origin` is false for an image that has not loaded yet.
                 if !image.is_usable().is_ok_and(|usable| usable) {
                     return Ok(None);
                 }
 
-                if !image.same_origin(&document.origin()) {
+                if !image.same_origin(&self.global().origin()) {
                     return Err(Error::Security(None));
                 }
 
