@@ -9,6 +9,7 @@ use std::cmp::Ordering;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::default::Default;
+use std::mem;
 use std::ops::Deref;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -305,6 +306,8 @@ struct LCPCandidateAndElement {
     candidate: LCPCandidate,
 }
 
+impl js::gc::Rootable for LCPCandidateAndElement {}
+
 /// A Container Timing update paired with its resolved elements, parked until paint
 /// reports the time at which the frame carrying it was composited.
 ///
@@ -312,12 +315,14 @@ struct LCPCandidateAndElement {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ContainerTimingRecordAndElements {
-    identifier: DOMString,
+    identifier: RefCell<String>,
     root_element: Dom<Element>,
     last_painted_element: Option<Dom<Element>>,
     #[no_trace]
     record: ContainerTimingRecord,
 }
+
+impl js::gc::Rootable for ContainerTimingRecordAndElements {}
 
 impl RefreshRedirectDue {
     /// Step 13 of <https://html.spec.whatwg.org/multipage/#shared-declarative-refresh-steps>
@@ -3873,14 +3878,14 @@ impl Document {
     pub(crate) fn store_container_timing_record(
         &self,
         record: ContainerTimingRecord,
-        identifier: DOMString,
+        identifier: String,
         root_element: &Element,
         last_painted_element: Option<&Element>,
     ) {
         self.container_timing_records.borrow_mut().insert(
             record.id,
             ContainerTimingRecordAndElements {
-                identifier,
+                identifier: RefCell::new(identifier),
                 root_element: Dom::from_ref(root_element),
                 last_painted_element: last_painted_element.map(Dom::from_ref),
                 record,
@@ -3890,7 +3895,6 @@ impl Document {
 
     /// Build the `PerformanceContainerTiming` entries for the Container Timing updates
     /// that were presented in the frame composited at `paint_time`.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn container_timing_entries(
         &self,
         cx: &mut JSContext,
@@ -3899,10 +3903,13 @@ impl Document {
     ) -> Vec<DomRoot<PerformanceEntry>> {
         ids.into_iter()
             .filter_map(|id| {
-                let stored = self
+                rooted!(&in(cx) let stored = self
                     .container_timing_records
                     .safe_borrow_mut(cx)
-                    .remove(&id)?;
+                    .remove(&id));
+                let Some(stored) = &*stored else {
+                    return None;
+                };
                 // The first frame that painted anything for this container fixes its
                 // `firstRenderTime`; every later update to the same container carries
                 // that same value forward.
@@ -3911,11 +3918,12 @@ impl Document {
                     .safe_borrow_mut(cx)
                     .entry(stored.record.root_element)
                     .or_insert(paint_time);
+                let identifier = mem::take(&mut *stored.identifier.borrow_mut());
                 Some(DomRoot::upcast::<PerformanceEntry>(
                     PerformanceContainerTiming::new(
                         cx,
                         self.window.as_global_scope(),
-                        stored.identifier,
+                        identifier.into(),
                         stored.record.intersection_rect,
                         stored.record.size,
                         first_render_time,
@@ -3928,7 +3936,6 @@ impl Document {
             .collect()
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn handle_paint_metric(&self, cx: &mut JSContext, event: PaintMetricEvent) {
         let metrics = self.interactive_time.borrow();
         let entry = match event {
@@ -3954,7 +3961,8 @@ impl Document {
                 ))
             },
             PaintMetricEvent::LargestContentfulPaint(paint_timing_info, id) => {
-                let Some(stored_candidate) = self.lcp_candidates.borrow_mut().remove(&id) else {
+                rooted!(&in(cx) let stored_candidate = self.lcp_candidates.borrow_mut().remove(&id));
+                let Some(stored_candidate) = &*stored_candidate else {
                     warn!("Received LCP paint metric for unknown candidate: {id:?}");
                     return;
                 };
