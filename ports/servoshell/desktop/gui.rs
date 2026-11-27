@@ -19,7 +19,7 @@ use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
@@ -86,7 +86,7 @@ pub struct Gui {
     /// The text to display in the status bar on the bottom of the window.
     status_text: Option<String>,
 
-    tooltip: Option<ActiveTooltip>,
+    pub tooltip: Option<ActiveTooltip>,
 
     /// Whether or not the current `WebView` can navigate backward.
     can_go_back: bool,
@@ -840,6 +840,17 @@ impl Gui {
             return true;
         }
         false
+    }
+
+    /// restart the delay if a tooltip is waiting to be shown. Return true if this did.
+    pub(crate) fn restart_pending_tooltip_delay(&mut self) -> bool {
+        match self.tooltip {
+            Some(ref mut tooltip) if tooltip.shown_at.elapsed() != Duration::from_millis(0)  => {
+                tooltip.shown_at = Instant::now();
+                true
+            },
+            _ => false,
+        }
     }
 
     pub(crate) fn dismiss_tooltips_for_webview(&mut self, webview_id: WebViewId) -> bool {

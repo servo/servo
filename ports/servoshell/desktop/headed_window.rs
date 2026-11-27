@@ -725,6 +725,9 @@ impl HeadedWindow {
                 },
                 WindowEvent::CursorMoved { position, .. } => {
                     self.handle_mouse_move_event(&webview, position);
+                    if self.gui.borrow_mut().restart_pending_tooltip_delay() {
+                        self.tooltip_timer.schedule(TOOLTIP_DELAY);
+                    }
                 },
                 WindowEvent::CursorLeft { .. } => {
                     let webview_rect: Rect<_, _> = webview.size().into();
@@ -1174,8 +1177,6 @@ impl PlatformWindow for HeadedWindow {
                 self.add_dialog(webview_id, Dialog::new_context_menu(prompt));
             },
             EmbedderControl::Tooltip(tooltip_control) => {
-                // let offset = self.gui.borrow();
-                // gui.update_image_alt_text( tooltip_control.text);
                 self.gui
                     .borrow_mut()
                     .show_tooltip(webview_id, &tooltip_control);
