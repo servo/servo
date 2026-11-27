@@ -125,12 +125,33 @@ fn continuous_resize_preserves_running_decode() {
 fn running_decode_uses_existing_hysteresis_boundaries() {
     let mut cache = demand_decode_test_cache();
     cache.begin_decode(decode_size(300));
-    for (required, expected) in [(150, 300), (149, 149), (360, 300), (361, 600), (1900, 1900)] {
+    for (required, expected) in [(150, 300), (149, 149), (360, 300), (361, 600), (1900, 2000)] {
         assert_eq!(
             cache.select_target(decode_size(required)),
             decode_size(expected)
         );
     }
+}
+
+#[test]
+fn initial_decode_skips_resampling_at_half_the_natural_area() {
+    let cache = demand_decode_test_cache();
+    assert_eq!(cache.select_target(decode_size(1414)), decode_size(1414));
+    assert_eq!(cache.select_target(decode_size(1415)), decode_size(2000));
+}
+
+#[test]
+fn grow_target_skips_resampling_when_doubling_crosses_half_the_natural_area() {
+    let mut cache = demand_decode_test_cache();
+    cache.set_installed(decode_size(750));
+    assert_eq!(cache.select_target(decode_size(901)), decode_size(2000));
+}
+
+#[test]
+fn half_area_cutoff_does_not_override_hysteresis_reuse() {
+    let mut cache = demand_decode_test_cache();
+    cache.set_installed(decode_size(1200));
+    assert_eq!(cache.select_target(decode_size(1440)), decode_size(1200));
 }
 
 #[test]

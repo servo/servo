@@ -584,6 +584,8 @@ impl DemandDrivenRasterEntry {
 /// source's dominant dimension to avoid aspect-ratio rounding noise: shrink
 /// below half size, grow above 120%, and otherwise reuse the installed or
 /// in-flight decode.
+/// For new targets at least half the natural pixel area, skip CPU resampling
+/// and decode at natural size.
 /// All candidate sizes have already been fitted to the source aspect ratio.
 /// This hysteresis design may not be optimal.
 fn determine_demand_decode_target(
@@ -591,27 +593,35 @@ fn determine_demand_decode_target(
     current: Option<ImageMetadata>,
     required: ImageMetadata,
 ) -> ImageMetadata {
-    let Some(current) = current else {
-        return required;
-    };
-    let dimension = |size: ImageMetadata| {
-        u64::from(if natural.width >= natural.height {
-            size.width
+    let candidate = if let Some(current) = current {
+        let dimension = |size: ImageMetadata| {
+            u64::from(if natural.width >= natural.height {
+                size.width
+            } else {
+                size.height
+            })
+        };
+        let have = dimension(current);
+        let need = dimension(required);
+        if need * 2 < have {
+            required
+        } else if need * 5 > have * 6 {
+            natural.fit_decode_size(ImageMetadata {
+                width: required.width.max(current.width.saturating_mul(2)),
+                height: required.height.max(current.height.saturating_mul(2)),
+            })
         } else {
-            size.height
-        })
-    };
-    let have = dimension(current);
-    let need = dimension(required);
-    if need * 2 < have {
-        required
-    } else if need * 5 > have * 6 {
-        natural.fit_decode_size(ImageMetadata {
-            width: required.width.max(current.width.saturating_mul(2)),
-            height: required.height.max(current.height.saturating_mul(2)),
-        })
+            return current;
+        }
     } else {
-        current
+        required
+    };
+
+    let area = |size: ImageMetadata| u64::from(size.width) * u64::from(size.height);
+    if area(candidate) >= area(natural).div_ceil(2) {
+        natural
+    } else {
+        candidate
     }
 }
 
