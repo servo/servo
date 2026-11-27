@@ -275,8 +275,8 @@ impl Default for SharedRwLocks {
 }
 
 #[derive(JSTraceable)]
-// ScriptThread instances are rooted on creation, so this is okay
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub struct ScriptThread {
     /// A reference to the currently operating `ScriptThread`. This should always be
     /// upgradable to an `Rc` as long as the `ScriptThread` is running.
