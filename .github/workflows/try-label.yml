@@ -142,7 +142,7 @@ jobs:
       profile: ${{ matrix.profile }}
       unit-tests: ${{ matrix.unit_tests }}
       devtools-tests: ${{ matrix.devtools_tests }}
-      build-libservo: ${{ matrix.build_libservo }}
+      msrv-check: ${{ matrix.msrv_check }}
       wpt-args: ${{ matrix.wpt_args }}
       build-args: ${{ matrix.build_args }}
       number-of-wpt-chunks: ${{ matrix.number_of_wpt_chunks }}
@@ -182,5 +182,5 @@ jobs:
           else
             RESULT_EMOJI="⚠️"
             TRY_RESULT="cancelled."
-          fi  
+          fi
           gh pr comment ${PR_NUMBER} --repo ${{ github.repository }} --body "${RESULT_EMOJI} Try run ([#${{ github.run_id }}](${ACTIONS_RUN_URL})) ${TRY_RESULT}"

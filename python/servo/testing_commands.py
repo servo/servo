@@ -1014,7 +1014,7 @@ class MachCommands(CommandBase):
 
           Modifiers (runs on checked-release if no profile given):
             unit-tests          Run unit tests
-            build-libservo      Build libservo library
+            msrv-check          Build libservo with MSRV
             wpt                 Run web-platform-tests
             bencher             Run benchmarking
             coverage            Run code coverage

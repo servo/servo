@@ -26,7 +26,7 @@ on:
       devtools-tests:
         required: true
         type: boolean
-      build-libservo:
+      msrv-check:
         required: true
         type: boolean
       bencher:
@@ -53,9 +53,8 @@ jobs:
       profile: ${{ inputs.profile }}
       build-args: ${{ inputs.build-args }}
       unit-tests: ${{ inputs.unit-tests }}
-      build-libservo: ${{ inputs.build-libservo }}
+      msrv-check: ${{ inputs.msrv-check }}
       bencher: ${{ inputs.bencher }}
-      capi: ${{ inputs.capi }}
 
   macos:
     if: ${{ inputs.workflow == 'macos' }}
@@ -68,10 +67,9 @@ jobs:
       build-args: ${{ inputs.build-args }}
       wpt: ${{ inputs.wpt }}
       unit-tests: ${{ inputs.unit-tests }}
-      build-libservo: ${{ inputs.build-libservo }}
+      msrv-check: ${{ inputs.msrv-check }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
-      capi: ${{ inputs.capi }}
 
   macos-arm64:
     if: ${{ inputs.workflow == 'macos-arm64' }}
@@ -84,10 +82,9 @@ jobs:
       build-args: ${{ inputs.build-args }}
       wpt: ${{ inputs.wpt }}
       unit-tests: ${{ inputs.unit-tests }}
-      build-libservo: ${{ inputs.build-libservo }}
+      msrv-check: ${{ inputs.msrv-check }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
-      capi: ${{ inputs.capi }}
 
   linux:
     if: ${{ inputs.workflow == 'linux' }}
@@ -101,7 +98,7 @@ jobs:
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
       devtools-tests: ${{ inputs.devtools-tests }}
-      build-libservo: ${{ inputs.build-libservo }}
+      msrv-check: ${{ inputs.msrv-check }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}
@@ -119,7 +116,7 @@ jobs:
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
       devtools-tests: ${{ inputs.devtools-tests }}
-      build-libservo: ${{ inputs.build-libservo }}
+      msrv-check: ${{ inputs.msrv-check }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}

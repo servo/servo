@@ -37,7 +37,7 @@ on:
         required: false
         default: false
         type: boolean
-      build-libservo:
+      msrv-check:
         required: false
         default: false
         type: boolean
@@ -88,7 +88,7 @@ on:
         required: false
         default: false
         type: boolean
-      build-libservo:
+      msrv-check:
         required: false
         default: false
         type: boolean
@@ -126,9 +126,8 @@ jobs:
       number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       unit-tests: ${{ inputs.unit-tests }}
       devtools-tests: ${{ inputs.devtools-tests }}
-      build-libservo: ${{ inputs.build-libservo }}
+      msrv-check: ${{ inputs.msrv-check }}
       wpt-args: ${{ inputs.wpt-args }}
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}
       capi: ${{ inputs.capi }}
-
