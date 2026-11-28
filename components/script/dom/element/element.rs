@@ -45,6 +45,7 @@ use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
+use selectors::parser::SelectorList;
 use selectors::sink::Push;
 use servo_arc::{Arc as ServoArc, ArcBorrow as ServoArcBorrow};
 use style::applicable_declarations::ApplicableDeclarationBlock;
@@ -59,7 +60,7 @@ use style::properties::{
     parse_style_attribute,
 };
 use style::rule_tree::{CascadeLevel, CascadeOrigin, StyleSourceBorrow};
-use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
+use style::selector_parser::{RestyleDamage, SelectorImpl, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::str::string_as_ascii_lowercase;
 use style::stylesheets::layer_rule::LayerOrder;
@@ -4372,16 +4373,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
         let document = self.owner_document();
         let url = document.url();
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(
-            &selectors.str(),
-            &UrlExtraData(url.get_arc()),
-        ) {
-            Err(_) => {
-                return Err(Error::Syntax(
-                    format!("'{selectors}' is not a valid selector").into(),
-                ));
-            },
-            Ok(selectors) => selectors,
+        let Some(selectors) = parse_a_selector(&selectors.str(), &UrlExtraData(url.get_arc()))
+        else {
+            return Err(Error::Syntax(
+                format!("'{selectors}' is not a valid selector").into(),
+            ));
         };
 
         // SAFETY: traced_self is unrooted, but we have a reference to "self" so it won't be freed.
@@ -4408,12 +4404,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let document = self.owner_document();
         let url = document.url();
-        let selectors = match SelectorParser::parse_author_origin_no_namespace(
-            &selectors.str(),
-            &UrlExtraData(url.get_arc()),
-        ) {
-            Err(_) => return Err(Error::Syntax(Some("Invalid selector".into()))),
-            Ok(selectors) => selectors,
+        let Some(selectors) = parse_a_selector(&selectors.str(), &UrlExtraData(url.get_arc()))
+        else {
+            return Err(Error::Syntax(Some("Invalid selector".into())));
         };
 
         // SAFETY: traced_self is unrooted, but we have a reference to "self" so it won't be freed.
@@ -6180,6 +6173,37 @@ thread_local! {
     /// reason to cache it per element.
     static TAG_NAME_CACHE: RefCell<LruCache<TagNameKey, LocalName, FxBuildHasher>> =
         RefCell::new(LruCache::with_hasher(TAG_NAME_CACHE_CAPACITY, FxBuildHasher));
+}
+
+/// The maximum number of selector lists in [`SELECTOR_CACHE`].
+const SELECTOR_CACHE_CAPACITY: usize = 128;
+
+thread_local! {
+    /// The selector lists parsed by [`parse_a_selector`], keyed by their source text.
+    ///
+    /// Parsing selectors only depends on their text, so the selector lists are shared
+    /// by every document of the script thread.
+    static SELECTOR_CACHE: RefCell<LruCache<String, SelectorList<SelectorImpl>, FxBuildHasher>> =
+        RefCell::new(LruCache::with_hasher(SELECTOR_CACHE_CAPACITY, FxBuildHasher));
+}
+
+/// <https://drafts.csswg.org/selectors-4/#parse-a-selector>, for the DOM APIs that take a
+/// selectors string. Returns `None` if `selectors` is not a valid selector list.
+pub(crate) fn parse_a_selector(
+    selectors: &str,
+    url_data: &UrlExtraData,
+) -> Option<SelectorList<SelectorImpl>> {
+    SELECTOR_CACHE.with(|cache| {
+        if let Some(selector_list) = cache.borrow_mut().get(selectors).cloned() {
+            return Some(selector_list);
+        }
+        let selector_list =
+            SelectorParser::parse_author_origin_no_namespace(selectors, url_data).ok()?;
+        cache
+            .borrow_mut()
+            .insert(selectors.to_owned(), selector_list.clone());
+        Some(selector_list)
+    })
 }
 
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>

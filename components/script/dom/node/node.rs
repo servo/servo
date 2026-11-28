@@ -1693,13 +1693,12 @@ impl Node {
     ) -> Fallible<Option<DomRoot<Element>>> {
         // > The querySelector(selectors) method steps are to return the first result of running scope-match
         // > a selectors string selectors against this, if the result is not an empty list; otherwise null.
-        let document_url = self.owner_document().url().get_arc();
+        let document = self.owner_document();
+        let document_url = document.url().get_arc();
 
         // If there are any duplicate ids, their targets may need to be updated in the id map before
         // layout runs, so that the map can gather their elements in DOM order.
-        self.owner_document()
-            .id_map()
-            .resolve_all(no_gc, self.owner_doc().upcast());
+        document.id_map().resolve_all(no_gc, document.upcast());
 
         // SAFETY: traced_node is unrooted, but we have a reference to "self" so it won't be freed.
         let traced_node = Dom::from_ref(self);
@@ -1723,13 +1722,12 @@ impl Node {
     ) -> Fallible<DomRoot<NodeList>> {
         // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
         // > a selectors string selectors against this.
-        let document_url = self.owner_document().url().get_arc();
+        let document = self.owner_document();
+        let document_url = document.url().get_arc();
 
         // If there are any duplicate ids, their targets may need to be updated in the id map before
         // layout runs, so that the map can gather their elements in DOM order.
-        self.owner_document()
-            .id_map()
-            .resolve_all(cx.no_gc(), self.owner_doc().upcast());
+        document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
         let unrooted_node = UnrootedDom::from_ref(self, cx.no_gc());
         let matching_elements = with_layout_state(|| {
@@ -1744,7 +1742,7 @@ impl Node {
 
         // NodeList::new_simple_list immediately collects the iterator, so we're not leaking LayoutDom
         // elements here.
-        Ok(NodeList::new_simple_list(cx, &self.owner_window(), iter))
+        Ok(NodeList::new_simple_list(cx, document.window(), iter))
     }
 
     pub(crate) fn ancestors(&self) -> impl Iterator<Item = DomRoot<Node>> + use<> {
