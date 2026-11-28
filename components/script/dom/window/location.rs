@@ -20,6 +20,8 @@ use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
 use crate::dom::document::Document;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
+#[cfg(feature = "devtools")]
+use crate::dom::types::DebuggerGlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
 use crate::navigation::navigate;
@@ -289,7 +291,17 @@ impl Location {
     }
 
     fn entry_settings_object(&self) -> DomRoot<GlobalScope> {
-        GlobalScope::entry()
+        let entry = GlobalScope::entry();
+        // Code evaluated from the devtools console runs inside the debugger's event handler, so the
+        // debugger global is the entry global. Like Firefox, treat that code as the page's own: use
+        // the global it runs in, so URLs resolve against the page and origin checks use its origin.
+        #[cfg(feature = "devtools")]
+        if entry.is::<DebuggerGlobalScope>() &&
+            let Some(incumbent) = GlobalScope::incumbent()
+        {
+            return incumbent;
+        }
+        entry
     }
 
     /// The common algorithm for `Location`'s setters and `Location::Assign`.
