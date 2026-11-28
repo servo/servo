@@ -1,0 +1,26 @@
+<!-- quirks mode -->
+<title>CSS aspect-ratio: stretch block size in quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-values">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<link rel="author" title="Euclid Ye" href="mailto:yezhizhenjiakang@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div style="height: 200px">
+  <div id="ratio" style="width: 100px; aspect-ratio: 1">
+    <div id="stretched" style="height: stretch; border: 10px solid"></div>
+  </div>
+</div>
+<script>
+test(function() {
+  assert_equals(document.compatMode, 'BackCompat');
+}, 'Document is in quirks mode');
+
+test(function() {
+  assert_equals(document.getElementById('ratio').offsetHeight, 100);
+}, 'Aspect ratio gives the box a definite block size');
+
+test(function() {
+  assert_equals(document.getElementById('stretched').offsetHeight, 100);
+}, 'Stretch block size resolves against the aspect-ratio block size');
+</script>
