@@ -5,7 +5,7 @@
 use std::error::Error as StdError;
 
 use libc::ENOSPC;
-use rusqlite::{Error as RusqliteError, ffi};
+use rusqlite::{Connection, Error as RusqliteError, ffi};
 
 // These pragmas need to be set once
 pub const DB_INIT_PRAGMAS: [&str; 2] =
@@ -24,6 +24,24 @@ pub const DB_PRAGMAS: [&str; 4] = [
 
 // These pragmas need to be run once per connection for in memory databases.
 pub const DB_IN_MEMORY_PRAGMAS: [&str; 1] = ["PRAGMA cache_size = 2000;"];
+
+/// Run the entries of `migrations` that the database has not seen yet, in order. The number of
+/// migrations already applied is stored in `user_version`, so new ones must be appended.
+pub(crate) fn run_migrations(
+    connection: &mut Connection,
+    migrations: &[&str],
+) -> rusqlite::Result<()> {
+    let transaction = connection.transaction()?;
+    let version: u32 = transaction.pragma_query_value(None, "user_version", |row| row.get(0))?;
+    if version as usize >= migrations.len() {
+        return Ok(());
+    }
+    for migration in &migrations[version as usize..] {
+        transaction.execute_batch(migration)?;
+    }
+    transaction.pragma_update(None, "user_version", migrations.len() as u32)?;
+    transaction.commit()
+}
 
 pub(crate) fn is_sqlite_disk_full_error(error: &RusqliteError) -> bool {
     fn has_enospc(mut source: Option<&(dyn StdError + 'static)>) -> bool {
