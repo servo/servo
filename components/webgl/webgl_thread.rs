@@ -361,7 +361,7 @@ impl WebGLThread {
                 let result = self.create_webgl_context(painter_id, version, size, attributes);
 
                 result_sender
-                    .send(result.map(|(id, limits)| {
+                    .send(result.map(|(id, limits, size)| {
                         let data = self
                             .make_current_if_needed(id)
                             .expect("WebGLContext not found");
@@ -380,6 +380,7 @@ impl WebGLThread {
                             limits,
                             glsl_version,
                             api_type,
+                            size,
                         }
                     }))
                     .unwrap();
@@ -387,8 +388,8 @@ impl WebGLThread {
             WebGLMsg::SetImageKey(ctx_id, image_key) => {
                 self.handle_set_image_key(ctx_id, image_key);
             },
-            WebGLMsg::ResizeContext(ctx_id, size, sender) => {
-                let _ = sender.send(self.resize_webgl_context(ctx_id, size));
+            WebGLMsg::ResizeContext(ctx_id, size, sender, size_returner) => {
+                let _ = sender.send(self.resize_webgl_context(ctx_id, size, size_returner));
             },
             WebGLMsg::RemoveContext(ctx_id) => {
                 self.remove_webgl_context(ctx_id);
@@ -535,7 +536,7 @@ impl WebGLThread {
         webgl_version: WebGLVersion,
         requested_size: Size2D<u32>,
         attributes: GLContextAttributes,
-    ) -> Result<(WebGLContextId, webgl::GLLimits), String> {
+    ) -> Result<(WebGLContextId, webgl::GLLimits, Size2D<u32>), String> {
         debug!(
             "WebGLThread::create_webgl_context({:?}, {:?}, {:?})",
             webgl_version, requested_size, attributes
@@ -710,7 +711,7 @@ impl WebGLThread {
             },
         );
 
-        Ok((context_id, limits))
+        Ok((context_id, limits, size))
     }
 
     /// Resizes a WebGLContext
@@ -718,6 +719,7 @@ impl WebGLThread {
         &mut self,
         context_id: WebGLContextId,
         requested_size: Size2D<u32>,
+        size_returner: GenericSender<Size2D<u32>>,
     ) -> Result<(), String> {
         self.make_current_if_needed(context_id);
 
@@ -727,6 +729,8 @@ impl WebGLThread {
 
         let size = clamp_viewport(&data.gl, requested_size);
         debug_assert_eq!(unsafe { data.gl.get_error() }, gl::NO_ERROR);
+
+        let _ = size_returner.send(size);
 
         // Check to see if any of the current framebuffer bindings are the surface we're about to
         // throw out. If so, we'll have to reset them after destroying the surface.
