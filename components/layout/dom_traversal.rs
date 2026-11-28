@@ -14,7 +14,6 @@ use servo_arc::Arc as ServoArc;
 use style::dom::NodeInfo;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
-use style::values::computed::TopLayer;
 use style::values::generics::counters::{Content, ContentItem};
 use style::values::specified::Quotes;
 
@@ -24,7 +23,9 @@ use crate::flow::inline::SharedInlineStyles;
 use crate::lists::generate_counter_representation;
 use crate::quotes::quotes_for_lang;
 use crate::replaced::ReplacedContents;
-use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside, DisplayOutside};
+use crate::style_ext::{
+    ComputedValuesExt, Display, DisplayGeneratingBox, DisplayInside, DisplayOutside,
+};
 
 /// A data structure used to pass and store related layout information together to
 /// avoid having to repeat the same arguments in argument lists.
@@ -54,6 +55,33 @@ impl<'dom> NodeAndStyleInfo<'dom> {
             node: element.as_node(),
             style,
         })
+    }
+
+    /// If the element for this [`NodeAndStyleInfo`] generates a `::backdrop` box, return a
+    /// [`NodeAndStyleInfo`] and [`DisplayGeneratingBox`] for it, otherwise return `None`.
+    pub(crate) fn maybe_backdrop_info(
+        &self,
+        context: &LayoutContext,
+    ) -> Option<(Self, DisplayGeneratingBox)> {
+        // From <https://drafts.csswg.org/css-position-4/#backdrop>:
+        // > Each element rendered in the top layer has a ::backdrop pseudo-element, for which it
+        // > is the originating element. When its computed content value is not none, ::backdrop
+        // > pseudo-elements generate boxes as if they were siblings of the root element. They’re
+        // > automatically rendered as a separate item in the top layer, below their originating
+        // > element.
+        if !self.style.in_top_layer() {
+            return None;
+        }
+        let backdrop_info = self.with_pseudo_element(context, PseudoElement::Backdrop)?;
+        if matches!(backdrop_info.style.get_counters().content, Content::None) {
+            return None;
+        }
+        let Display::GeneratingBox(backdrop_display) =
+            Display::from(backdrop_info.style.get_box().display)
+        else {
+            return None;
+        };
+        Some((backdrop_info, backdrop_display))
     }
 }
 
@@ -192,19 +220,7 @@ fn traverse_element<'dom>(
             handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
-            // https://drafts.csswg.org/css-position-4/#backdrop
-            // > Each element rendered in the top layer has a ::backdrop pseudo-element, for which
-            // > it is the originating element.
-            // > When its computed content value is not none, ::backdrop pseudo-elements generate
-            // > boxes as if they were siblings of the root element. They’re automatically rendered
-            // > as a separate item in the top layer, below their originating element.
-            if *info.style.get__servo_top_layer() == TopLayer::Auto &&
-                let Some(backdrop_info) =
-                    info.with_pseudo_element(context, PseudoElement::Backdrop) &&
-                !matches!(backdrop_info.style.get_counters().content, Content::None) &&
-                let Display::GeneratingBox(backdrop_display) =
-                    Display::from(backdrop_info.style.get_box().display)
-            {
+            if let Some((backdrop_info, backdrop_display)) = info.maybe_backdrop_info(context) {
                 handler.handle_element(
                     &backdrop_info,
                     backdrop_display,

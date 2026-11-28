@@ -911,6 +911,17 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
             self.pseudo_element_chain().is_empty(),
             "Shouldn't try to rebuild box tree from a pseudo-element"
         );
+
+        // Do not attempt this kind of incremental layout when elements are in the top layer.
+        //
+        // TODO: This can cause a full box tree rebuild to escape to the entire page, so this should
+        // be handled incrementally as well. It requires special handling for the backdrop pseudo,
+        // which we do not implement yet.
+        let was_in_top_layer = self.with_layout_box_base(|base| base.style.in_top_layer());
+        if info.style.in_top_layer() || was_in_top_layer != Some(false) {
+            return false;
+        }
+
         // TODO: Use a `LazyCell` once `LazyCell::into_inner()` stabilizes.
         let contents = OnceCell::new();
         let compute_contents = || Contents::for_element(info.node, layout_context);

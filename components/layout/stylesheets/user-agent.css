@@ -100,6 +100,10 @@ dialog:popover-open {
   background-color: Canvas;
 }
 
+:popover-open {
+  -servo-top-layer: auto !important;
+}
+
 :popover-open::backdrop {
   position: fixed;
   inset: 0;

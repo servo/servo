@@ -90,7 +90,9 @@ use webrender_api::units::{DevicePixel, LayoutRect, LayoutVector2D};
 
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
-use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
+use crate::display_list::{
+    DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree, TopLayerContents,
+};
 use crate::dom::NodeExt;
 use crate::query::{
     BoxAreaInclusion, find_character_offset_in_fragment_descendants, get_the_text_steps,
@@ -1584,9 +1586,9 @@ impl LayoutThread {
             fragment_tree,
             viewport_details,
             self.id.into(),
+            TopLayerContents::new(&self.top_layer.borrow()),
             !self.have_ever_generated_display_list.get(),
             &self.debug,
-            self.top_layer.borrow().clone(),
         );
 
         // When a new StackingContextTree is built, it contains a freshly built

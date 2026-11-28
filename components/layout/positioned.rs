@@ -15,7 +15,6 @@ use style::Zero;
 use style::computed_values::position::T as Position;
 use style::logical_geometry::{LogicalAxis, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
-use style::values::computed::TopLayer;
 use style::values::specified::align::AlignFlags;
 
 use crate::PropagatedBoxTreeData;
@@ -296,13 +295,13 @@ impl PositioningContext {
             style.establishes_containing_block_for_absolute_descendants(fragment.base.flags)
         );
         // Retain top layer boxes, so they do not get laid out against this box and instead end up
-        // in the initial containing block
+        // in the initial containing block.
         if style.establishes_containing_block_for_all_descendants(fragment.base.flags) {
             self.absolutes
-                .retain(|hoisted_box| hoisted_box.is_in_top_layer());
+                .retain(|hoisted_box| hoisted_box.in_top_layer());
         } else {
             self.absolutes.retain(|hoisted_box| {
-                hoisted_box.position() == Position::Fixed || hoisted_box.is_in_top_layer()
+                hoisted_box.position() == Position::Fixed || hoisted_box.in_top_layer()
             });
         }
     }
@@ -318,11 +317,11 @@ impl PositioningContext {
             style.establishes_containing_block_for_absolute_descendants(new_fragment.base.flags)
         );
 
-        // Hoist top layer boxes, so they do not get laid out right here
+        // Hoist top layer boxes, so they do not get laid out right here.
         let (mut boxes_to_continue_hoisting, mut absolutes) = self
             .absolutes
             .drain(..)
-            .partition(|hoisted_box| hoisted_box.is_in_top_layer());
+            .partition(|hoisted_box| hoisted_box.in_top_layer());
         boxes_to_continue_hoisting_out.append(&mut boxes_to_continue_hoisting);
 
         if style.establishes_containing_block_for_all_descendants(new_fragment.base.flags) {
@@ -486,14 +485,12 @@ impl HoistedAbsolutelyPositionedBox {
         position
     }
 
-    fn is_in_top_layer(&self) -> bool {
+    fn in_top_layer(&self) -> bool {
         self.absolutely_positioned_box
             .borrow()
             .context
             .style()
-            .get_box()
-            ._servo_top_layer ==
-            TopLayer::Auto
+            .in_top_layer()
     }
 
     fn layout_many(
@@ -575,7 +572,7 @@ impl HoistedAbsolutelyPositionedBox {
         );
         // https://drafts.csswg.org/css-position-4/#top-styling
         // > Unless overridden by another specification, its static position for left, right, and top is zero.
-        let static_position_rect = if self.is_in_top_layer() {
+        let static_position_rect = if self.in_top_layer() {
             StaticPositionRect::default()
         } else {
             self.static_position_rect()
