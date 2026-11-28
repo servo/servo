@@ -16,6 +16,7 @@ use euclid::num::Zero;
 use font_types::{BigEndian, NameId};
 use fonts_traits::tag::{CBDT, COLR, ITAL, SBIX, SLNT, WDTH, WGHT};
 use fonts_traits::{FontDescriptor, SkrifaFont};
+use hashlink::LruCache;
 use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
@@ -182,18 +183,38 @@ impl FontMetrics {
     }
 }
 
-#[derive(Debug, Default)]
+/// The maximum byte length of strings to store in the shaping cache. Longer strings
+/// increase the cache's memory usage more and rarely lead to cache hits. This limit
+/// was chosen by trying a variety of options on Speedometer and some microbenchmarks.
+const MAXIMUM_SHAPE_CACHE_STRING_BYTE_LENGTH: usize = 256;
+
+/// The maximum number of entries to keep in the shape cache. This keeps a pretty
+/// good balance between memory growth and performance in testing with Speedometer
+/// and microbenchmarks.
+const MAXIMUM_SHAPE_CACHE_ENTRIES: usize = 1024;
+
+#[derive(Debug)]
 struct CachedShapeData {
     glyph_advances: FxHashMap<GlyphId, FractionalPixel>,
     glyph_bounds: FxHashMap<GlyphId, Rect<f32>>,
     glyph_indices: FxHashMap<char, Option<GlyphId>>,
-    shaped_text: HashMap<ShapeCacheEntry, Arc<ShapedText>>,
+    shaped_text: LruCache<ShapeCacheEntry, Arc<ShapedText>>,
+}
+
+impl Default for CachedShapeData {
+    fn default() -> Self {
+        Self {
+            glyph_advances: Default::default(),
+            glyph_indices: Default::default(),
+            shaped_text: LruCache::new(MAXIMUM_SHAPE_CACHE_ENTRIES),
+        }
+    }
 }
 
 impl malloc_size_of::MallocSizeOf for CachedShapeData {
     fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
         // Estimate the size of the shaped text cache. This will be smaller, because
-        // HashMap has some overhead, but we are mainly interested in the actual data.
+        // LruCache has some overhead, but we are mainly interested in the actual data.
         let shaped_text_size = self
             .shaped_text
             .iter()
@@ -481,33 +502,40 @@ struct ShapeCacheEntry {
 impl Font {
     #[servo_tracing::instrument(name = "Font::shape_text", skip_all)]
     pub fn shape_text(&self, text: &str, options: &ShapingOptions) -> Arc<ShapedText> {
-        let font_features =
+        let font_features: Box<[(Tag, u32)]> =
             compute_used_font_features(options, self.template.borrow().font_face_rule.as_deref())
                 .collect();
-        let lookup_key = ShapeCacheEntry {
-            text: text.to_owned(),
-            letter_spacing: options.letter_spacing,
-            word_spacing: options.word_spacing,
-            script: options.script,
-            language: options.language.clone(),
-            language_override: options.language_override,
-            flags: options.flags,
-            font_features,
-        };
 
-        if let Some(shaped_text) = self.cached_shape_data.read().shaped_text.get(&lookup_key) {
-            return shaped_text.clone();
+        let mut lookup_key = None;
+        if text.len() <= MAXIMUM_SHAPE_CACHE_STRING_BYTE_LENGTH {
+            let key = ShapeCacheEntry {
+                text: text.to_owned(),
+                letter_spacing: options.letter_spacing,
+                word_spacing: options.word_spacing,
+                script: options.script,
+                language: options.language.clone(),
+                language_override: options.language_override,
+                flags: options.flags,
+                font_features: font_features.clone(),
+            };
+
+            if let Some(shaped_text) = self.cached_shape_data.write().shaped_text.get(&key) {
+                return shaped_text.clone();
+            }
+            lookup_key = Some(key);
         }
 
         let shaped_text = Arc::new(self.shaper.get_or_init(|| Shaper::new(self)).shape_text(
             self,
             text,
             options,
-            &lookup_key.font_features,
+            &font_features,
         ));
 
-        let mut cache = self.cached_shape_data.write();
-        cache.shaped_text.insert(lookup_key, shaped_text.clone());
+        if let Some(lookup_key) = lookup_key {
+            let mut cache = self.cached_shape_data.write();
+            cache.shaped_text.insert(lookup_key, shaped_text.clone());
+        }
 
         shaped_text
     }
