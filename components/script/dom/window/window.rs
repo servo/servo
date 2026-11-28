@@ -955,6 +955,21 @@ impl Window {
         self.send_to_constellation(ScriptToConstellationMessage::DiscardTopLevelBrowsingContext);
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#close-a-top-level-traversable>
+    pub(crate) fn close(&self, cx: &mut JSContext) {
+        // Step 1. If traversable's is closing is true, then return.
+        if self
+            .window_proxy
+            .get()
+            .is_none_or(|window_proxy| window_proxy.is_closing())
+        {
+            return;
+        }
+
+        // Step 2. Definitely close traversable.
+        self.definitely_close(cx);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#definitely-close-a-top-level-traversable>
     fn definitely_close(&self, cx: &mut JSContext) {
         let document = self.Document();

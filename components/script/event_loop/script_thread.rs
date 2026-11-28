@@ -3296,6 +3296,13 @@ impl ScriptThread {
                 // to avoid running layout on detached iframes.
                 let window = document.window();
                 if discard_browsing_context == DiscardBrowsingContext::Yes {
+                    // https://html.spec.whatwg.org/multipage/#nav-traversal-ui:close-a-top-level-traversable
+                    // > Browser user agents should offer users the ability to arbitrarily close
+                    // > any top-level traversable in their top-level traversable set.
+                    if window.is_top_level() {
+                        window.close(cx);
+                    }
+
                     let browsing_context_id = window.window_proxy().browsing_context_id();
                     window.discard_browsing_context();
                     self.window_proxies.remove(browsing_context_id);
