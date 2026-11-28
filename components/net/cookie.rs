@@ -129,7 +129,9 @@ impl ServoCookie {
             // 1. Let the domain-attribute be the attribute-value of the last attribute in the
             // cookie-attribute-list [..]
             // NOTE: This is done by the cookie crate
-            domain.to_owned()
+            // <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-15.html#name-the-domain-attribute-2>
+            // requires the cookie-domain to be converted to lower case.
+            domain.to_ascii_lowercase()
         }
         // Otherwise:
         else {
