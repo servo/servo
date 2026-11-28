@@ -13,12 +13,17 @@ interface MediaStreamTrack : EventTarget {
     // readonly        attribute boolean muted;
     //                 attribute EventHandler onmute;
     //                 attribute EventHandler onunmute;
-    // readonly        attribute MediaStreamTrackState readyState;
+    readonly        attribute MediaStreamTrackState readyState;
     //                 attribute EventHandler onended;
     MediaStreamTrack clone();
-    // void stop();
+    undefined stop();
     // MediaTrackCapabilities getCapabilities();
     // MediaTrackConstraints getConstraints();
     // MediaTrackSettings getSettings();
     // Promise<void> applyConstraints(optional MediaTrackConstraints constraints);
+};
+
+enum MediaStreamTrackState {
+    "live",
+    "ended"
 };

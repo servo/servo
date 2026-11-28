@@ -12,8 +12,8 @@ interface MediaDevices : EventTarget {
 };
 
 partial interface Navigator {
-    // [SameObject, SecureContext]
-    [Pref="dom_webrtc_enabled"] readonly        attribute MediaDevices mediaDevices;
+    // [SameObject]
+    [SecureContext, Pref="dom_webrtc_enabled"] readonly attribute MediaDevices mediaDevices;
 };
 
 partial interface MediaDevices {

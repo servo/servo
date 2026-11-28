@@ -879,6 +879,9 @@ impl Document {
 
         self.clean_up_media_elements(cx.no_gc());
 
+        // https://w3c.github.io/mediacapture-main/#life-cycle-and-media-flow
+        self.window.stop_media_capture();
+
         // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
         // TODO
 
@@ -3719,7 +3722,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#allowed-to-use>
-    pub(crate) fn allowed_to_use_feature(&self, _feature: PermissionName) -> bool {
+    pub(crate) fn allowed_to_use_feature(&self, feature: PermissionName) -> bool {
         // Step 1. If document's browsing context is null, then return false.
         if !self.has_browsing_context {
             return false;
@@ -3733,8 +3736,19 @@ impl Document {
         // Step 3. If the result of running is feature enabled in document for origin on
         // feature, document, and document's origin is "Enabled", then return true.
         // Step 4. Return false.
-        // TODO: All features are currently enabled for `Document`s because we do not
-        // implement the Permissions Policy specification.
+        // Until Permissions Policy is implemented, restrict camera and microphone
+        // to the top-level origin. Embedder permission requests currently identify
+        // only the WebView, not the requesting frame. Explicit iframe delegation
+        // is not supported by this restriction.
+        if matches!(feature, PermissionName::Camera | PermissionName::Microphone) &&
+            !self.window.is_top_level()
+        {
+            return self
+                .window
+                .top_level_document_if_local()
+                .is_some_and(|top| top.origin().same_origin(&self.origin()));
+        }
+        // TODO: Other features remain enabled without Permissions Policy.
         true
     }
 
