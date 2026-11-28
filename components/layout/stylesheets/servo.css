@@ -420,6 +420,13 @@ input:is([type=submit i], [type=reset i], [type=button i], [type=checkbox i], [t
   cursor: default;
 }
 
+input[type=image i] {
+  cursor: pointer;
+}
+input[type=image i]:disabled {
+  cursor: unset;
+}
+
 textarea {
   cursor: text;
   overflow: auto;

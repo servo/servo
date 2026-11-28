@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cursor for input type=image</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#images-3">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#cursor">
+<meta name="assert" content="An enabled image button uses the pointer cursor; a disabled one does not override the inherited cursor.">
+<!-- Tentative: the HTML spec does not define the cursor for image buttons.
+     Firefox and WebKit use pointer when enabled and auto when disabled; Blink uses default when disabled. -->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="enabled" type="image" alt="enabled">
+<input id="disabled" type="image" alt="disabled" disabled>
+<input id="uppercase" type="IMAGE" alt="uppercase">
+
+<script>
+function cursorOf(id) {
+  return getComputedStyle(document.getElementById(id)).cursor;
+}
+
+test(() => {
+  assert_equals(cursorOf("enabled"), "pointer");
+}, "Enabled input type=image has cursor: pointer");
+
+test(() => {
+  assert_equals(cursorOf("uppercase"), "pointer");
+}, "input type=IMAGE (case-insensitive) has cursor: pointer");
+
+test(() => {
+  assert_equals(cursorOf("disabled"), "auto");
+}, "Disabled input type=image has cursor: auto");
+</script>
