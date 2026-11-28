@@ -29,6 +29,8 @@ pub struct SvgFontResolver {
     /// Cache for Font to ID
     font_id_cache: Mutex<FxHashMap<Font, fontdb::ID>>,
     fallback_id_cache: Mutex<FxHashMap<char, Vec<fontdb::ID>>>,
+    #[ignore_malloc_size_of = "Arc"]
+    database: Mutex<Arc<fontdb::Database>>,
     #[conditional_malloc_size_of]
     context: Arc<FontContext>,
 }
@@ -38,16 +40,13 @@ impl SvgFontResolver {
         Self {
             font_id_cache: Mutex::new(FxHashMap::default()),
             fallback_id_cache: Mutex::new(FxHashMap::default()),
+            database: Mutex::new(Arc::new(fontdb::Database::new())),
             context,
         }
     }
 
     /// Insert the font into the database in [`SvgFontResolver`] and into the cache.
-    fn insert_into_database(
-        &self,
-        font: &Font,
-        database: &mut Arc<fontdb::Database>,
-    ) -> Option<fontdb::ID> {
+    fn insert_into_database(&self, font: &Font) -> Option<fontdb::ID> {
         let font_descriptor = font_to_fontdescriptor(font);
 
         for family in font.families() {
@@ -75,9 +74,10 @@ impl SvgFontResolver {
             let Ok(data_and_index) = font_ref.font_data_and_index() else {
                 continue;
             };
-            let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(Arc::new(
-                data_and_index.data.clone(),
-            )));
+            let mut shared_database = self.database.lock().unwrap();
+            let ids = Arc::make_mut(&mut *shared_database).load_font_source(
+                fontdb::Source::Binary(Arc::new(data_and_index.data.clone())),
+            );
 
             if let Some(id) = ids.get(data_and_index.index as usize).copied() {
                 self.font_id_cache.lock().unwrap().insert(font.clone(), id);
@@ -158,13 +158,19 @@ fn fontfamily_to_singlefontfamily(family: &FontFamily) -> SingleFontFamily {
 
 impl FontResolver for SvgFontResolver {
     fn resolve(&self, font: &Font, database: &mut Arc<fontdb::Database>) -> Option<fontdb::ID> {
-        {
+        let font_id = {
             let id_cache = self.font_id_cache.lock().unwrap();
-            if let Some(font_id) = id_cache.get(font) {
-                return Some(*font_id);
-            }
+            id_cache.get(font).copied()
+        };
+
+        if let Some(font_id) = font_id {
+            *database = self.database.lock().unwrap().clone();
+            return Some(font_id);
         }
-        self.insert_into_database(font, database)
+
+        let id = self.insert_into_database(font)?;
+        *database = self.database.lock().unwrap().clone();
+        Some(id)
     }
 
     fn resolve_fallback(
@@ -179,6 +185,7 @@ impl FontResolver for SvgFontResolver {
                 .get(&character)
                 .and_then(|font_ids| font_ids.iter().find(|font_id| !excluded.contains(font_id)))
             {
+                *database = self.database.lock().unwrap().clone();
                 return Some(*font_id);
             }
         }
@@ -211,9 +218,10 @@ impl FontResolver for SvgFontResolver {
                     continue;
                 };
 
-                let ids = Arc::make_mut(database).load_font_source(fontdb::Source::Binary(
-                    Arc::new(data_and_index.data.clone()),
-                ));
+                let mut shared_database = self.database.lock().unwrap();
+                let ids = Arc::make_mut(&mut *shared_database).load_font_source(
+                    fontdb::Source::Binary(Arc::new(data_and_index.data.clone())),
+                );
 
                 let Some(id) = ids.get(data_and_index.index as usize) else {
                     continue;
@@ -229,6 +237,7 @@ impl FontResolver for SvgFontResolver {
                     .entry(character)
                     .or_default()
                     .push(*id);
+                *database = shared_database.clone();
                 return Some(*id);
             }
         }
