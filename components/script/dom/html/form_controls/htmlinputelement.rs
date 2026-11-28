@@ -859,7 +859,7 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-bad-input>
     fn suffers_from_bad_input(&self, value: &DOMString) -> bool {
-        if value.is_empty() {
+        if self.original_user_input().is_empty() {
             return false;
         }
 
@@ -1055,9 +1055,10 @@ impl HTMLInputElement {
                     // is different from oldValue, and the element has a text entry cursor position,
                     // move the text entry cursor position to the end of the text control,
                     // unselecting any selected text and resetting the selection direction to "none".
-                    if old_value != value {
-                        let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
-                        text_input.set_content(value);
+                    let is_different = old_value != value;
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
+                    text_input.set_content(value);
+                    if is_different {
                         text_input.clear_selection_to_end();
                     }
                 }
@@ -1102,6 +1103,10 @@ impl HTMLInputElement {
 
     pub(crate) fn internal_value(&self) -> TracedDOMString {
         self.internal_value.borrow().clone()
+    }
+
+    pub(crate) fn original_user_input(&self) -> DOMString {
+        self.text_input.borrow().get_content()
     }
 }
 
@@ -1195,7 +1200,7 @@ impl TextControlElement for HTMLInputElement {
     // Types omitted which could theoretically be included if they were
     // rendered as a text control: file
     fn has_selectable_text(&self) -> bool {
-        self.is_textual_or_password() && !self.text_input.borrow().get_content().is_empty()
+        self.is_textual_or_password() && !self.original_user_input().is_empty()
     }
 
     fn has_uncollapsed_selection(&self) -> bool {
@@ -1256,7 +1261,7 @@ impl TextControlElement for HTMLInputElement {
     }
 
     fn value_text(&self) -> DOMString {
-        self.Value()
+        self.original_user_input()
     }
 
     fn is_read_only_or_disabled(&self) -> bool {
@@ -1264,8 +1269,9 @@ impl TextControlElement for HTMLInputElement {
     }
 
     fn handle_text_content_changed(&self, cx: &mut JSContext) {
-        *self.internal_value.safe_borrow_mut(cx.no_gc()) =
-            self.text_input.borrow().get_content().traced();
+        let mut value = self.original_user_input();
+        self.sanitize_value(&mut value);
+        self.update_related_validity_states(cx);
         self.update_placeholder_shown_state(cx.no_gc());
         self.upcast::<Node>()
             .dirty(cx.no_gc(), NodeDamage::ContentOrHeritage);
@@ -1475,6 +1481,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-input-valueasdate>
     #[expect(unsafe_code)]
     fn GetValueAsDate(&self, cx: &mut JSContext, mut return_value: MutableHandleObject) {
+        if !self.does_value_as_date_apply() {
+            return;
+        }
         if let Some(date_time) = self
             .input_type()
             .as_specific()
