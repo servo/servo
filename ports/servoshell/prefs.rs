@@ -209,6 +209,8 @@ fn get_preferences(prefs_files: &[PathBuf], config_dir: &Option<PathBuf>) -> Pre
         apply_preferences(&mut preferences, read_prefs_file(pref_file_path))
     }
 
+    preferences.embedder_name = "servoshell".into();
+
     preferences
 }
 

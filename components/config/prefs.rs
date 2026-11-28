@@ -266,6 +266,8 @@ pub struct Preferences {
     /// <https://drafts.csswg.org/cssom-view/#the-visualviewport-interface>
     // feature: VisualViewport | #41341 | Web/API/VisualViewport
     pub dom_visual_viewport_enabled: bool,
+    /// The name of the embedder product.
+    pub embedder_name: String,
     /// True to compile all WebRender shaders when Servo initializes. This is mostly
     /// useful when modifying the shaders, to ensure they all compile after each change is
     /// made.
@@ -631,6 +633,7 @@ impl Preferences {
             user_agent: String::new(),
             viewport_meta_enabled: false,
             expose_servointernals_globally: false,
+            embedder_name: String::new(),
         }
     }
 
@@ -661,6 +664,8 @@ impl Default for Preferences {
         if let Ok(no_proxy) = std::env::var("no_proxy").or_else(|_| std::env::var("NO_PROXY")) {
             preferences.network_http_no_proxy = no_proxy
         }
+
+        preferences.embedder_name = "unknown-servo-embedder".into();
 
         preferences
     }
