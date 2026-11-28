@@ -60,8 +60,6 @@ import org.servo.servoview.Servo
 import org.servo.servoview.ServoNavigator
 
 class MainActivity : ComponentActivity(), Servo.Client {
-    private val urlTextFieldState = TextFieldState()
-    private var currentUrl: String? = null
     private var alertMessage by mutableStateOf<String?>(null)
 
     private class Settings(preferences: SharedPreferences) {
@@ -71,6 +69,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val urlTextFieldState = TextFieldState()
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         val settings = Settings(sharedPreferences)
         val navigator = ServoNavigator()
@@ -230,6 +229,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 },
             ) { innerPadding ->
                 var title by remember { mutableStateOf<String?>(null) }
+                var url by remember { mutableStateOf<String?>(null) }
                 Servo(
                     experimentalModeEnabled = experimentalModeEnabled,
                     args = intent.getStringExtra("servoargs"),
@@ -238,13 +238,17 @@ class MainActivity : ComponentActivity(), Servo.Client {
                     logStr = intent.getStringExtra("servolog"),
                     onLoadingStateChange = { loadingState = it },
                     onTitleChange = { title = it },
+                    onUrlChange = {
+                        urlTextFieldState.edit { replace(0, length, it) }
+                        url = it
+                    },
                     client = this,
                     navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
                 val historyManager = remember { HistoryManager(this) }
                 if (loadingState == LoadingState.Finished) {
-                    currentUrl?.let { currentUrl -> historyManager.addEntry(currentUrl, title) }
+                    url?.let { url -> historyManager.addEntry(url, title) }
                 }
                 LaunchedEffect(servoFocusRequester) { servoFocusRequester.requestFocus() }
                 alertMessage?.let { alertMessage ->
@@ -298,11 +302,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
     override fun onAlert(message: String) {
         alertMessage = message
-    }
-
-    override fun onUrlChanged(url: String) {
-        urlTextFieldState.edit { replace(0, length, url) }
-        currentUrl = url
     }
 }
 
