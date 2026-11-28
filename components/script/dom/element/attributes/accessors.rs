@@ -287,6 +287,18 @@ impl Element {
         .unwrap_or(false)
     }
 
+    /// Same as `get_tokenlist_attribute(local_name).iter().map(f)`, but avoids
+    /// allocating a `Vec`. Use when the tokens are only read by `f`.
+    pub(crate) fn with_tokenlist_attribute<R>(
+        &self,
+        local_name: &LocalName,
+        f: impl FnOnce(&[Atom]) -> R,
+    ) -> Option<R> {
+        self.with_attribute(&ns!(), local_name, |attribute| {
+            f(attribute.value().as_tokens())
+        })
+    }
+
     pub(crate) fn get_tokenlist_attribute(&self, local_name: &LocalName) -> Vec<Atom> {
         self.with_attribute(&ns!(), local_name, |attribute| {
             attribute.value().as_tokens().to_vec()
