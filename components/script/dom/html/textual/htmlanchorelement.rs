@@ -10,6 +10,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use layout_api::AccessibilityDamage;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use script_bindings::cell::DomRefCell;
 use style::attr::AttrValue;
@@ -117,11 +118,18 @@ impl VirtualMethods for HTMLAnchorElement {
         // > links must be created for the keywords of the rel attribute
         // > as defined for those keywords in the link types section.
         match *attr.local_name() {
-            local_name!("href") => self.upcast::<Element>().set_state(
-                cx.no_gc(),
-                ElementState::UNVISITED,
-                !mutation.is_removal(),
-            ),
+            local_name!("href") => {
+                self.upcast::<Element>().set_state(
+                    cx.no_gc(),
+                    ElementState::UNVISITED,
+                    !mutation.is_removal(),
+                );
+
+                // Adding or removing the `href` attribute can cause the node's accessibility role
+                // to change, and we also need to ensure the URL property is accurate.
+                self.upcast::<Node>()
+                    .add_pending_accessibility_damage(cx.no_gc(), AccessibilityDamage::Node);
+            },
             local_name!("rel") | local_name!("rev") => {
                 self.relations
                     .set(LinkRelations::for_element(self.upcast()));

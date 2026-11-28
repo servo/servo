@@ -6,7 +6,7 @@ use std::collections::VecDeque;
 use std::fmt::Debug;
 use std::sync::LazyLock;
 
-use accesskit::{Affine, NodeId, Role};
+use accesskit::{Action, Affine, NodeId, Role};
 use app_units::Au;
 use bitflags::bitflags;
 use euclid::Rect;
@@ -317,10 +317,51 @@ impl AccessibilityNode {
         &mut self,
         dom_node: &ServoLayoutNode,
     ) -> LocalAccessibilityDamage {
-        let mut local_damage = LocalAccessibilityDamage::empty();
-        local_damage.insert(self.set_role(role_from_dom_node(dom_node)));
+        if let Some(dom_element) = dom_node.as_element() {
+            self.set_properties_from_dom_element(&dom_element)
+        } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
+            self.set_role(Role::TextRun)
+        } else {
+            self.set_role(Role::GenericContainer)
+        }
+    }
 
-        local_damage
+    fn set_properties_from_dom_element(
+        &mut self,
+        element: &ServoLayoutElement<'_>,
+    ) -> LocalAccessibilityDamage {
+        let local_name = element.local_name().to_ascii_lowercase();
+
+        let mut local_damage = LocalAccessibilityDamage::empty();
+
+        if let Some(aria_role) = role_from_role_attribute(element) {
+            return self.set_role(aria_role);
+        }
+        if let Some(&html_element_role) = HTML_ELEMENT_ROLE_MAPPINGS.get(&local_name) {
+            return self.set_role(html_element_role);
+        }
+
+        match local_name {
+            local_name!("a") => {
+                if let Some(href) = element.attribute(&ns!(), &local_name!("href")) {
+                    local_damage.insert(self.set_role(Role::Link));
+                    self.set_url(href);
+                    self.add_action(Action::Click);
+                    self.add_action(Action::Focus);
+                    self.add_action(Action::Blur);
+
+                    local_damage
+                } else {
+                    self.clear_url();
+                    self.remove_action(Action::Click);
+                    self.remove_action(Action::Focus);
+                    self.remove_action(Action::Blur);
+
+                    self.set_role(Role::GenericContainer)
+                }
+            },
+            _ => self.set_role(Role::GenericContainer),
+        }
     }
 
     /// Update this node's bounds from the current layout geometry.
@@ -680,6 +721,45 @@ impl AccessibilityNode {
         self.dirty_state |= DirtyState::Updated;
     }
 
+    #[expect(unused)]
+    fn url(&self) -> Option<&str> {
+        self.accesskit_node.url()
+    }
+
+    fn set_url(&mut self, url: &str) {
+        if let Some(existing_url) = self.accesskit_node.url() &&
+            existing_url == url
+        {
+            return;
+        }
+        self.accesskit_node.set_url(url);
+        self.dirty_state |= DirtyState::Updated;
+    }
+
+    fn clear_url(&mut self) {
+        if self.accesskit_node.url().is_none() {
+            return;
+        }
+        self.accesskit_node.clear_url();
+        self.dirty_state |= DirtyState::Updated;
+    }
+
+    fn add_action(&mut self, action: accesskit::Action) {
+        if self.accesskit_node.supports_action(action) {
+            return;
+        }
+        self.accesskit_node.add_action(action);
+        self.dirty_state |= DirtyState::Updated;
+    }
+
+    fn remove_action(&mut self, action: accesskit::Action) {
+        if !self.accesskit_node.supports_action(action) {
+            return;
+        }
+        self.accesskit_node.remove_action(action);
+        self.dirty_state |= DirtyState::Updated;
+    }
+
     pub(super) fn assert_integrity(&self, expected_parent: Option<WeakRefCell<AccessibilityNode>>) {
         debug_assert!(pref!(expensive_accessibility_test_assertions_enabled));
 
@@ -760,21 +840,6 @@ fn role_from_role_attribute(dom_element: &ServoLayoutElement<'_>) -> Option<Role
         .next()
         .and_then(|aria_role| ARIA_ROLE_TO_ACCESSKIT_ROLE.get(aria_role))
         .cloned()
-}
-
-fn role_from_dom_node(dom_node: &ServoLayoutNode<'_>) -> Role {
-    if let Some(dom_element) = dom_node.as_element() {
-        role_from_role_attribute(&dom_element).unwrap_or_else(|| {
-            let local_name = dom_element.local_name().to_ascii_lowercase();
-            *HTML_ELEMENT_ROLE_MAPPINGS
-                .get(&local_name)
-                .unwrap_or(&Role::GenericContainer)
-        })
-    } else if dom_node.type_id() == Some(LayoutNodeType::Text) {
-        Role::TextRun
-    } else {
-        Role::GenericContainer
-    }
 }
 
 struct AccessibilityNodeIterator<I>
@@ -864,8 +929,6 @@ impl DirtyState {
 
 static HTML_ELEMENT_ROLE_MAPPINGS: LazyLock<FxHashMap<LocalName, Role>> = LazyLock::new(|| {
     [
-        // FIXME: only a with href!
-        (local_name!("a"), Role::Link),
         (local_name!("article"), Role::Article),
         (local_name!("aside"), Role::Complementary),
         (local_name!("body"), Role::RootWebArea),
