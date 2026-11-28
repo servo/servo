@@ -112,6 +112,9 @@ impl VirtualMethods for MathMLElement {
             &local_name!("mathcolor") |
             &local_name!("mathbackground") |
             &local_name!("mathsize") |
+            &local_name!("width") |
+            &local_name!("height") |
+            &local_name!("depth") |
             &local_name!("dir") => true,
             _ => self
                 .super_type()
@@ -165,7 +168,42 @@ impl<'dom> LayoutDom<'dom, MathMLElement> {
             longhands::background_color::parse_declared,
             push,
         );
+        self.parse_mathml_attribute(
+            &parser_context,
+            "width",
+            longhands::width::parse_declared,
+            push,
+        );
+        let element = self.upcast::<Element>();
+        if element.local_name() == &local_name!("mspace") {
+            let height = element.get_attr_val_for_layout(&ns!(), &local_name!("height"));
+            let depth = element.get_attr_val_for_layout(&ns!(), &local_name!("depth"));
+            let total_height = match (height, depth) {
+                (Some(height), Some(depth)) => Some(format!("calc({height} + {depth})")),
+                (Some(height), None) => Some(height.to_owned()),
+                (None, Some(depth)) => Some(depth.to_owned()),
+                (None, None) => None,
+            };
 
+            if let Some(value) = total_height {
+                let mut parser = cssparser::Parser::new(&value);
+                if let Ok(declaration) = parser.parse_entirely(|input| {
+                    longhands::height::parse_declared(&parser_context, input)
+                }) {
+                    push(declaration);
+                }
+            }
+
+            if let Some(depth) = depth {
+                let value = format!("calc(0px - {depth})");
+                let mut parser = cssparser::Parser::new(&value);
+                if let Ok(declaration) = parser.parse_entirely(|input| {
+                    longhands::baseline_shift::parse_declared(&parser_context, input)
+                }) {
+                    push(declaration);
+                }
+            }
+        }
         // https://w3c.github.io/mathml-core/#dfn-mathsize
         // > In that case, the user agent is expected to treat
         // > the attribute as a presentational hint setting the element's
