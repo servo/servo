@@ -25,7 +25,7 @@ use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{
     BorderSideWidth, BorderStyle, Inset, ItemPlacement, LengthPercentage, Margin, SelfAlignment,
-    TextWrapMode, WhiteSpaceCollapse,
+    TextWrapMode, TopLayer, WhiteSpaceCollapse,
 };
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -368,6 +368,7 @@ pub(crate) trait ComputedValuesExt {
         &self,
         fragment_flags: FragmentFlags,
     ) -> bool;
+    fn in_top_layer(&self) -> bool;
     fn preferred_aspect_ratio(
         &self,
         natural_aspect_ratio: Option<CSSFloat>,
@@ -897,6 +898,14 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // From <https://drafts.csswg.org/css-position-4/#top-styling>
+        // > Every element rendered in the top layer, as well as its corresponding ::backdrop
+        // > pseudo-element, are rendered with the following qualities:
+        // > - It generates a new stacking context.
+        if self.in_top_layer() {
+            return true;
+        }
+
         // TODO: We need to handle CSS Contain here.
         false
     }
@@ -996,6 +1005,11 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
+    }
+
+    /// Return true if this style indicates that a box should be in the top layer.
+    fn in_top_layer(&self) -> bool {
+        *self.get__servo_top_layer() == TopLayer::Auto
     }
 
     /// Resolve the preferred aspect ratio for a box that doesn't have a natural

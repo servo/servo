@@ -90,7 +90,9 @@ use webrender_api::units::{DevicePixel, LayoutRect, LayoutVector2D};
 
 use crate::accessibility::{AccessibilityContext, AccessibilityDamageMap, AccessibilityTree};
 use crate::context::{CachedImageOrError, ImageResolver, LayoutContext};
-use crate::display_list::{DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree};
+use crate::display_list::{
+    DisplayListBuilder, HitTest, PaintTimingHandler, StackingContextTree, TopLayerContents,
+};
 use crate::dom::NodeExt;
 use crate::query::{
     BoxAreaInclusion, find_character_offset_in_fragment_descendants, get_the_text_steps,
@@ -225,6 +227,11 @@ pub struct LayoutThread {
     ///
     /// If this changed, then we need to create a new display list.
     previously_highlighted_dom_node: Cell<Option<OpaqueNode>>,
+
+    /// The nodes in the top layer, in painting order, as of the latest reflow.
+    ///
+    /// If this changed, then we need to create a new stacking context tree and display list.
+    top_layer: RefCell<Vec<OpaqueNode>>,
 
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
@@ -928,6 +935,7 @@ impl LayoutThread {
             resolved_images_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
+            top_layer: Default::default(),
             paint_timing_handler: Default::default(),
             pending_container_timing_records: Default::default(),
             user_stylesheets: config.user_stylesheets,
@@ -1347,6 +1355,14 @@ impl LayoutThread {
             self.need_new_display_list.set(true);
         }
 
+        if *self.top_layer.borrow() != reflow_request.new_top_layer {
+            self.need_new_stacking_context_tree.set(true);
+            self.need_new_display_list.set(true);
+            self.top_layer
+                .borrow_mut()
+                .clone_from(&reflow_request.new_top_layer);
+        }
+
         let layout_context = LayoutContext {
             style_context: self.build_shared_style_context(
                 guards,
@@ -1570,6 +1586,7 @@ impl LayoutThread {
             fragment_tree,
             viewport_details,
             self.id.into(),
+            TopLayerContents::new(&self.top_layer.borrow()),
             !self.have_ever_generated_display_list.get(),
             &self.debug,
         );

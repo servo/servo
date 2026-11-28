@@ -24,7 +24,9 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
+use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 use style::values::computed::angle::Angle;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
@@ -228,6 +230,7 @@ impl StackingContextTree {
         fragment_tree: &FragmentTree,
         viewport_details: ViewportDetails,
         pipeline_id: wr::PipelineId,
+        top_layer_contents: TopLayerContents<'_>,
         first_reflow: bool,
         debug: &DiagnosticsLogging,
     ) -> Self {
@@ -302,6 +305,13 @@ impl StackingContextTree {
                 &StackingContextParentInfo::default(),
             );
         }
+
+        top_layer_contents.build_stacking_context(
+            fragment_tree,
+            &containing_block_info,
+            &mut stacking_context_tree,
+            &mut root_stacking_context,
+        );
 
         root_stacking_context.sort();
         stacking_context_tree.root_stacking_context = root_stacking_context;
@@ -635,6 +645,12 @@ impl Fragment {
                     Some(Fragment::Box(box_fragment)) => box_fragment,
                     _ => unreachable!("Found hoisted box with missing or non-BoxFragment."),
                 };
+
+                // Top layer elements are handled separately at the stacking tree root, so their
+                // placeholder is ignored.
+                if box_fragment.style().in_top_layer() {
+                    return;
+                }
 
                 box_fragment.build_stacking_context_tree(
                     stacking_context_tree,
@@ -1549,6 +1565,73 @@ impl PositioningFragment {
                 stacking_context,
                 parent_info,
             );
+        }
+    }
+}
+
+pub(crate) struct TopLayerContents<'a>(&'a [OpaqueNode]);
+
+impl<'a> TopLayerContents<'a> {
+    pub(crate) fn new(top_layer_nodes: &'a [OpaqueNode]) -> Self {
+        Self(top_layer_nodes)
+    }
+
+    fn position_key_inner(&self, fragment: &BoxFragment) -> Option<(usize, bool)> {
+        let tag = fragment.base.tag?;
+        Some((
+            self.0
+                .iter()
+                .position(|opaque_node| *opaque_node == tag.node)?,
+            // This causes backdrop pseudos to be sorted first in the stacking context tree.
+            tag.pseudo_element_chain.primary != Some(PseudoElement::Backdrop),
+        ))
+    }
+
+    /// Generate a key that can be used to sort the top layer contents into their render order.
+    fn position_key(&self, fragment: &BoxFragment) -> (usize, bool) {
+        self.position_key_inner(fragment)
+            .unwrap_or((usize::MAX, true))
+    }
+
+    fn build_stacking_context(
+        &self,
+        fragment_tree: &FragmentTree,
+        containing_block_info: &ContainingBlockManager<'_, ContainingBlock>,
+        stacking_context_tree: &mut StackingContextTree,
+        root_stacking_context: &mut StackingContext,
+    ) {
+        // From <https://drafts.csswg.org/css-position-4/#top-styling>:
+        // > Every element rendered in the top layer, as well as its corresponding ::backdrop
+        // > pseudo-element, are rendered with the following qualities:
+        // > ...
+        // > - It is rendered as an atomic unit as if it were a sibling of the document’s root.
+        // > ...
+        let mut top_layer_box_fragments = fragment_tree
+            .root_fragments
+            .iter()
+            .filter_map(|fragment| {
+                let box_fragment = fragment.retrieve_box_fragment()?;
+                let in_top_layer = box_fragment.style().in_top_layer();
+                in_top_layer.then(|| (self.position_key(&box_fragment), box_fragment))
+            })
+            .collect::<Vec<_>>();
+        top_layer_box_fragments.sort_by_key(|(key, _)| *key);
+
+        let first_top_layer_child = root_stacking_context.children.len();
+        for (_, box_fragment) in top_layer_box_fragments {
+            box_fragment.build_stacking_context_tree(
+                stacking_context_tree,
+                containing_block_info,
+                root_stacking_context,
+                &StackingContextParentInfo::default(),
+            );
+        }
+
+        // The top layer paints above everything else regardless of `z-index`. Since the sort is
+        // stable and the top layer elements are the added in order to the end of the list are
+        // added last, they keep the correct order.
+        for child in &mut root_stacking_context.children[first_top_layer_child..] {
+            child.z_index = i32::MAX;
         }
     }
 }
