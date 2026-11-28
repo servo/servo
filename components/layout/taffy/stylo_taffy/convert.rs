@@ -47,10 +47,12 @@ pub fn dimension(value: &stylo::Size) -> taffy::Dimension {
         stylo::Size::FitContent => taffy::Dimension::fit_content(),
         stylo::Size::FitContentFunction(limit) => fit_content_function(&limit.0),
         stylo::Size::Stretch | stylo::Size::WebkitFillAvailable => taffy::Dimension::stretch(),
-
-        // Anchor positioning will be flagged off for time being
-        stylo::Size::AnchorSizeFunction(_) => unreachable!(),
-        stylo::Size::AnchorContainingCalcFunction(_) => unreachable!(),
+        // Anchors aren't resolved yet, so use the fallback or the initial value.
+        stylo::Size::AnchorSizeFunction(function) => function
+            .fallback
+            .as_ref()
+            .map_or(taffy::Dimension::AUTO, dimension),
+        stylo::Size::AnchorContainingCalcFunction(_) => taffy::Dimension::AUTO,
     }
 }
 
@@ -68,11 +70,11 @@ pub fn min_size(value: &stylo::Size) -> taffy::LengthPercentageAuto {
         stylo::Size::Stretch | stylo::Size::WebkitFillAvailable => {
             taffy::LengthPercentageAuto::AUTO
         },
-
-        // Anchor positioning will be flagged off for time being
-        stylo::Size::AnchorSizeFunction(_) | stylo::Size::AnchorContainingCalcFunction(_) => {
-            unreachable!("Anchor positioning is disabled in stylo")
-        },
+        stylo::Size::AnchorSizeFunction(function) => function
+            .fallback
+            .as_ref()
+            .map_or(taffy::LengthPercentageAuto::AUTO, min_size),
+        stylo::Size::AnchorContainingCalcFunction(_) => taffy::LengthPercentageAuto::AUTO,
     }
 }
 
@@ -90,11 +92,11 @@ pub fn max_size(value: &stylo::MaxSize) -> taffy::LengthPercentageAuto {
         stylo::MaxSize::Stretch | stylo::MaxSize::WebkitFillAvailable => {
             taffy::LengthPercentageAuto::AUTO
         },
-
-        // Anchor positioning will be flagged off for time being
-        stylo::MaxSize::AnchorSizeFunction(_) | stylo::MaxSize::AnchorContainingCalcFunction(_) => {
-            unreachable!("Anchor positioning is disabled in stylo")
-        },
+        stylo::MaxSize::AnchorSizeFunction(function) => function
+            .fallback
+            .as_ref()
+            .map_or(taffy::LengthPercentageAuto::AUTO, max_size),
+        stylo::MaxSize::AnchorContainingCalcFunction(_) => taffy::LengthPercentageAuto::AUTO,
     }
 }
 
@@ -103,12 +105,11 @@ pub fn margin(val: &stylo::MarginVal) -> taffy::LengthPercentageAuto {
     match val {
         stylo::MarginVal::Auto => taffy::LengthPercentageAuto::AUTO,
         stylo::MarginVal::LengthPercentage(val) => length_percentage(val).into(),
-
-        // Anchor positioning will be flagged off for time being
-        stylo::MarginVal::AnchorSizeFunction(_) |
-        stylo::MarginVal::AnchorContainingCalcFunction(_) => {
-            unreachable!("Anchor positioning is disabled in stylo")
-        },
+        stylo::MarginVal::AnchorSizeFunction(function) => function
+            .fallback
+            .as_ref()
+            .map_or(taffy::LengthPercentageAuto::ZERO, margin),
+        stylo::MarginVal::AnchorContainingCalcFunction(_) => taffy::LengthPercentageAuto::ZERO,
     }
 }
 
@@ -117,13 +118,15 @@ pub fn inset(val: &stylo::InsetVal) -> taffy::LengthPercentageAuto {
     match val {
         stylo::InsetVal::Auto => taffy::LengthPercentageAuto::AUTO,
         stylo::InsetVal::LengthPercentage(val) => length_percentage(val).into(),
-
-        // Anchor positioning will be flagged off for time being
-        stylo::InsetVal::AnchorSizeFunction(_) |
-        stylo::InsetVal::AnchorFunction(_) |
-        stylo::InsetVal::AnchorContainingCalcFunction(_) => {
-            unreachable!("Anchor positioning is disabled in stylo")
-        },
+        stylo::InsetVal::AnchorFunction(function) => function
+            .fallback
+            .as_ref()
+            .map_or(taffy::LengthPercentageAuto::AUTO, inset),
+        stylo::InsetVal::AnchorSizeFunction(function) => function
+            .fallback
+            .as_ref()
+            .map_or(taffy::LengthPercentageAuto::AUTO, inset),
+        stylo::InsetVal::AnchorContainingCalcFunction(_) => taffy::LengthPercentageAuto::AUTO,
     }
 }
 
