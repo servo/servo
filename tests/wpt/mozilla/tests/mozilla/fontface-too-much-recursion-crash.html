@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Using a FontFace close to the recursion limit should not crash</title>
+<script>
+  function recurse(source) {
+    try { recurse(source); } catch (e) {}
+    try { new FontFace("test", source); } catch (e) {}
+    // The loaded promise is created the first time it's used.
+    try { new FontFace("test", source).loaded; } catch (e) {}
+  }
+  // An invalid source and a valid one take different paths in the constructor.
+  recurse("x");
+  recurse("url(font.ttf)");
+</script>
