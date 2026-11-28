@@ -100,22 +100,29 @@ impl DOMTokenList {
 impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-length>
     fn Length(&self) -> u32 {
-        self.element.get_tokenlist_attribute(&self.local_name).len() as u32
+        self.element
+            .with_tokenlist_attribute(&self.local_name, |tokens| tokens.len() as u32)
+            .unwrap_or(0)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-item>
     fn Item(&self, index: u32) -> Option<DOMString> {
         self.element
-            .get_tokenlist_attribute(&self.local_name)
-            .get(index as usize)
-            .map(|token| DOMString::from(&**token))
+            .with_tokenlist_attribute(&self.local_name, |tokens| {
+                tokens
+                    .get(index as usize)
+                    .map(|token| DOMString::from(&**token))
+            })
+            .flatten()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-contains>
     fn Contains(&self, token: DOMString) -> bool {
         self.element
-            .get_tokenlist_attribute(&self.local_name)
-            .contains(&Atom::from(token))
+            .with_tokenlist_attribute(&self.local_name, |tokens| {
+                tokens.iter().any(|atom| **atom == *token)
+            })
+            .unwrap_or(false)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-domtokenlist-add>
