@@ -13,15 +13,16 @@ use html5ever::tokenizer::{
 use html5ever::{Attribute, LocalName, local_name};
 use js::jsapi::JSTracer;
 use markup5ever::TokenizerResult;
-use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, Referrer, RequestClient,
 };
 use net_traits::{CoreResourceMsg, FetchChannels, ReferrerPolicy, ResourceThreads};
+use script_bindings::root::DomRoot;
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::ServoUrl;
 
+use crate::dom::GlobalScope;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
 use crate::dom::document::Document;
@@ -29,6 +30,7 @@ use crate::dom::html::htmlscriptelement::script_fetch_request;
 use crate::dom::processingoptions::determine_cors_settings_for_token;
 use crate::fetch::fetch::create_a_potential_cors_request;
 use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -76,6 +78,7 @@ impl Tokenizer {
             // block the main parser.
             prefetching: Cell::new(false),
             request_client: global.request_client(None),
+            global,
         };
         let options = Default::default();
         let inner = TraceableTokenizer(HtmlTokenizer::new(sink, options));
@@ -106,6 +109,7 @@ struct PrefetchSink {
     prefetching: Cell<bool>,
     #[no_trace]
     request_client: RequestClient,
+    global: DomRoot<GlobalScope>,
 }
 
 /// The prefetch tokenizer produces trivial results
@@ -134,7 +138,7 @@ impl TokenSink for PrefetchSink {
                         .unwrap_or_default();
                     let request = script_fetch_request(
                         self.webview_id,
-                        UrlWithBlobClaim::from_url_without_having_claimed_blob(url),
+                        ensure_blob_referenced_by_url_is_kept_alive(&self.global, url),
                         cors_setting,
                         ScriptFetchOptions {
                             referrer_policy: self.referrer_policy,
