@@ -549,7 +549,7 @@ impl FlexContainer {
             },
             LengthPercentageOrNormal::Normal => Au::zero(),
         };
-        let extra_space_from_main_gap = main_gap * (item_infos.len() as i32 - 1);
+        let extra_space_from_main_gap = main_gap * item_infos.len().saturating_sub(1) as i32;
         let mut container_max_content_size = extra_space_from_main_gap;
         let mut container_min_content_size = if self.config.flex_wrap == FlexWrap::NOWRAP {
             extra_space_from_main_gap
@@ -726,7 +726,7 @@ impl FlexContainer {
             .iter()
             .map(|layout| layout.line_size.cross)
             .sum::<Au>() +
-            cross_gap * (line_count as i32 - 1);
+            cross_gap * line_count.saturating_sub(1) as i32;
         let content_block_size = match self.config.flex_axis {
             FlexAxis::Row => content_cross_size,
             FlexAxis::Column => container_main_size,
@@ -1216,7 +1216,7 @@ impl InitialFlexLineLayout<'_> {
         let item_count = items.len();
         let (item_used_main_sizes, free_space_in_main_axis) = Self::resolve_flexible_lengths(
             &items,
-            container_main_size - main_gap * (item_count as i32 - 1),
+            container_main_size - main_gap * item_count.saturating_sub(1) as i32,
         );
 
         // https://drafts.csswg.org/css-flexbox/#algo-cross-item

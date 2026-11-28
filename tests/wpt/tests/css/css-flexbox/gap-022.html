@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Empty flex containers with gap do not produce negative sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-align/#gaps">
+<meta name="assert" content="Empty flex containers with gap do not subtract gap into negative widths or heights">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="display: flex">
+  <div id="empty-row-nested" style="display: flex; gap: 16px"></div>
+</div>
+
+<div style="display: flex">
+  <div id="empty-wrap-nested" style="display: flex; flex-wrap: wrap; gap: 16px"></div>
+</div>
+
+<div style="display: flex">
+  <div id="empty-column-nested" style="display: flex; flex-direction: column; gap: 16px"></div>
+</div>
+
+<div id="abspos-only-row-max-content" style="display: flex; width: max-content; gap: 16px">
+  <div style="position: absolute;"></div>
+</div>
+
+<div id="abspos-only-column-max-content" style="display: flex; flex-direction: column; width: max-content; gap: 16px">
+  <div style="position: absolute;"></div>
+</div>
+
+<script>
+for (const id of [
+  "empty-row-nested",
+  "empty-wrap-nested",
+  "empty-column-nested",
+  "abspos-only-row-max-content",
+  "abspos-only-column-max-content",
+]) {
+  test(() => {
+    const rect = document.getElementById(id).getBoundingClientRect();
+    assert_equals(rect.width, 0, "width should be 0");
+    assert_equals(rect.height, 0, "height should be 0");
+  }, id);
+}
+</script>
