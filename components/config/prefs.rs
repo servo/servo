@@ -49,6 +49,10 @@ pub fn set(preferences: Preferences) {
     // Map between Stylo preference names and Servo preference names.
     stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
     stylo_static_prefs::set_pref!(
+        "layout.css.anchor-positioning.enabled",
+        preferences.layout_css_anchor_positioning_enabled
+    );
+    stylo_static_prefs::set_pref!(
         "layout.css.backdrop-filter.enabled",
         preferences.layout_css_backdrop_filter_enabled
     );
@@ -323,6 +327,8 @@ pub struct Preferences {
     // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
+    // feature: CSS Anchor Positioning | #50272 | Web/CSS/Guides/Anchor_positioning
+    pub layout_css_anchor_positioning_enabled: bool,
     /// Enable support for `aspect-ratio` on non-replaced boxes.
     pub layout_css_aspect_ratio_enabled: bool,
     pub layout_css_backdrop_filter_enabled: bool,
@@ -586,6 +592,7 @@ impl Preferences {
             container_timing_enabled: false,
             largest_contentful_paint_enabled: false,
             layout_animations_test_enabled: false,
+            layout_css_anchor_positioning_enabled: false,
             layout_css_aspect_ratio_enabled: false,
             layout_css_backdrop_filter_enabled: false,
             layout_css_columns_enabled: false,

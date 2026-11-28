@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::LazyLock;
+
 use app_units::Au;
 use layout_api::{AxesOverflow, LayoutElementType, LayoutNode, LayoutNodeType};
 use malloc_size_of_derive::MallocSizeOf;
@@ -404,11 +406,16 @@ impl ComputedValuesExt for ComputedValues {
             match inset {
                 Inset::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Inset::Auto => LengthPercentageOrAuto::Auto,
-                Inset::AnchorFunction(_) => unreachable!("anchor() should be disabled"),
-                Inset::AnchorSizeFunction(_) => unreachable!("anchor-size() should be disabled"),
-                Inset::AnchorContainingCalcFunction(_) => {
-                    unreachable!("anchor() and anchor-size() should be disabled")
-                },
+                // Anchors aren't resolved yet, so use the fallback or the initial value.
+                Inset::AnchorFunction(function) => function
+                    .fallback
+                    .as_ref()
+                    .map_or(LengthPercentageOrAuto::Auto, convert),
+                Inset::AnchorSizeFunction(function) => function
+                    .fallback
+                    .as_ref()
+                    .map_or(LengthPercentageOrAuto::Auto, convert),
+                Inset::AnchorContainingCalcFunction(_) => LengthPercentageOrAuto::Auto,
             }
         }
         let position = self.get_position();
@@ -522,11 +529,17 @@ impl ComputedValuesExt for ComputedValues {
 
     fn physical_margin(&self) -> PhysicalSides<LengthPercentageOrAuto<'_>> {
         fn convert(inset: &Margin) -> LengthPercentageOrAuto<'_> {
+            static ZERO: LazyLock<LengthPercentage> = LazyLock::new(LengthPercentage::zero);
             match inset {
                 Margin::LengthPercentage(v) => LengthPercentageOrAuto::LengthPercentage(v),
                 Margin::Auto => LengthPercentageOrAuto::Auto,
-                Margin::AnchorSizeFunction(_) | Margin::AnchorContainingCalcFunction(_) => {
-                    unreachable!("anchor-size() should be disabled")
+                // Anchors aren't resolved yet, so use the fallback or the initial value.
+                Margin::AnchorSizeFunction(function) => function
+                    .fallback
+                    .as_ref()
+                    .map_or_else(|| LengthPercentageOrAuto::LengthPercentage(&ZERO), convert),
+                Margin::AnchorContainingCalcFunction(_) => {
+                    LengthPercentageOrAuto::LengthPercentage(&ZERO)
                 },
             }
         }

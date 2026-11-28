@@ -432,9 +432,11 @@ impl From<&StyleSize> for Size<LengthPercentage> {
             StyleSize::FitContent => Size::FitContent,
             StyleSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0.clone()),
             StyleSize::Stretch | StyleSize::WebkitFillAvailable => Size::Stretch,
-            StyleSize::AnchorSizeFunction(_) | StyleSize::AnchorContainingCalcFunction(_) => {
-                unreachable!("anchor-size() should be disabled")
+            // Anchors aren't resolved yet, so use the fallback or the initial value.
+            StyleSize::AnchorSizeFunction(function) => {
+                function.fallback.as_ref().map_or(Size::Initial, Self::from)
             },
+            StyleSize::AnchorContainingCalcFunction(_) => Size::Initial,
         }
     }
 }
@@ -449,9 +451,10 @@ impl From<&StyleMaxSize> for Size<LengthPercentage> {
             StyleMaxSize::FitContent => Size::FitContent,
             StyleMaxSize::FitContentFunction(lp) => Size::FitContentFunction(lp.0.clone()),
             StyleMaxSize::Stretch | StyleMaxSize::WebkitFillAvailable => Size::Stretch,
-            StyleMaxSize::AnchorSizeFunction(_) | StyleMaxSize::AnchorContainingCalcFunction(_) => {
-                unreachable!("anchor-size() should be disabled")
+            StyleMaxSize::AnchorSizeFunction(function) => {
+                function.fallback.as_ref().map_or(Size::Initial, Self::from)
             },
+            StyleMaxSize::AnchorContainingCalcFunction(_) => Size::Initial,
         }
     }
 }
