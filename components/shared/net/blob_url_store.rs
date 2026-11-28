@@ -6,6 +6,7 @@ use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::Mutex;
@@ -71,6 +72,18 @@ pub struct UrlWithBlobClaim {
 }
 
 impl UrlWithBlobClaim {
+    pub fn into_transfer(self) -> TransferableUrlWithBlobClaim {
+        TransferableUrlWithBlobClaim {
+            url: self.url,
+            token: self.token.map(|guard| {
+                Arc::new(BlobTransferState {
+                    token: Mutex::new(Some(guard.token.refresh())),
+                    serialized: AtomicBool::new(false),
+                })
+            }),
+        }
+    }
+
     pub fn new(url: ServoUrl, token: Option<TokenSerializationGuard>) -> Self {
         Self { url, token }
     }
@@ -138,6 +151,82 @@ impl UrlWithBlobClaim {
 
     pub fn url(&self) -> ServoUrl {
         self.url.clone()
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TransferableUrlWithBlobClaim {
+    url: ServoUrl,
+    token: Option<Arc<BlobTransferState>>,
+}
+
+impl TransferableUrlWithBlobClaim {
+    pub fn url(&self) -> ServoUrl {
+        self.url.clone()
+    }
+
+    pub fn transfer_guard(&self) -> BlobUrlTransferGuard {
+        BlobUrlTransferGuard(self.token.clone())
+    }
+
+    pub fn into_url(self) -> UrlWithBlobClaim {
+        UrlWithBlobClaim {
+            url: self.url,
+            token: self.token.map(|state| TokenSerializationGuard {
+                token: Arc::new(state.token.lock().take().expect("unconsumed blob transfer")),
+            }),
+        }
+    }
+}
+
+impl Deref for TransferableUrlWithBlobClaim {
+    type Target = ServoUrl;
+
+    fn deref(&self) -> &Self::Target {
+        &self.url
+    }
+}
+
+#[derive(Debug)]
+struct BlobTransferState {
+    token: Mutex<Option<BlobToken>>,
+    serialized: AtomicBool,
+}
+
+impl Serialize for BlobTransferState {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let token = self.token.lock();
+        let token = token
+            .as_ref()
+            .ok_or_else(|| serde::ser::Error::custom("blob transfer has already been consumed"))?;
+        let result = token.serialize(serializer);
+        if result.is_ok() {
+            self.serialized.store(true, Ordering::SeqCst);
+        }
+        result
+    }
+}
+
+impl<'de> Deserialize<'de> for BlobTransferState {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        Ok(Self {
+            token: Mutex::new(Some(BlobToken::deserialize(deserializer)?)),
+            serialized: AtomicBool::new(false),
+        })
+    }
+}
+
+#[must_use]
+pub struct BlobUrlTransferGuard(Option<Arc<BlobTransferState>>);
+
+impl BlobUrlTransferGuard {
+    pub fn commit(self) {
+        if let Some(state) = &self.0 &&
+            state.serialized.load(Ordering::SeqCst) &&
+            let Some(token) = state.token.lock().as_mut()
+        {
+            token.disown();
+        }
     }
 }
 
@@ -335,5 +424,101 @@ impl fmt::Debug for BlobToken {
             .field("disowned", &self.disowned)
             .field("origin", &self.origin)
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ipc_channel::ipc;
+    use servo_base::generic_channel::GenericReceiver;
+
+    use super::*;
+
+    fn transfer() -> (
+        TransferableUrlWithBlobClaim,
+        GenericReceiver<CoreResourceMsg>,
+    ) {
+        let (sender, receiver) = generic_channel::channel().expect("resource channel");
+        let file_id = Uuid::new_v4();
+        let url =
+            ServoUrl::parse(&format!("blob:https://example.test/{file_id}")).expect("blob URL");
+        let token = BlobToken {
+            token: Uuid::new_v4(),
+            file_id,
+            disowned: false,
+            origin: ServoUrl::parse("https://example.test")
+                .expect("origin")
+                .origin(),
+            communicator: Arc::new(Mutex::new(BlobTokenCommunicator {
+                revoke_sender: sender.clone(),
+                refresh_token_sender: sender,
+            })),
+        };
+        (
+            TransferableUrlWithBlobClaim {
+                url,
+                token: Some(Arc::new(BlobTransferState {
+                    token: Mutex::new(Some(token)),
+                    serialized: AtomicBool::new(false),
+                })),
+            },
+            receiver,
+        )
+    }
+
+    fn assert_revoked(receiver: &GenericReceiver<CoreResourceMsg>) {
+        assert!(matches!(
+            receiver.try_recv(),
+            Ok(CoreResourceMsg::RevokeTokenForFile(_))
+        ));
+        assert!(receiver.try_recv().is_err());
+    }
+
+    #[test]
+    fn sharedworker_blob_transfer_preserves_preceding_ipc_endpoints() {
+        let (url, resource_requests) = transfer();
+        let guard = url.transfer_guard();
+        let (extra, extra_receiver) = ipc::channel::<u32>().expect("extra endpoint");
+        let (sender, receiver) = ipc::channel().expect("transfer channel");
+        sender.send((extra, url)).expect("send prepared claim");
+        guard.commit();
+        assert!(resource_requests.try_recv().is_err());
+        let (extra, url) = receiver.recv().expect("receive prepared claim");
+        extra.send(7).expect("use preceding endpoint");
+        assert_eq!(extra_receiver.recv().expect("preceding endpoint value"), 7);
+        drop(url.into_url());
+        assert_revoked(&resource_requests);
+    }
+
+    #[test]
+    fn sharedworker_blob_transfer_keeps_in_process_receiver_ownership() {
+        let (url, resource_requests) = transfer();
+        let guard = url.transfer_guard();
+        let received = url.into_url();
+        guard.commit();
+        assert!(resource_requests.try_recv().is_err());
+        drop(received);
+        assert_revoked(&resource_requests);
+    }
+
+    #[test]
+    fn sharedworker_blob_transfer_releases_an_unsent_claim() {
+        let (url, resource_requests) = transfer();
+        let guard = url.transfer_guard();
+        drop(url);
+        assert!(resource_requests.try_recv().is_err());
+        drop(guard);
+        assert_revoked(&resource_requests);
+    }
+
+    #[test]
+    fn sharedworker_blob_transfer_releases_a_failed_ipc_send() {
+        let (url, resource_requests) = transfer();
+        let guard = url.transfer_guard();
+        let (sender, receiver) = ipc::channel().expect("transfer channel");
+        drop(receiver);
+        assert!(sender.send(url).is_err());
+        drop(guard);
+        assert_revoked(&resource_requests);
     }
 }

@@ -38,6 +38,7 @@ selectors = { workspace = true }
 serde = { workspace = true }
 servo-background-hang-monitor-api = { workspace = true }
 servo-base = { workspace = true }
+servo-constellation-traits = { workspace = true }
 servo-url = { workspace = true }
 servo_arc = { workspace = true }
 stylo = { workspace = true }

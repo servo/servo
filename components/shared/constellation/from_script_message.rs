@@ -51,7 +51,7 @@ use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
     LogEntry, MessagePortMsg, PortMessageTask, PortTransferInfo, SessionHistoryTraversalRequest,
-    WindowSizeType,
+    SharedWorkerConnect, WindowSizeType,
 };
 
 pub type ScriptToConstellationSender =
@@ -668,6 +668,7 @@ pub enum ConstellationInterest {
 /// Messages from the script to the constellation.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptToConstellationMessage {
+    ConnectSharedWorker(Box<SharedWorkerConnect>),
     ServiceWorkerStateUpdateDone(ServiceWorkerId, PipelineId),
     ServiceWorkerAlgorithm(ServiceWorkerAlgorithm),
     /// Request to complete the transfer of a set of ports to a router.

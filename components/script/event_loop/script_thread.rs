@@ -148,7 +148,6 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
-use crate::dom::types::SharedWorker;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -488,6 +487,18 @@ impl Drop for ScriptMemoryFailsafe<'_> {
 }
 
 impl ScriptThreadFactory for ScriptThread {
+    fn create_shared_worker_manager(
+        senders: servo_constellation_traits::SharedWorkerManagerSenders,
+        origin: ImmutableOrigin,
+        image_cache_factory: Arc<dyn ImageCacheFactory>,
+    ) -> JoinHandle<()> {
+        crate::sharedworker_manager::SharedWorkerManager::create(
+            senders,
+            origin,
+            image_cache_factory,
+        )
+    }
+
     fn create(
         state: InitialScriptState,
         layout_factory: Arc<dyn LayoutFactory>,
@@ -4603,8 +4614,6 @@ impl ScriptThread {
         for (_, document) in self.documents.borrow().iter() {
             document.queue_online_offline_events(online);
         }
-
-        SharedWorker::set_network_online_state(online);
     }
 
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {

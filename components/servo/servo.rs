@@ -1497,6 +1497,16 @@ pub fn run_content_process(token: String) {
         UnprivilegedContent::ServiceWorker(content) => {
             content.start::<ServiceWorkerManager>();
         },
+        UnprivilegedContent::SharedWorker(content) => {
+            media_platform::init();
+            content
+                .start::<script::ScriptThread>(Arc::new(ImageCacheFactoryImpl::new(
+                    resources::read_bytes(resources::Resource::BrokenImageIcon),
+                )))
+                .join()
+                .expect("Failed to join on the shared worker manager thread.");
+            FetchThread::exit();
+        },
     }
 }
 

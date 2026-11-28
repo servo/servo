@@ -113,6 +113,7 @@ use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
 use crate::scripting::fetching_options::ScriptFetchOptions;
 use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
 use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
+use crate::sharedworker_host::{SharedWorkerContext, SharedWorkerThreadControl};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
@@ -324,6 +325,9 @@ pub(crate) struct WorkerGlobalScope {
     #[no_trace]
     worker_id: WorkerId,
     #[no_trace]
+    #[ignore_malloc_size_of = "Shared worker execution control"]
+    shared_worker_control: DomRefCell<Option<SharedWorkerContext>>,
+    #[no_trace]
     worker_url: DomRefCell<ServoUrl>,
     #[conditional_malloc_size_of]
     closing: Arc<AtomicBool>,
@@ -452,6 +456,7 @@ impl WorkerGlobalScope {
             ),
             caches: Default::default(),
             worker_id: init.worker_id,
+            shared_worker_control: Default::default(),
             worker_name: worker_name.traced(),
             worker_type,
             worker_url: DomRefCell::new(worker_url),
@@ -528,12 +533,50 @@ impl WorkerGlobalScope {
 
     /// Clear various items when the worker event-loop shuts-down.
     pub(crate) fn clear_js_runtime(&self) {
+        self.shared_worker_control.borrow_mut().take();
         self.upcast::<GlobalScope>()
             .remove_web_messaging_and_dedicated_workers_infra();
 
         // Drop the runtime.
         let runtime = self.runtime.borrow_mut().take();
         drop(runtime);
+    }
+
+    pub(crate) fn set_shared_worker_control(&self, control: Arc<SharedWorkerThreadControl>) {
+        let runtime = self.runtime.borrow();
+        let context = runtime
+            .as_ref()
+            .expect("worker runtime exists")
+            .thread_safe_js_context();
+        *self.shared_worker_control.borrow_mut() =
+            Some(control.register_context(self.worker_id, context));
+    }
+
+    pub(crate) fn shared_worker_control(&self) -> Option<Arc<SharedWorkerThreadControl>> {
+        self.shared_worker_control
+            .borrow()
+            .as_ref()
+            .map(|context| context.control.clone())
+    }
+
+    pub(crate) fn lifetime_wake_receiver(&self) -> crossbeam_channel::Receiver<()> {
+        self.shared_worker_control
+            .borrow()
+            .as_ref()
+            .map(|context| context.wakeups.clone())
+            .unwrap_or_else(crossbeam_channel::never)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#run-a-worker>
+    pub(crate) fn wait_until_resumed(&self) -> bool {
+        let Some(control) = self.shared_worker_control() else {
+            return !self.is_closing();
+        };
+        if !control.wait_until_resumed(&self.closing, self.timers.get()) {
+            self.close();
+            return false;
+        }
+        true
     }
 
     pub(crate) fn runtime_handle(&self) -> ParentRuntime {
@@ -707,6 +750,7 @@ impl WorkerGlobalScope {
                     dedicated.forward_simple_error_at_worker();
                 } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
                     shared.forward_simple_error_at_worker();
+                    self.close();
                 }
 
                 // TODO Step 1.2. Run the environment discarding steps for inside settings.
@@ -720,7 +764,7 @@ impl WorkerGlobalScope {
             js::rust::wrappers2::JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
-        if self.is_closing() {
+        if !self.wait_until_resumed() {
             return;
         }
 
@@ -749,8 +793,6 @@ impl WorkerGlobalScope {
             } else if let Some(shared) = self.downcast::<SharedWorkerGlobalScope>() {
                 // Step 11. Enable outside port's port message queue.
                 shared.enable_outside_port_message_queue();
-                // Step 13. If the initial Connect arrived before execution-ready,
-                // queue the global task to fire its connect event now.
                 shared.fire_pending_connect(cx);
             }
         }
@@ -1182,7 +1224,7 @@ impl WorkerGlobalScope {
     /// in the queue for this worker event-loop.
     /// Returns a boolean indicating whether further events should be processed.
     pub(crate) fn process_event(&self, msg: CommonScriptMsg, cx: &mut JSContext) -> bool {
-        if self.is_closing() {
+        if !self.wait_until_resumed() {
             return false;
         }
 
@@ -1218,7 +1260,14 @@ impl WorkerGlobalScope {
 
         // Step 2. Set workerGlobal's closing flag to true. (This prevents any
         // further tasks from being queued.)
-        self.closing.store(true, Ordering::SeqCst);
+        if !self.closing.swap(true, Ordering::SeqCst) &&
+            let Some(shared) = self.downcast::<SharedWorkerGlobalScope>()
+        {
+            shared.notify_closing();
+        }
+        if let Some(control) = self.shared_worker_control() {
+            control.wake_waiters();
+        }
         self.upcast::<GlobalScope>()
             .task_manager()
             .cancel_all_tasks_and_ignore_future_tasks();
@@ -1294,7 +1343,7 @@ unsafe extern "C" fn interrupt_callback(cx: *mut RawJSContext) -> bool {
     };
 
     // A false response causes the script to terminate.
-    !worker.is_closing()
+    worker.wait_until_resumed()
 }
 
 struct WorkerCspProcessor {

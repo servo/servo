@@ -124,6 +124,7 @@ mod from_script {
     impl LogTarget for servo_constellation_traits::ScriptToConstellationMessage {
         fn log_target(&self) -> &'static str {
             match self {
+                Self::ConnectSharedWorker(..) => target!("ConnectSharedWorker"),
                 Self::ServiceWorkerStateUpdateDone(..) => target!("ServiceWorkerStateUpdateDone"),
                 Self::ServiceWorkerAlgorithm(..) => target!("ServiceWorkerAlgorithm"),
                 Self::CompleteMessagePortTransfer(..) => target!("CompleteMessagePortTransfer"),

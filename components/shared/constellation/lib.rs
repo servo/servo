@@ -9,6 +9,7 @@
 //! on other parts of Servo.
 
 mod from_script_message;
+mod sharedworker;
 mod structured_data;
 
 use std::collections::VecDeque;
@@ -38,6 +39,7 @@ use servo_base::id::{
 use servo_canvas_traits::webgl::GenericSender;
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
+pub use sharedworker::*;
 pub use structured_data::*;
 use strum::IntoStaticStr;
 use webrender_api::units::LayoutVector2D;

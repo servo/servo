@@ -32,6 +32,7 @@ use crate::Constellation;
 pub struct EventLoop {
     script_chan: GenericSender<ScriptThreadMessage>,
     id: ScriptEventLoopId,
+    is_private: bool,
     /// When running in another process, this is an `IpcSender` to the BackgroundHangMonitor
     /// on the other side of the process boundary. When running in the same process, the
     /// BackgroundHangMonitor is shared among all [`EventLoop`]s so this will be `None`.
@@ -105,12 +106,12 @@ impl EventLoop {
 
         #[cfg(feature = "multiprocess")]
         let event_loop = if opts::get().multiprocess {
-            Self::spawn_in_process(constellation, initial_script_state)?
+            Self::spawn_in_process(constellation, initial_script_state, is_private)?
         } else {
-            Self::spawn_in_thread(constellation, initial_script_state)
+            Self::spawn_in_thread(constellation, initial_script_state, is_private)
         };
         #[cfg(not(feature = "multiprocess"))]
-        let event_loop = Self::spawn_in_thread(constellation, initial_script_state);
+        let event_loop = Self::spawn_in_thread(constellation, initial_script_state, is_private);
 
         let event_loop = Rc::new(event_loop);
         constellation.add_event_loop(&event_loop);
@@ -120,6 +121,7 @@ impl EventLoop {
     fn spawn_in_thread<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         initial_script_state: InitialScriptState,
+        is_private: bool,
     ) -> Self {
         let script_chan = initial_script_state.constellation_to_script_sender.clone();
         let id = initial_script_state.id;
@@ -138,6 +140,7 @@ impl EventLoop {
         Self {
             script_chan,
             id,
+            is_private,
             background_hang_monitor_sender: None,
             dont_send_or_sync: PhantomData,
         }
@@ -147,6 +150,7 @@ impl EventLoop {
     fn spawn_in_process<STF: ScriptThreadFactory, SWF: ServiceWorkerManagerFactory>(
         constellation: &mut Constellation<STF, SWF>,
         initial_script_state: InitialScriptState,
+        is_private: bool,
     ) -> Result<Self, SendError> {
         let script_chan = initial_script_state.constellation_to_script_sender.clone();
         let id = initial_script_state.id;
@@ -176,6 +180,7 @@ impl EventLoop {
         Ok(Self {
             script_chan,
             id,
+            is_private,
             background_hang_monitor_sender: Some(background_hand_monitor_sender),
             dont_send_or_sync: PhantomData,
         })
@@ -183,6 +188,10 @@ impl EventLoop {
 
     pub(crate) fn id(&self) -> ScriptEventLoopId {
         self.id
+    }
+
+    pub(crate) fn is_private(&self) -> bool {
+        self.is_private
     }
 
     /// Send a message to the event loop.

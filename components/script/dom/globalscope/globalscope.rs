@@ -2021,6 +2021,9 @@ impl GlobalScope {
                 join_handle: Some(join_handle),
                 control_sender,
                 context,
+                shared_worker_control: self
+                    .downcast::<WorkerGlobalScope>()
+                    .and_then(WorkerGlobalScope::shared_worker_control),
             });
     }
 
