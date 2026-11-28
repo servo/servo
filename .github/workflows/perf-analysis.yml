@@ -31,6 +31,10 @@ on:
         required: false
         default: ""
         type: string
+    outputs:
+      testbed:
+        description: "Bencher testbed label for the runner that produced the measurements"
+        value: ${{ jobs.perf-analysis.outputs.testbed }}
 
 env:
   RUST_BACKTRACE: 1
@@ -63,7 +67,12 @@ jobs:
     name: Perf analysis (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     timeout-minutes: 240
+    outputs:
+      testbed: ${{ steps.testbed.outputs.testbed }}
     steps:
+      - name: Export testbed
+        id: testbed
+        run: echo "testbed=${{ needs.runner-select.outputs.runner-type-label }}" >> "$GITHUB_OUTPUT"
       - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - name: Download prebuilt servoshell
         if: ${{ inputs.servo-binary-artifact != '' }}
@@ -143,6 +152,19 @@ jobs:
       - name: Generate report
         working-directory: perf-analysis-tools
         run: cargo run --release --locked -- report studies/ci > studies/ci/report.html
+      - name: Generate Bencher metrics
+        # See `perf_analysis` in etc/ci/bencher.py for the expected
+        # summaries.json schema. Update it if the pinned perf-analysis-tools
+        # revision changes the format.
+        run: |
+          ./etc/ci/bencher.py perf-analysis perf-analysis-tools/studies/ci \
+            --profile "${{ inputs.profile }}" --bmf-output perf-analysis.json
+      - name: Upload Bencher metrics
+        uses: actions/upload-artifact@v7
+        with:
+          name: perf-analysis-bmf
+          path: perf-analysis.json
+          if-no-files-found: error
       - name: Upload perf analysis artifact
         if: always()
         uses: actions/upload-artifact@v7

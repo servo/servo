@@ -1,0 +1,42 @@
+# NOTE: The `bencher` job in .github/workflows/bencher.yml has an inline copy
+# of this logic. Keep the two in sync until that copy is migrated here.
+name: Bencher options
+description: Compute RUN_BENCHER_OPTIONS for the current GitHub event
+
+inputs:
+  github-token:
+    description: "Token passed to bencher's --github-actions option"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set bencher opts for PRs (label try run)
+      if: github.event_name == 'pull_request_target'
+      shell: bash
+      run: |
+        echo "RUN_BENCHER_OPTIONS=--branch ${{ github.event.number }}/PR \
+        --start-point ${{ github.base_ref }} \
+        --start-point-hash ${{ github.event.pull_request.base.sha }} \
+        --start-point-reset \
+        --start-point-clone-thresholds \
+        --github-actions ${{ inputs.github-token }}" >> "$GITHUB_ENV"
+    - name: Set bencher opts for main
+      if: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+      shell: bash
+      run: |
+        echo "RUN_BENCHER_OPTIONS=--branch main \
+        --github-actions ${{ inputs.github-token }}" >> "$GITHUB_ENV"
+    - name: Set bencher opts for try branch
+      if: ${{ github.event_name == 'push' && github.ref_name == 'try' }}
+      shell: bash
+      run: |
+        git remote add upstream https://github.com/servo/servo || git remote set-url upstream https://github.com/servo/servo
+        git fetch --unshallow upstream main
+        echo "RUN_BENCHER_OPTIONS=--branch try \
+        --github-actions ${{ inputs.github-token }} \
+        --hash $(git rev-parse HEAD~1) \
+        --start-point main \
+        --start-point-hash $(git merge-base upstream/main HEAD) \
+        --start-point-clone-thresholds \
+        --branch-reset" >> "$GITHUB_ENV"
