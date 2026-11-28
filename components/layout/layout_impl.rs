@@ -11,7 +11,7 @@ use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
 use accesskit::{ActionRequest, Node};
-use app_units::Au;
+use app_units::{AU_PER_PX, Au};
 use bitflags::bitflags;
 use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
@@ -1789,7 +1789,7 @@ impl LayoutThread {
             !self.have_ever_generated_display_list.get(),
         );
         let mut builder = webrender_api::DisplayListBuilder::new(paint_info.pipeline_id);
-        builder.begin();
+        builder.begin(AU_PER_PX as f32);
         let (_, empty_display_list) = builder.end();
 
         self.paint_api

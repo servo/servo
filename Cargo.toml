@@ -100,7 +100,7 @@ futures-intrusive = "0.5"
 futures-util = { version = "0.3", default-features = false }
 gaol = "0.2.1"
 gilrs = "0.11.1"
-gleam = "0.15"
+gleam = "0.16"
 glib = "0.22"
 glib-sys = "0.22"
 glow = "0.17.0"
@@ -287,8 +287,8 @@ warp = "0.4.2"
 web_atoms = "0.3.0"
 webdriver = "0.54.0"
 webpki-roots = "1.0"
-webrender = { version = "0.70.1", features = ["serde"] }
-webrender_api = "0.70"
+webrender = { version = "0.71", git = "https://github.com/servo/webrender.git", branch = "0.71" }
+webrender_api = { version = "0.71", features = ["deserialize", "serialize"], git = "https://github.com/servo/webrender.git", branch = "0.71" }
 wgpu-core = "30"
 wgpu-types = "30"
 winapi = "0.3"
@@ -297,7 +297,7 @@ winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
 writeable = "0.6"
-wr_malloc_size_of = "0.2.2"
+wr_malloc_size_of = { version = "0.2.2", git = "https://github.com/servo/webrender.git", branch = "0.71" }
 x-wing = { version = "0.1.0", features = ["zeroize"] }
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "zeroize"] }
 x448 = { version = "=0.14.0-pre.12", features = ["static_secrets"] }

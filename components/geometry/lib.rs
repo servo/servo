@@ -8,7 +8,7 @@ use app_units::{Au, MAX_AU, MIN_AU};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect, Size2D as UntypedSize2D};
 use euclid::{Box2D, Length, Point2D, Rect, Scale, SideOffsets2D, Size2D, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
-use webrender::FastTransform;
+use webrender_api::FastTransform;
 use webrender_api::units::{
     DeviceIntRect, DeviceIntSize, DevicePixel, FramebufferPixel, LayoutPixel, LayoutPoint,
     LayoutRect, LayoutSize,

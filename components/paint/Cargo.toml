@@ -24,6 +24,7 @@ webxr = ["webgl", "dep:webxr", "dep:webxr-api"]
 workspace = true
 
 [dependencies]
+app_units = { workspace = true }
 bitflags = { workspace = true }
 crossbeam-channel = { workspace = true }
 dpi = { workspace = true }

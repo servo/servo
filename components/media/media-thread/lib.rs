@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 use servo_config::pref;
 pub use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
+use webrender_api::ExternalTextureHandle;
 
 use crate::media_thread::GLPlayerThread;
 
@@ -226,7 +227,10 @@ impl WebRenderExternalImageApi for GLPlayerExternalImages {
         // internal OpenGL subsystem.
         // self.webrender_gl
         //    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-        (ExternalImageSource::NativeTexture(image_id), size)
+        (
+            ExternalImageSource::NativeTexture(ExternalTextureHandle(image_id.into())),
+            size,
+        )
     }
 
     fn unlock(&mut self, id: u64) {

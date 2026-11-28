@@ -7,6 +7,7 @@ use std::collections::hash_map::Entry;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use app_units::AU_PER_PX;
 use crossbeam_channel::Sender;
 use dpi::PhysicalSize;
 use embedder_traits::{
@@ -41,8 +42,8 @@ use servo_geometry::DeviceIndependentPixel;
 use smallvec::SmallVec;
 use style_traits::CSSPixel;
 use webrender::{
-    MemoryReport, ONE_TIME_USAGE_HINT, RenderApi, RenderBackendHooks, SceneBuilderHooks,
-    ShaderPrecacheFlags, Transaction, UploadMethod,
+    GlBackendConfig, GpuBackendConfig, MemoryReport, ONE_TIME_USAGE_HINT, RenderApi,
+    RenderBackendHooks, SceneBuilderHooks, ShaderPrecacheFlags, Transaction, UploadMethod,
 };
 use webrender_api::units::{
     DevicePixel, DevicePoint, LayoutPoint, LayoutRect, LayoutSize, LayoutVector2D, WorldPoint,
@@ -232,7 +233,11 @@ impl Painter {
 
         let painter_id = PainterId::next();
         let (mut webrender_renderer, webrender_api_sender) = webrender::create_webrender_instance(
-            webrender_gl.clone(),
+            GpuBackendConfig::Gl(GlBackendConfig {
+                gl: webrender_gl.clone(),
+                allow_texture_storage: true,
+                panic_on_error: false,
+            }),
             Box::new(RenderNotifier::new(painter_id, paint.paint_proxy.clone())),
             webrender::WebRenderOptions {
                 // We force the use of optimized shaders here because rendering is broken
@@ -679,7 +684,7 @@ impl Painter {
         transaction.set_root_pipeline(root_pipeline);
 
         let mut builder = webrender_api::DisplayListBuilder::new(root_pipeline);
-        builder.begin();
+        builder.begin(AU_PER_PX as f32);
 
         let root_reference_frame = SpatialId::root_reference_frame(root_pipeline);
 
@@ -705,7 +710,7 @@ impl Painter {
                 transform,
             );
 
-            let webview_reference_frame = builder.push_reference_frame(
+            let webview_reference_frame = builder.define_reference_frame(
                 LayoutPoint::zero(),
                 root_reference_frame,
                 TransformStyle::Flat,
@@ -736,7 +741,11 @@ impl Painter {
         // NB: We are always passing 0 as the epoch here, but this doesn't seem to
         // be an issue. WebRender will still update the scene and generate a new
         // frame even though the epoch hasn't changed.
-        transaction.set_display_list(WebRenderEpoch(0), built_display_list);
+        transaction.set_display_list(
+            WebRenderEpoch(0),
+            self.painter_id.into(),
+            built_display_list,
+        );
         self.update_transaction_with_all_scroll_offsets(transaction);
         self.add_dynamic_properties_to_transaction(transaction);
     }
@@ -945,7 +954,11 @@ impl Painter {
         details.display_list_epoch = Some(starting_epoch);
 
         let mut txn = Transaction::new();
-        txn.set_display_list(starting_epoch.into(), (pipeline_id, Default::default()));
+        txn.set_display_list(
+            starting_epoch.into(),
+            self.painter_id.into(),
+            (pipeline_id, Default::default()),
+        );
 
         self.generate_frame(&mut txn, RenderReasons::SCENE);
         self.send_transaction(txn);
@@ -1041,11 +1054,13 @@ impl Painter {
 
         let items_data = display_list_data.items_data;
         let spatial_tree = display_list_data.spatial_tree;
+        let interner_delta = display_list_data.interner_delta;
 
         let built_display_list = BuiltDisplayList::from_data(
             DisplayListPayload {
                 items_data,
                 spatial_tree,
+                interner_delta,
             },
             display_list_descriptor,
         );
@@ -1110,7 +1125,11 @@ impl Painter {
             self.send_root_pipeline_display_list_in_transaction(&mut transaction);
         }
 
-        transaction.set_display_list(epoch, (pipeline_id, built_display_list));
+        transaction.set_display_list(
+            epoch,
+            self.painter_id.into(),
+            (pipeline_id, built_display_list),
+        );
 
         self.update_transaction_with_all_scroll_offsets(&mut transaction);
         self.send_transaction(transaction);

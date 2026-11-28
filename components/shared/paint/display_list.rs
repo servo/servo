@@ -336,13 +336,25 @@ impl ScrollableNodeInfo {
 /// Potential ideas for improvement:
 ///  - Test optimizing simple translations to avoid having to do full matrix
 ///    multiplication when transforms are not involved.
-#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ScrollTreeNodeTransformationCache {
     node_to_root_transform: FastLayoutTransform,
     root_to_node_transform: Option<FastLayoutTransform>,
     nearest_scrolling_ancestor_offset: LayoutVector2D,
     nearest_scrolling_ancestor_viewport: LayoutRect,
     cumulative_sticky_offsets: LayoutVector2D,
+}
+
+impl Default for ScrollTreeNodeTransformationCache {
+    fn default() -> Self {
+        Self {
+            node_to_root_transform: FastLayoutTransform::identity(),
+            root_to_node_transform: Default::default(),
+            nearest_scrolling_ancestor_offset: Default::default(),
+            nearest_scrolling_ancestor_viewport: Default::default(),
+            cumulative_sticky_offsets: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
