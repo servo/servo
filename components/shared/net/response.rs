@@ -112,6 +112,8 @@ pub struct Response {
     pub referrer: Option<ServoUrl>,
     /// <https://fetch.spec.whatwg.org/#response-redirect-taint>
     pub redirect_taint: RedirectTaint,
+    /// The navigation handed its response body over to the embedder.
+    pub is_download: bool,
     pub referrer_policy: ReferrerPolicy,
     /// [CORS-exposed header-name list](https://fetch.spec.whatwg.org/#concept-response-cors-exposed-header-name-list)
     pub cors_exposed_header_name_list: Vec<String>,
@@ -159,6 +161,7 @@ impl Response {
             range_requested: false,
             request_includes_credentials: true,
             redirect_taint: Default::default(),
+            is_download: false,
         }
     }
 
@@ -193,6 +196,7 @@ impl Response {
             range_requested: false,
             request_includes_credentials: true,
             redirect_taint: Default::default(),
+            is_download: false,
         }
     }
 
@@ -339,6 +343,7 @@ impl Response {
             let mut metadata = Metadata::default(url.clone());
             metadata.set_content_type(extract_mime_type_as_mime(&response.headers).as_ref());
             metadata.location_url.clone_from(&response.location_url);
+            metadata.is_download = response.is_download;
             metadata.headers = Some(Serde(response.headers.clone()));
             metadata.status.clone_from(&response.status);
             metadata.referrer.clone_from(&response.referrer);

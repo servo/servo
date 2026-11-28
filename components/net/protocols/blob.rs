@@ -15,7 +15,7 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
 use tokio::sync::mpsc::unbounded_channel;
 
-use crate::fetch::methods::{Data, DoneChannel, FetchContext};
+use crate::fetch::methods::{Data, DataReceiver, DoneChannel, FetchContext};
 use crate::protocols::{ProtocolHandler, partial_content, range_not_satisfiable_error};
 
 #[derive(Default)]
@@ -63,7 +63,7 @@ impl ProtocolHandler for BlobProtocolHander {
         }
 
         let (mut done_sender, done_receiver) = unbounded_channel();
-        *done_chan = Some((done_sender.clone(), done_receiver));
+        *done_chan = Some(DataReceiver::Unbounded(done_receiver));
         *response.body.lock() = ResponseBody::Receiving(vec![]);
 
         if let Err(err) = context.filemanager.fetch_file(

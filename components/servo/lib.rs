@@ -73,8 +73,10 @@ pub use keyboard_types::{
 pub use media::{
     GlApi as MediaGlApi, GlContext as MediaGlContext, NativeDisplay as MediaNativeDisplay,
 };
+pub use net::embedder::{DownloadCancellation, DownloadStream};
 pub use net::image_cache::should_panic_hook_suppress_termination;
 pub use net_traits::CookieSource;
+pub use net_traits::request::{DownloadHandling, RequestId};
 // This API should probably not be exposed in this way. Instead there should be a fully
 // fleshed out public domains API if we want to expose it.
 pub use net_traits::pub_domains::is_reg_domain;
@@ -124,7 +126,7 @@ pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,
     ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, EmbedderControl, FilePicker,
     InputMethodControl, NavigationRequest, PermissionRequest, PromptDialog, SelectElement,
-    SimpleDialog, WebResourceLoad, WebViewDelegate,
+    SimpleDialog, UnsupportedResponse, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webxr")]
@@ -140,7 +142,7 @@ pub mod webxr {
 
 // TODO: The protocol handler interface needs to be cleaned and simplified.
 pub mod protocol_handler {
-    pub use net::fetch::methods::{DoneChannel, FetchContext};
+    pub use net::fetch::methods::{DataReceiver, DoneChannel, FetchContext};
     pub use net::filemanager_thread::FILE_CHUNK_SIZE;
     pub use net::protocols::{ProtocolHandler, ProtocolRegistry};
     pub use net_traits::filemanager_thread::RelativePos;

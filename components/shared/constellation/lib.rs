@@ -37,7 +37,7 @@ use servo_base::id::{
 };
 use servo_canvas_traits::webgl::GenericSender;
 use servo_config::prefs::PrefValue;
-use servo_url::{ImmutableOrigin, ServoUrl};
+use servo_url::ImmutableOrigin;
 pub use structured_data::*;
 use strum::IntoStaticStr;
 use webrender_api::units::LayoutVector2D;
@@ -73,7 +73,7 @@ pub enum EmbedderToConstellationMessage {
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<ScriptEventLoopId>, Option<String>, LogEntry),
     /// Create a new top level browsing context.
-    NewWebView(ServoUrl, NewWebViewDetails),
+    NewWebView(UrlRequest, NewWebViewDetails),
     /// Close a top level browsing context.
     CloseWebView(WebViewId),
     /// Set whether a WebView has system focus. This corresponds to the [HTML

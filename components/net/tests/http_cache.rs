@@ -4,6 +4,7 @@
 
 use http::header::{CACHE_CONTROL, CONTENT_LENGTH, CONTENT_RANGE, EXPIRES, HeaderValue, RANGE};
 use http::{HeaderMap, StatusCode};
+use net::fetch::methods::DataReceiver;
 use net::http_cache::{CacheKey, HttpCache, HttpCacheAssignment, ValidationStatus, refresh};
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{Referrer, RequestBuilder};
@@ -47,8 +48,8 @@ async fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
         };
         // Second, mutate the response into a 304 response, and refresh the stored one.
         response.status = StatusCode::NOT_MODIFIED.into();
-        let (send, recv) = unbounded();
-        let mut done_chan = Some((send, recv));
+        let (_send, recv) = unbounded();
+        let mut done_chan = Some(DataReceiver::Unbounded(recv));
         let refreshed_response = refresh(
             &request,
             response.clone(),

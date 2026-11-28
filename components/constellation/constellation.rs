@@ -1352,9 +1352,8 @@ where
             EmbedderToConstellationMessage::LoadUrl(webview_id, url_request) => {
                 let mut load_data = LoadData::new_for_new_unrelated_webview(url_request.url);
 
-                if !url_request.headers.is_empty() {
-                    load_data.headers.extend(url_request.headers);
-                }
+                load_data.headers.extend(url_request.headers);
+                load_data.download = url_request.download;
 
                 let ctx_id = BrowsingContextId::from(webview_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
@@ -3470,7 +3469,7 @@ where
     #[servo_tracing::instrument(skip_all)]
     fn handle_new_top_level_browsing_context(
         &mut self,
-        url: ServoUrl,
+        request: embedder_traits::UrlRequest,
         NewWebViewDetails {
             webview_id,
             viewport_details,
@@ -3479,7 +3478,9 @@ where
     ) {
         let pipeline_id = PipelineId::new();
         let browsing_context_id = BrowsingContextId::from(webview_id);
-        let load_data = LoadData::new_for_new_unrelated_webview(url);
+        let mut load_data = LoadData::new_for_new_unrelated_webview(request.url);
+        load_data.headers.extend(request.headers);
+        load_data.download = request.download;
         let is_private = false;
 
         // Register this new top-level browsing context id as a webview and set

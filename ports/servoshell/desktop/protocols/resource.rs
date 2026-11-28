@@ -15,7 +15,7 @@ use std::pin::Pin;
 use flate2::read::GzDecoder;
 use headers::{ContentType, HeaderMapExt};
 use servo::protocol_handler::{
-    DoneChannel, FILE_CHUNK_SIZE, FetchContext, NetworkError, ProtocolHandler, RelativePos,
+    DataReceiver, DoneChannel, FILE_CHUNK_SIZE, FetchContext, NetworkError, ProtocolHandler, RelativePos,
     Request, ResourceFetchTiming, Response, ResponseBody,
 };
 use tokio::sync::mpsc::unbounded_channel;
@@ -80,7 +80,7 @@ impl ResourceProtocolHandler {
             // Setup channel to receive cross-thread messages about the file fetch
             // operation.
             let (mut done_sender, done_receiver) = unbounded_channel();
-            *done_chan = Some((done_sender.clone(), done_receiver));
+            *done_chan = Some(DataReceiver::Unbounded(done_receiver));
 
             *response.body.lock() = ResponseBody::Receiving(vec![]);
 

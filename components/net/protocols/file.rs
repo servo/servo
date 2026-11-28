@@ -14,7 +14,7 @@ use net_traits::response::{Response, ResponseBody};
 use net_traits::{NetworkError, ResourceFetchTiming};
 use tokio::sync::mpsc::unbounded_channel;
 
-use crate::fetch::methods::{DoneChannel, FetchContext};
+use crate::fetch::methods::{DataReceiver, DoneChannel, FetchContext};
 use crate::filemanager_thread::FILE_CHUNK_SIZE;
 use crate::local_directory_listing;
 use crate::protocols::{
@@ -96,7 +96,7 @@ impl ProtocolHandler for FileProtocolHander {
                 // Setup channel to receive cross-thread messages about the file fetch
                 // operation.
                 let (mut done_sender, done_receiver) = unbounded_channel();
-                *done_chan = Some((done_sender.clone(), done_receiver));
+                *done_chan = Some(DataReceiver::Unbounded(done_receiver));
 
                 *response.body.lock() = ResponseBody::Receiving(vec![]);
 

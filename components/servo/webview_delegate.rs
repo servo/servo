@@ -1090,6 +1090,45 @@ pub trait WebViewDelegate {
         _tree_update: accesskit::TreeUpdate,
     ) {
     }
+
+    /// Offer a file download to the embedder. Dropping the offer resumes normal navigation.
+    fn notify_unsupported_response(&self, _webview: WebView, _response: UnsupportedResponse) {}
+}
+
+pub struct UnsupportedResponse {
+    pub webview_id: servo_base::id::WebViewId,
+    pub request_id: net_traits::request::RequestId,
+    pub url: servo_url::ServoUrl,
+    pub content_type: Option<mime::Mime>,
+    pub default_filename: String,
+    pub content_length: Option<u64>,
+    /// The final URL can be requested again without resubmitting a request body.
+    pub can_retry: bool,
+    pub(crate) cancellation: crate::DownloadCancellation,
+    pub(crate) responder: Option<Sender<net::embedder::DownloadDecision>>,
+}
+
+impl std::fmt::Debug for UnsupportedResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.write_str("UnsupportedResponse(..)")
+    }
+}
+
+impl UnsupportedResponse {
+    pub fn is_pending(&self) -> bool {
+        self.responder.as_ref().is_some_and(|responder| !responder.is_closed())
+    }
+
+    pub fn accept(&mut self) -> Option<crate::DownloadStream> {
+        let responder = self.responder.take()?;
+        crate::DownloadStream::accept(responder, self.cancellation.clone())
+    }
+
+    pub fn decline(&mut self) {
+        if let Some(responder) = self.responder.take() {
+            let _ = responder.send(net::embedder::DownloadDecision::Decline);
+        }
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;

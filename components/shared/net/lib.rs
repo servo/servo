@@ -14,6 +14,7 @@ use content_security_policy::{self as csp};
 use cookie::Cookie;
 use crossbeam_channel::{Receiver, Sender, unbounded};
 use headers::{ContentType, HeaderMapExt, ReferrerPolicy as ReferrerPolicyHeader};
+use http::header::CONTENT_DISPOSITION;
 use http::{HeaderMap, HeaderValue, StatusCode, header};
 use hyper_serde::Serde;
 use hyper_util::client::legacy::Error as HyperError;
@@ -1144,6 +1145,9 @@ pub struct Metadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
 
+    /// The response continues as a download owned by the embedder.
+    pub is_download: bool,
+
     /// Location URL from the response headers.
     pub location_url: Option<Result<ServoUrl, String>>,
 
@@ -1179,6 +1183,7 @@ impl Metadata {
     pub fn default(url: ServoUrl) -> Self {
         Metadata {
             final_url: url,
+            is_download: false,
             location_url: None,
             content_type: None,
             charset: None,
@@ -1463,3 +1468,92 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
 }
 
 pub static PRIVILEGED_SECRET: LazyLock<u32> = LazyLock::new(|| rng().next_u32());
+
+/// True when `Content-Disposition` marks the response as an attachment, i.e.
+/// the server asked for it to be saved rather than displayed.
+/// <https://httpwg.org/specs/rfc6266.html#disposition.type>
+pub fn is_content_disposition_attachment(headers: &HeaderMap) -> bool {
+    headers
+        .get(CONTENT_DISPOSITION)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| {
+            value
+                .split(';')
+                .next()
+                .map(str::trim)
+                .is_some_and(|disposition| disposition.eq_ignore_ascii_case("attachment"))
+        })
+}
+
+/// Use the RFC 6266 extended filename when it is valid, falling back to
+/// the ordinary quoted or token filename.
+pub fn extract_filename_from_content_disposition(headers: &HeaderMap) -> Option<String> {
+    let value = headers.get(CONTENT_DISPOSITION)?.to_str().ok()?;
+    let (_, mut params) = value.split_once(';')?;
+    let mut filename = None;
+    let mut extended = None;
+
+    while let Some((name, value)) = params.trim_start().split_once('=') {
+        let name = name.trim_end();
+        let value = value.trim_start();
+        if name.is_empty() || name.contains(';') {
+            break;
+        }
+        let (value, rest) = disposition_parameter(value)?;
+        params = rest;
+
+        if name.eq_ignore_ascii_case("filename*") && extended.is_none() {
+            extended = decode_extended_filename(&value);
+        } else if name.eq_ignore_ascii_case("filename") && filename.is_none() && !value.is_empty() {
+            filename = Some(value);
+        }
+    }
+
+    extended.or(filename)
+}
+
+fn disposition_parameter(input: &str) -> Option<(String, &str)> {
+    let Some(input) = input.strip_prefix('"') else {
+        let (value, rest) = input.split_once(';').unwrap_or((input, ""));
+        return Some((value.trim_end().to_owned(), rest));
+    };
+    let mut value = String::new();
+    let mut chars = input.char_indices();
+    while let Some((offset, character)) = chars.next() {
+        match character {
+            '\\' => value.push(chars.next()?.1),
+            '"' => {
+                let rest = input[offset + 1..].trim_start();
+                return Some((value, rest.strip_prefix(';').unwrap_or_default()));
+            },
+            _ => value.push(character),
+        }
+    }
+    None
+}
+
+fn decode_extended_filename(value: &str) -> Option<String> {
+    let mut parts = value.splitn(3, '\'');
+    let charset = parts.next()?;
+    let _language = parts.next()?;
+    let encoded = parts.next()?;
+    for (index, byte) in encoded.bytes().enumerate() {
+        if byte == b'%'
+            && !encoded
+                .as_bytes()
+                .get(index + 1..index + 3)
+                .is_some_and(|digits| digits.iter().all(u8::is_ascii_hexdigit))
+        {
+            return None;
+        }
+    }
+    let decoded = percent_encoding::percent_decode_str(encoded);
+    let filename = if charset.eq_ignore_ascii_case("utf-8") {
+        decoded.decode_utf8().ok()?.into_owned()
+    } else if charset.eq_ignore_ascii_case("iso-8859-1") {
+        decoded.map(char::from).collect()
+    } else {
+        return None;
+    };
+    (!filename.is_empty()).then_some(filename)
+}

@@ -527,6 +527,34 @@ impl ServoInner {
                 self.site_data_manager
                     .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
+            NetToEmbedderMsg::OfferUnsupportedResponse {
+                webview_id,
+                request_id,
+                url,
+                content_type,
+                responder,
+                default_filename,
+                content_length,
+                can_retry,
+                cancellation,
+            } => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let response = crate::webview_delegate::UnsupportedResponse {
+                        webview_id,
+                        request_id,
+                        url,
+                        content_type,
+                        default_filename,
+                        content_length,
+                        can_retry,
+                        cancellation,
+                        responder: Some(responder),
+                    };
+                    webview
+                        .delegate()
+                        .notify_unsupported_response(webview, response);
+                }
+            },
         }
     }
 

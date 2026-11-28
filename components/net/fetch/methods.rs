@@ -21,9 +21,11 @@ use mime::{self, Mime};
 use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
+use net_traits::is_content_disposition_attachment;
+use net_traits::mime_classifier::MimeClassifier;
 use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
+    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, DownloadHandling, Initiator,
     InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
     Request, RequestBody, RequestId, RequestMode, ResponseTainting, UpgradeInsecureNavigations,
     is_cors_safelisted_method, is_cors_safelisted_request_header,
@@ -43,7 +45,7 @@ use servo_base::generic_channel::CallbackSetter;
 use servo_base::id::PipelineId;
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use tokio::sync::Mutex as TokioMutex;
-use tokio::sync::mpsc::{UnboundedReceiver as TokioReceiver, UnboundedSender as TokioSender};
+use tokio::sync::{Notify, mpsc};
 
 use crate::connector::CACertificates;
 #[cfg(feature = "devtools")]
@@ -51,6 +53,7 @@ use crate::devtools::{DevtoolsBodyBuffer, body_for_devtools};
 use crate::devtools::{
     send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
 };
+use crate::embedder::DownloadDecision;
 use crate::fetch::fetch_params::{
     ConsumePreloadedResources, FetchParams, SharedPreloadedResources,
 };
@@ -117,6 +120,7 @@ pub struct FetchContext {
 #[derive(Default)]
 pub struct CancellationListener {
     cancelled: AtomicBool,
+    changed: Notify,
 }
 
 impl CancellationListener {
@@ -125,7 +129,17 @@ impl CancellationListener {
     }
 
     pub(crate) fn cancel(&self) {
-        self.cancelled.store(true, Ordering::Relaxed)
+        self.cancelled.store(true, Ordering::Relaxed);
+        self.changed.notify_waiters();
+    }
+
+    pub(crate) async fn wait_cancelled(&self) {
+        let notified = self.changed.notified();
+        tokio::pin!(notified);
+        notified.as_mut().enable();
+        if !self.cancelled() {
+            notified.await;
+        }
     }
 }
 
@@ -174,7 +188,66 @@ pub(crate) fn transfers_request_body_stream_to_later_manual_redirect(
             .is_some_and(|status| status.is_redirection())
 }
 
-pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
+pub enum DataReceiver {
+    Bounded(mpsc::Receiver<Data>),
+    Unbounded(mpsc::UnboundedReceiver<Data>),
+}
+
+impl DataReceiver {
+    pub(crate) async fn recv(&mut self) -> Option<Data> {
+        match self {
+            Self::Bounded(receiver) => receiver.recv().await,
+            Self::Unbounded(receiver) => receiver.recv().await,
+        }
+    }
+}
+
+pub type DoneChannel = Option<DataReceiver>;
+
+pub(crate) fn explicit_download_applies(request: &Request, url: &ServoUrl) -> bool {
+    match request.download_handling {
+        Some(DownloadHandling::FromEmbedder) => true,
+        Some(DownloadHandling::FromLink) => {
+            matches!(url.scheme(), "data" | "blob") ||
+                matches!(&request.client, Some(client) if
+                    matches!(&client.origin, Origin::Origin(origin) if *origin == url.origin()))
+        },
+        _ => false,
+    }
+}
+
+pub(crate) fn should_offer_download(request: &Request, response: &Response) -> bool {
+    if request.download_handling.is_none()
+        || request.mode != RequestMode::Navigate
+        || request.target_webview_id.is_none()
+        || !request.integrity_metadata.is_empty()
+        || matches!(request.method, Method::HEAD | Method::CONNECT)
+        || response.is_network_error()
+    {
+        return false;
+    }
+    let response = response.actual_response();
+    if response.location_url.is_some()
+        || !response
+            .status
+            .try_code()
+            .is_some_and(|status| status.is_success())
+        || response.status == StatusCode::PARTIAL_CONTENT
+        || is_null_body_status(&response.status)
+    {
+        return false;
+    }
+
+    is_content_disposition_attachment(&response.headers)
+        || response
+            .url()
+            .is_some_and(|url| explicit_download_applies(request, url))
+        || extract_mime_type_as_mime(&response.headers).is_some_and(|mime| {
+            mime.essence_str()
+                .parse::<Mime>()
+                .is_ok_and(|mime| MimeClassifier::get_media_type(&mime).is_none())
+        })
+}
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
@@ -831,7 +904,7 @@ pub async fn main_fetch(
     let mut response_loaded = false;
     let mut response = if !response.is_network_error() && !request.integrity_metadata.is_empty() {
         // Step 19.1.
-        wait_for_response(request, &mut response, target, done_chan, context).await;
+        wait_for_response(request, &mut response, target, done_chan, context, None).await;
         response_loaded = true;
 
         // Step 19.2.
@@ -853,7 +926,7 @@ pub async fn main_fetch(
         // by sync fetch, but we overload it here for simplicity
         target.process_response(request, &response);
         if !response_loaded {
-            wait_for_response(request, &mut response, target, done_chan, context).await;
+            wait_for_response(request, &mut response, target, done_chan, context, None).await;
         }
         // overloaded similarly to process_response
         target.process_response_eof(request, &response);
@@ -869,6 +942,41 @@ pub async fn main_fetch(
         target.process_request_body(request);
     }
 
+    let decision = if !response_loaded && should_offer_download(request, &response) {
+        context
+            .state
+            .offer_unsupported_response(request, &response, &context.cancellation_listener)
+            .await
+    } else {
+        None
+    };
+    let mut discard = net_traits::DiscardFetch;
+    let (target, download): (Target<'_>, _) = match decision {
+        Some(decision) => {
+            if matches!(done_chan, Some(DataReceiver::Bounded(_))) {
+                // The network loader does not cache download candidates.
+                *response.actual_response().body.lock() = ResponseBody::Empty;
+            }
+            let mut no_document = Response::new(
+                request.url(),
+                ResourceFetchTiming::new(ResourceTimingType::Navigation),
+            );
+            no_document.status = StatusCode::NO_CONTENT.into();
+            no_document.is_download = matches!(decision, DownloadDecision::Accept(_));
+            target.process_response(request, &no_document);
+            target.process_response_eof(request, &no_document);
+            let download = match decision {
+                DownloadDecision::Accept(sender) => Some(sender),
+                DownloadDecision::Decline => {
+                    context.cancellation_listener.cancel();
+                    None
+                },
+            };
+            (&mut discard, download)
+        },
+        None => (target, None),
+    };
+
     // Step 22.
     target.process_response(request, &response);
     // Send Response to Devtools
@@ -877,7 +985,25 @@ pub async fn main_fetch(
 
     // Step 23.
     if !response_loaded {
-        wait_for_response(request, &mut response, target, done_chan, context).await;
+        wait_for_response(
+            request,
+            &mut response,
+            target,
+            done_chan,
+            context,
+            download.as_ref(),
+        )
+        .await;
+    }
+    if let Some(download) = download {
+        let result = if let Some(error) = response.get_network_error() {
+            Err(error.clone())
+        } else if response.aborted.load(Ordering::Acquire) {
+            Err(NetworkError::LoadCancelled)
+        } else {
+            Ok(None)
+        };
+        let _ = download.send(result).await;
     }
 
     // Step 24.
@@ -904,15 +1030,16 @@ async fn wait_for_response(
     target: Target<'_>,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
+    download: Option<&mpsc::Sender<Result<Option<Bytes>, NetworkError>>>,
 ) {
-    if let Some(ref mut ch) = *done_chan {
+    if let Some(ch) = done_chan.as_mut() {
         #[cfg(feature = "devtools")]
         let mut devtools_body = context
             .devtools_chan
             .as_ref()
             .map(|_| DevtoolsBodyBuffer::default());
         loop {
-            match ch.1.recv().await {
+            match ch.recv().await {
                 Some(Data::ContentLength(length)) => {
                     target.process_response_length_hint(request, length);
                 },
@@ -921,7 +1048,15 @@ async fn wait_for_response(
                     if let Some(body) = devtools_body.as_mut() {
                         body.append_chunk(&bytes);
                     }
-                    target.process_response_chunk(request, bytes);
+                    if let Some(download) = download {
+                        if download.send(Ok(Some(bytes))).await.is_err() {
+                            context.cancellation_listener.cancel();
+                            response.aborted.store(true, Ordering::Release);
+                            break;
+                        }
+                    } else {
+                        target.process_response_chunk(request, bytes);
+                    }
                 },
                 Some(Data::Error(network_error)) => {
                     if network_error == NetworkError::DecompressionError {
@@ -945,11 +1080,27 @@ async fn wait_for_response(
                 },
 
                 None => {
-                    panic!("fetch worker should always send Done before terminating");
+                    response.set_network_error(NetworkError::ConnectionFailure);
+                    break;
                 },
             }
         }
     } else {
+        if let Some(download) = download {
+            let chunk = match *response.actual_response().body.lock() {
+                ResponseBody::Done(ref bytes) if !bytes.is_empty() => {
+                    Some(Bytes::copy_from_slice(bytes))
+                },
+                _ => None,
+            };
+            if let Some(chunk) = chunk
+                && download.send(Ok(Some(chunk))).await.is_err()
+            {
+                context.cancellation_listener.cancel();
+                response.aborted.store(true, Ordering::Release);
+            }
+            return;
+        }
         match *response.actual_response().body.lock() {
             ResponseBody::Done(ref vec) if !vec.is_empty() => {
                 // in case there was no channel to wait for, the body was

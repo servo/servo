@@ -1617,3 +1617,209 @@ fn test_fetch_request_intercepted() {
         "The status_message was not set correctly!"
     );
 }
+
+#[test]
+fn download_uses_the_redirected_response_and_its_filename() {
+    use net::embedder::{DownloadStream, NetToEmbedderMsg};
+    use net_traits::request::DownloadHandling;
+
+    let (server, url) = make_server(
+        |request: HyperRequest<Incoming>,
+         response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            if request.uri().path() == "/" {
+                *response.status_mut() = StatusCode::FOUND;
+                response
+                    .headers_mut()
+                    .insert(header::LOCATION, HeaderValue::from_static("/file"));
+            } else {
+                *response.body_mut() = make_body(b"download body".to_vec());
+                response.headers_mut().insert(header::CONTENT_DISPOSITION, HeaderValue::from_static(
+                    "attachment; FILENAME=\"fallback; name.txt\"; filename*=UTF-8''caf%C3%A9.txt",
+                ));
+                response.headers_mut().insert(
+                    header::CONTENT_TYPE,
+                    HeaderValue::from_static("text/plain; charset=utf-8"),
+                );
+            }
+        },
+    );
+    let (proxy, messages) = create_generic_embedder_proxy_and_receiver();
+    let mut context = new_fetch_context(None, Some(proxy));
+    let download = std::thread::spawn(move || {
+        loop {
+            if let NetToEmbedderMsg::OfferUnsupportedResponse {
+                url,
+                default_filename,
+                content_length,
+                cancellation,
+                responder,
+                ..
+            } = messages.recv_timeout(Duration::from_secs(10)).unwrap()
+            {
+                assert_eq!(url.path(), "/file");
+                assert_eq!(default_filename, "café.txt");
+                assert_eq!(content_length, Some(13));
+                let mut download = DownloadStream::accept(responder, cancellation).unwrap();
+                let mut bytes = Vec::new();
+                while let Some(chunk) = download.read_chunk().unwrap() {
+                    bytes.extend_from_slice(&chunk);
+                }
+                return bytes;
+            }
+        }
+    });
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .origin(url.origin())
+        .mode(RequestMode::Navigate)
+        .policy_container(Default::default())
+        .download_handling(Some(DownloadHandling::WhenUnrenderable))
+        .build();
+    let response = fetch_with_context(request, &mut context);
+    assert_eq!(response.status, StatusCode::NO_CONTENT);
+    assert!(response.is_download);
+    assert_eq!(download.join().unwrap(), b"download body");
+    server.close();
+}
+
+#[test]
+fn download_reports_truncation_and_can_cancel_a_stalled_server() {
+    use std::io::{Read as _, Write as _};
+    use std::net::TcpListener;
+
+    use net::embedder::{DownloadStream, NetToEmbedderMsg};
+    use net_traits::request::DownloadHandling;
+
+    for cancel in [false, true] {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = ServoUrl::parse(&format!("http://{}/", listener.local_addr().unwrap())).unwrap();
+        let (release, finish) = std::sync::mpsc::channel();
+        let server = std::thread::spawn(move || {
+            let (mut stream, _) = listener.accept().unwrap();
+            stream
+                .set_read_timeout(Some(Duration::from_secs(15)))
+                .unwrap();
+            let mut request = Vec::new();
+            while !request.ends_with(b"\r\n\r\n") {
+                let mut byte = [0];
+                stream.read_exact(&mut byte).unwrap();
+                request.push(byte[0]);
+            }
+            stream.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: 999\r\nConnection: close\r\n\r\nshort").unwrap();
+            finish.recv_timeout(Duration::from_secs(15)).unwrap();
+        });
+
+        let (proxy, messages) = create_generic_embedder_proxy_and_receiver();
+        let mut context = new_fetch_context(None, Some(proxy));
+        let download = std::thread::spawn(move || {
+            loop {
+                if let NetToEmbedderMsg::OfferUnsupportedResponse {
+                    cancellation,
+                    responder,
+                    ..
+                } = messages.recv_timeout(Duration::from_secs(10)).unwrap()
+                {
+                    let mut download =
+                        DownloadStream::accept(responder, cancellation.clone()).unwrap();
+                    if cancel {
+                        cancellation.cancel();
+                    } else {
+                        release.send(()).unwrap();
+                    }
+                    let error = loop {
+                        match download.read_chunk() {
+                            Ok(Some(_)) => {},
+                            Ok(None) => panic!("an incomplete download reported success"),
+                            Err(error) => break error,
+                        }
+                    };
+                    if cancel {
+                        assert_eq!(error, NetworkError::LoadCancelled);
+                        release.send(()).unwrap();
+                    } else {
+                        assert_ne!(error, NetworkError::LoadCancelled);
+                    }
+                    return;
+                }
+            }
+        });
+
+        let request = RequestBuilder::new(
+            Some(TEST_WEBVIEW_ID),
+            UrlWithBlobClaim::new(url.clone(), None),
+            Referrer::NoReferrer,
+        )
+        .origin(url.origin())
+        .mode(RequestMode::Navigate)
+        .policy_container(Default::default())
+        .download_handling(Some(DownloadHandling::WhenUnrenderable))
+        .build();
+        let response = fetch_with_context(request, &mut context);
+        assert!(response.is_download);
+        download.join().unwrap();
+        server.join().unwrap();
+    }
+}
+
+#[test]
+fn download_filename_handles_quoted_parameters_and_bad_encoding() {
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        header::CONTENT_DISPOSITION,
+        HeaderValue::from_static(
+            r#"attachment; filename="a;b.txt"; filename*=UTF-8''wrong%ZZ; unrelated=value"#,
+        ),
+    );
+    assert_eq!(
+        net_traits::extract_filename_from_content_disposition(&headers).as_deref(),
+        Some("a;b.txt"),
+    );
+}
+
+#[test]
+fn download_requested_by_embedder_saves_an_inline_response() {
+    use net::embedder::{DownloadStream, NetToEmbedderMsg};
+    use net_traits::request::DownloadHandling;
+
+    let (server, url) = make_server(
+        |_: HyperRequest<Incoming>, response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(b"normally rendered as text".to_vec());
+            response
+                .headers_mut()
+                .insert(header::CONTENT_TYPE, HeaderValue::from_static("text/plain"));
+        },
+    );
+    let (proxy, messages) = create_generic_embedder_proxy_and_receiver();
+    let mut context = new_fetch_context(None, Some(proxy));
+    let download = std::thread::spawn(move || {
+        loop {
+            if let NetToEmbedderMsg::OfferUnsupportedResponse {
+                default_filename,
+                can_retry,
+                cancellation,
+                responder,
+                ..
+            } = messages.recv_timeout(Duration::from_secs(10)).unwrap()
+            {
+                assert_eq!(default_filename, "saved.txt");
+                assert!(can_retry);
+                let mut stream = DownloadStream::accept(responder, cancellation).unwrap();
+                let mut file = Vec::new();
+                while let Some(chunk) = stream.read_chunk().unwrap() {
+                    file.extend_from_slice(&chunk);
+                }
+                return file;
+            }
+        }
+    });
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .origin(url.origin())
+        .mode(RequestMode::Navigate)
+        .policy_container(Default::default())
+        .download_handling(Some(DownloadHandling::FromEmbedder))
+        .download_filename(Some("saved.txt".into()))
+        .build();
+    let response = fetch_with_context(request, &mut context);
+    assert!(response.is_download);
+    assert_eq!(download.join().unwrap(), b"normally rendered as text");
+    server.close();
+}

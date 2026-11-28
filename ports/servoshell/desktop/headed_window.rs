@@ -8,7 +8,9 @@
 #![deny(clippy::unwrap_used)]
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
+use std::task::Waker;
 use std::rc::Rc;
 
 use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
@@ -47,6 +49,7 @@ use super::geometry::{winit_position_to_euclid_point, winit_size_to_euclid_size}
 use super::keyutils::{CMD_OR_ALT, keyboard_event_from_winit};
 use crate::desktop::accelerated_gl_media::setup_gl_accelerated_media;
 use crate::desktop::dialog::Dialog;
+use crate::desktop::download::DownloadDialog;
 use crate::desktop::event_loop::{AppEvent, RepaintEventLoopWaker};
 use crate::desktop::gui::Gui;
 use crate::desktop::keyutils::{CMD_OR_CONTROL, keyboard_modifiers_from_winit_modifiers};
@@ -98,6 +101,7 @@ pub struct HeadedWindow {
     last_title: RefCell<String>,
     /// The current set of open dialogs.
     dialogs: RefCell<HashMap<WebViewId, Vec<Dialog>>>,
+    download_dialogs: RefCell<VecDeque<DownloadDialog>>,
     /// The [`EmbedderControlId`] of the currently showing [`InputMethod`] interfaces,
     /// if one is showing.
     visible_input_method: Cell<Option<EmbedderControlId>>,
@@ -216,6 +220,7 @@ impl HeadedWindow {
             rendering_context,
             last_title: RefCell::new(String::from(INITIAL_WINDOW_TITLE)),
             dialogs: Default::default(),
+            download_dialogs: Default::default(),
             visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
         })
@@ -482,6 +487,19 @@ impl HeadedWindow {
         dialogs.retain_mut(callback);
     }
 
+    pub(crate) fn update_download_dialog(&self, ctx: &egui::Context) {
+        let mut dialogs = self.download_dialogs.borrow_mut();
+        if let Some(dialog) = dialogs.front_mut() {
+            let waker = RepaintEventLoopWaker::new(self.event_loop_proxy.clone(), self.id());
+            if !dialog.update(ctx, &self.winit_window, Waker::from(Arc::new(waker))) {
+                dialogs.pop_front();
+                if !dialogs.is_empty() {
+                    ctx.request_repaint();
+                }
+            }
+        }
+    }
+
     fn add_dialog(&self, webview_id: WebViewId, dialog: Dialog) {
         self.dialogs
             .borrow_mut()
@@ -502,7 +520,7 @@ impl HeadedWindow {
         // First lazily clean up any empty dialog vectors.
         let mut dialogs = self.dialogs.borrow_mut();
         dialogs.retain(|_, dialogs| !dialogs.is_empty());
-        dialogs.contains_key(&webview_id)
+        dialogs.contains_key(&webview_id) || !self.download_dialogs.borrow().is_empty()
     }
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
@@ -1136,6 +1154,11 @@ impl PlatformWindow for HeadedWindow {
             webview_id,
             Dialog::new_authentication_dialog(authentication_request),
         );
+    }
+
+    fn show_download_dialog(&self, response: servo::UnsupportedResponse) {
+        self.download_dialogs.borrow_mut().push_back(DownloadDialog::new(response));
+        self.winit_window.request_redraw();
     }
 
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {

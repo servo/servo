@@ -152,7 +152,9 @@ gilrs = { workspace = true }
 glow = { workspace = true }
 headers = { workspace = true }
 itertools = { workspace = true }
+percent-encoding = { workspace = true }
 rfd = { workspace = true }
+tempfile = { workspace = true }
 serde_json = { workspace = true }
 # For optional feature servo-allocator/use-jemalloc and servo-allocator/allocation-tracking
 servo-allocator = { workspace = true }
@@ -167,6 +169,7 @@ servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+xattr = "1.7"
 mach2 = { workspace = true }
 objc2-app-kit = { workspace = true, features = [
     "std",

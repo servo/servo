@@ -864,6 +864,21 @@ impl Notification {
             }
         }
 
+        // <https://notifications.spec.whatwg.org/#notification-show-steps>
+        // step 2: Wait for any fetches to complete and notification's resources
+        //         to be set.
+        //
+        // A notification with no image, icon, badge or action icons has nothing
+        // to wait for, and the wait is over immediately. Without this, `show`
+        // is unreachable for such a notification: its only other caller is the
+        // fetch completion handler below, and with no request in flight nothing
+        // ever completes to call it — so a plain title-and-body notification is
+        // constructed, fires no `error`, and is simply never shown.
+        if pending_requests.is_empty() {
+            self.show();
+            return;
+        }
+
         for (request, resource_type) in pending_requests {
             self.fetch_and_show_when_ready(request, resource_type);
         }

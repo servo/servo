@@ -4,6 +4,7 @@
 
 //! Defines shared hyperlink behaviour for `<link>`, `<a>`, `<area>` and `<form>` elements.
 
+use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use html5ever::local_name;
 use js::context::JSContext;
 use malloc_size_of::malloc_size_of_is_0;
@@ -392,6 +393,12 @@ pub(crate) fn follow_hyperlink(
     relations: LinkRelations,
     hyperlink_suffix: Option<String>,
 ) {
+    // Step 2 of <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>:
+    // an `a`/`area` with a `download` attribute downloads the resource
+    // instead of navigating to it.
+    let download_attribute = (subject.is::<HTMLAnchorElement>() || subject.is::<HTMLAreaElement>())
+        .then(|| subject.get_attribute_string_value(&local_name!("download")))
+        .flatten();
     // Step 1: If subject cannot navigate, then return.
     if subject.cannot_navigate() {
         return;
@@ -406,6 +413,13 @@ pub(crate) fn follow_hyperlink(
     // Also allow the user to open links in a new WebView by pressing either the meta or
     // control key (depending on the platform).
     let document = subject.owner_document();
+    if download_attribute.is_some()
+        && document.has_active_sandboxing_flag(
+            SandboxingFlagSet::SANDBOXED_DOWNLOADS_BROWSING_CONTEXT_FLAG,
+        )
+    {
+        return;
+    }
     let target_attribute_value =
         if subject.is::<HTMLAreaElement>() || subject.is::<HTMLAnchorElement>() {
             if document
@@ -487,12 +501,16 @@ pub(crate) fn follow_hyperlink(
         // Step 13: Navigate targetNavigable to urlString using subject's node document,
         //          with referrerPolicy set to referrerPolicy, userInvolvement set to
         //          userInvolvement, and sourceElement set to subject.
+        // Only trust the suggested filename when the final response is same-origin
+        // or uses a local data/blob URL. Fetch checks after redirects as well.
+        let download = download_attribute;
+
         let secure = target_window.as_global_scope().is_secure_context();
         let upgrade_insecure_navigations_set = window
             .as_global_scope()
             .upgrade_insecure_navigations_set()
             .clone();
-        let load_data = LoadData::new(
+        let mut load_data = LoadData::new(
             LoadOrigin::Script(document.origin().snapshot()),
             url,
             document.about_base_url(),
@@ -505,6 +523,7 @@ pub(crate) fn follow_hyperlink(
             document.has_trustworthy_ancestor_origin(),
             document.creation_sandboxing_flag_set_considering_parent_iframe(),
         );
+        load_data.download = download;
         debug!("following hyperlink to {}", load_data.url);
         navigate(cx, target_window, history_handling, false, load_data);
     };

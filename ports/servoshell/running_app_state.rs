@@ -810,6 +810,10 @@ impl WebViewDelegate for RunningAppState {
         }
     }
 
+    fn notify_unsupported_response(&self, webview: WebView, response: servo::UnsupportedResponse) {
+        self.platform_window_for_webview(&webview).show_download_dialog(response);
+    }
+
     fn notify_fullscreen_state_changed(&self, webview: WebView, fullscreen_state: bool) {
         self.platform_window_for_webview(&webview)
             .set_fullscreen(fullscreen_state);

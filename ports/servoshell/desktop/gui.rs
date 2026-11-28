@@ -628,6 +628,7 @@ impl Gui {
             // the size of its RenderingContext.
             let webview_rect = ctx.available_rect_before_wrap();
             headed_window.for_each_active_dialog(window, |dialog| dialog.update(ctx, webview_rect));
+            headed_window.update_download_dialog(ctx);
 
             // Some other widget may have claimed focus on this tick, so detect if the currently
             // focused egui widget is still a WebView.
