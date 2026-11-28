@@ -13,6 +13,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
 use devtools_traits::get_time_stamp;
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -199,6 +200,8 @@ pub(crate) struct WatcherActor {
     breakpoint_list_name: String,
     blackboxing_name: String,
     session_context: SessionContext,
+    /// The browsing contexts of iframes in this tab. Like in Firefox, each one is a target of its own.
+    pub frame_target_names: AtomicRefCell<Vec<String>>,
 }
 
 #[derive(Clone, Serialize)]
@@ -222,8 +225,8 @@ impl Actor for WatcherActor {
     /// The watcher actor can handle the following messages:
     ///
     /// - `watchTargets`: Returns a list of objects to debug. Since we only support web views, it
-    ///   returns the associated `BrowsingContextActor`. Every target sent creates a
-    ///   `target-available-form` event.
+    ///   returns the associated `BrowsingContextActor` and those of its iframes. Every target sent
+    ///   creates a `target-available-form` event.
     ///
     /// - `unwatchTargets`: Stop watching a set of targets.
     ///   This is currently a no-op because `watchTargets` only returns a point-in-time snapshot.
@@ -269,6 +272,17 @@ impl Actor for WatcherActor {
                         ),
                     };
                     let _ = request.write_json_packet(&msg);
+
+                    for frame_target_name in &*self.frame_target_names.borrow() {
+                        let msg = WatchTargetsReply {
+                            from: self.name().into(),
+                            type_: "target-available-form".into(),
+                            target: TargetActorMsg::BrowsingContext(
+                                registry.encode::<BrowsingContextActor, _>(frame_target_name),
+                            ),
+                        };
+                        let _ = request.write_json_packet(&msg);
+                    }
 
                     browsing_context_actor.frame_update(&mut request);
                 } else if target_type == "worker" {
@@ -352,6 +366,19 @@ impl Actor for WatcherActor {
                                 ResourceArrayType::Available,
                                 &mut request,
                             );
+
+                            for frame_target_name in &*self.frame_target_names.borrow() {
+                                let frame_actor =
+                                    registry.find::<BrowsingContextActor>(frame_target_name);
+                                let thread_actor =
+                                    registry.find::<ThreadActor>(&frame_actor.thread_name);
+                                frame_actor.resources_array(
+                                    thread_actor.source_manager.source_forms(registry),
+                                    resource.into(),
+                                    ResourceArrayType::Available,
+                                    &mut request,
+                                );
+                            }
 
                             for worker_name in &*root_actor.workers.borrow() {
                                 let worker_actor = registry.find::<WorkerTargetActor>(worker_name);
@@ -494,6 +521,7 @@ impl WatcherActor {
             breakpoint_list_name: breakpoint_list_actor.name().into(),
             blackboxing_name: blackboxing_actor.name().into(),
             session_context,
+            frame_target_names: Default::default(),
         };
 
         registry.register::<Self>(actor)

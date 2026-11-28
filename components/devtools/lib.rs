@@ -305,6 +305,9 @@ impl DevtoolsInstance {
                     browsing_context,
                     state,
                 )) => self.handle_navigate(browsing_context, state),
+                DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::BrowsingContextDiscarded(browsing_context),
+                ) => self.handle_browsing_context_discarded(browsing_context),
                 DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                     pipeline_id,
                     console_message,
@@ -470,6 +473,24 @@ impl DevtoolsInstance {
                 );
             },
             NavigationState::Stop(pipeline_id, page_info) => {
+                // The iframes of the previous document are no longer targets. Those of the new
+                // document are added when their globals are created.
+                if page_info.is_top_level_global {
+                    let frame_target_names =
+                        std::mem::take(&mut *watcher_actor.frame_target_names.borrow_mut());
+                    for frame_target_name in frame_target_names {
+                        let frame_actor = self
+                            .registry
+                            .find::<BrowsingContextActor>(&frame_target_name);
+                        watcher_actor.emit_target_available_or_destroyed(
+                            &frame_actor,
+                            &self.registry,
+                            connections.values_mut(),
+                            false,
+                        );
+                    }
+                }
+
                 watcher_actor.emit_target_available_or_destroyed(
                     &browsing_context_actor,
                     &self.registry,
@@ -494,6 +515,36 @@ impl DevtoolsInstance {
                 // TODO: Correctly destroy targets, we probably need to create new browsing context actors too.
             },
         }
+    }
+
+    /// Like in Firefox, an iframe stops being a target once its browsing context is discarded.
+    fn handle_browsing_context_discarded(&self, browsing_context_id: BrowsingContextId) {
+        let Some(browsing_context_name) = self.browsing_contexts.get(&browsing_context_id) else {
+            return;
+        };
+        let browsing_context_actor = self
+            .registry
+            .find::<BrowsingContextActor>(browsing_context_name);
+        let watcher_actor = self
+            .registry
+            .find::<WatcherActor>(&browsing_context_actor.watcher_name);
+        let mut frame_target_names = watcher_actor.frame_target_names.borrow_mut();
+        let Some(index) = frame_target_names
+            .iter()
+            .position(|name| name == browsing_context_name)
+        else {
+            return;
+        };
+        frame_target_names.remove(index);
+        drop(frame_target_names);
+
+        let mut connections = self.connections.lock().unwrap();
+        watcher_actor.emit_target_available_or_destroyed(
+            &browsing_context_actor,
+            &self.registry,
+            connections.values_mut(),
+            false,
+        );
     }
 
     // We need separate actor representations for each script global that exists;
@@ -548,11 +599,22 @@ impl DevtoolsInstance {
             Root::DedicatedWorker(worker_actor.name().into())
         } else {
             self.pipelines.insert(pipeline_id, browsing_context_id);
+            // An iframe is a target of the tab it is in, so it is watched by the tab's watcher.
+            let tab_watcher = (!page_info.is_top_level_global)
+                .then(|| {
+                    self.browsing_contexts
+                        .get(&BrowsingContextId::from(webview_id))
+                })
+                .flatten()
+                .map(|tab_name| {
+                    let tab_actor = self.registry.find::<BrowsingContextActor>(tab_name);
+                    self.registry.find::<WatcherActor>(&tab_actor.watcher_name)
+                });
             let browsing_context_name = self
                 .browsing_contexts
                 .entry(browsing_context_id)
                 .or_insert_with(|| {
-                    BrowsingContextActor::register(
+                    let browsing_context_actor = BrowsingContextActor::register(
                         &self.registry,
                         console_name.clone(),
                         devtools_browser_id,
@@ -561,9 +623,15 @@ impl DevtoolsInstance {
                         pipeline_id,
                         devtools_outer_window_id,
                         script_sender.clone(),
-                    )
-                    .name()
-                    .into()
+                        tab_watcher.as_ref().map(|watcher| watcher.name().into()),
+                    );
+                    if let Some(watcher) = &tab_watcher {
+                        watcher
+                            .frame_target_names
+                            .borrow_mut()
+                            .push(browsing_context_actor.name().into());
+                    }
+                    browsing_context_actor.name().into()
                 });
             let browsing_context_actor = self
                 .registry

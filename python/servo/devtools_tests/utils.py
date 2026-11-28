@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import Future
@@ -225,6 +226,11 @@ def frozen_multiset(items: Iterable[T] = []) -> FrozenMultiset[T]:
     return tuple(sorted(result.items()))
 
 
+def normalize_source_url(url: str) -> str:
+    # Inline scripts in `<iframe srcdoc>` have their source id in the url, which tests can't predict.
+    return re.sub(r"^about:srcdoc#\d+$", "about:srcdoc#<id>", url)
+
+
 def assert_sources_list(
     expected_sources_by_target: Counter[FrozenMultiset[Source]], *, devtools: Optional[Devtools] = None
 ):
@@ -240,7 +246,7 @@ def assert_sources_list(
                 try:
                     assert resource_type == "source"
                     source_urls = frozen_multiset(
-                        [Source(source["introductionType"], source["url"]) for source in sources]
+                        [Source(source["introductionType"], normalize_source_url(source["url"])) for source in sources]
                     )
                     assert source_urls not in actual_sources_by_target  # See NOTE above
                     actual_sources_by_target.update([source_urls])
@@ -277,7 +283,7 @@ def assert_source_content(expected_source: Source, expected_content: str, *, dev
                 try:
                     assert resource_type == "source"
                     for source in sources:
-                        if Source(source["introductionType"], source["url"]) == expected_source:
+                        if Source(source["introductionType"], normalize_source_url(source["url"])) == expected_source:
                             source_actors[expected_source] = source["actor"]
                             done.set_result(None)
                 except Exception as e:
