@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<style>
+    input { caret-animation: manual;}
+</style>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="mismatch" href="number-empty-ref.html">
+
+<body>
+    <input id="input" type="number">
+</body>
+
+<script>
+  (async() => {
+    input.focus();
+    await test_driver.send_keys(input, "123e");
+    requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait"));
+  })();
+</script>
+
+</html>

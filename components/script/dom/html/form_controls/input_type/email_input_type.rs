@@ -2,13 +2,16 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use html5ever::local_name;
 use itertools::Itertools;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use style::str::split_commas;
 
+use crate::dom::AttributeMutation;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
+use crate::dom::element::storage::AttrRef;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -51,13 +54,16 @@ impl SpecificInputType for EmailInputType {
         false
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#e-mail-state-(type=email):suffering-from-a-type-mismatch>
-    /// <https://html.spec.whatwg.org/multipage/#e-mail-state-(type=email):suffering-from-a-type-mismatch-2>
+    /// <https://html.spec.whatwg.org/multipage/#email-state-(type=email):suffering-from-a-type-mismatch>
+    /// <https://html.spec.whatwg.org/multipage/#email-state-(type=email):suffering-from-a-type-mismatch-2>
     fn suffers_from_type_mismatch(&self, input: &HTMLInputElement, value: &DOMString) -> bool {
         if input.Multiple() {
             !split_commas(&value.str()).all(|string| string.is_valid_email_address_string())
         } else {
-            !value.str().is_valid_email_address_string()
+            // > While the value of the element is neither the empty string nor
+            // > a single valid email address,
+            // > the element is suffering from a type mismatch.
+            !value.is_empty() && !value.str().is_valid_email_address_string()
         }
     }
 
@@ -71,5 +77,22 @@ impl SpecificInputType for EmailInputType {
         self.text_input_widget
             .borrow()
             .update_placeholder_contents(cx, input)
+    }
+
+    fn attribute_mutated(
+        &self,
+        _: &mut JSContext,
+        input: &HTMLInputElement,
+        attr: AttrRef<'_>,
+        _: AttributeMutation,
+    ) {
+        match *attr.local_name() {
+            local_name!("multiple") => {
+                let mut value = input.original_user_input();
+                self.sanitize_value(input, &mut value);
+                input.set_internal_value(value);
+            },
+            _ => {},
+        }
     }
 }
