@@ -299,10 +299,15 @@ impl DocumentEventHandler {
                 .borrow()
                 .and_then(|index| pending_input_events.get_mut(index))
             {
+                let old_event = mem::replace(mouse_move_event, event);
+                if let (InputEvent::MouseMove(old), InputEvent::MouseMove(new)) =
+                    (&old_event.event.event, &mut mouse_move_event.event.event)
+                {
+                    new.movement += old.movement;
+                }
                 self.coalesced_mouse_move_event_ids
                     .borrow_mut()
-                    .push(mouse_move_event.event.id);
-                *mouse_move_event = event;
+                    .push(old_event.event.id);
                 return;
             }
 
@@ -692,10 +697,15 @@ impl DocumentEventHandler {
         let old_mouse_move_point = self
             .most_recent_mousemove_point
             .replace(Some(hit_test_result.point_in_frame));
+        let movement = match input_event.event.event {
+            InputEvent::MouseMove(ref event) => event.movement,
+            _ => Vector2D::zero(),
+        };
         // Always dispatch compatibility `mousemove` events, even at the same
         // point as the previous one.
         if !is_compatibility_event_for_touch &&
-            old_mouse_move_point == Some(hit_test_result.point_in_frame)
+            old_mouse_move_point == Some(hit_test_result.point_in_frame) &&
+            movement == Vector2D::zero()
         {
             return;
         }
@@ -718,9 +728,14 @@ impl DocumentEventHandler {
             .as_ref()
             .is_none_or(|old_target| *old_target != new_target);
 
+        let pointer_lock_target = self
+            .window
+            .script_thread()
+            .get_pointer_lock_element(self.window.webview_id());
+
         // Here we know the target has changed, so we must update the state,
         // dispatch mouseout to the previous one, mouseover to the new one.
-        if target_has_changed {
+        if target_has_changed && pointer_lock_target.is_none() {
             // Dispatch pointerout/mouseout and pointerleave/mouseleave to previous target.
             if let Some(old_target) = self.current_hover_target.get() {
                 let old_target_is_ancestor_of_new_target = old_target
@@ -1026,7 +1041,17 @@ impl DocumentEventHandler {
             return;
         };
 
-        let node = element.upcast::<Node>();
+        let pointer_lock_element = self
+            .window
+            .script_thread()
+            .get_pointer_lock_element(self.window.webview_id());
+        // When pointer lock is active, click events should be routed
+        // to the pointer lock element.
+        let click_target_element = pointer_lock_element.as_deref().unwrap_or(&element);
+        let node = match &pointer_lock_element {
+            Some(el) => el.upcast::<Node>(),
+            None => element.upcast::<Node>(),
+        };
         debug!("{:?} on {:?}", mouse_button_event.action, node.debug_str());
 
         // <https://html.spec.whatwg.org/multipage/#selector-active>
@@ -1250,7 +1275,7 @@ impl DocumentEventHandler {
                     mouse_button_event,
                     input_event,
                     &hit_test_result,
-                    &element,
+                    click_target_element,
                 );
             },
         }
@@ -1387,6 +1412,8 @@ impl DocumentEventHandler {
             true,                            // is_primary
             &[],                             // coalesced_events
             &[],                             // predicted_events
+            0.,
+            0.,
         );
         menu_event.upcast::<Event>().set_composed(true);
 
@@ -2016,7 +2043,14 @@ impl DocumentEventHandler {
             return Default::default();
         };
 
-        let node = el.upcast::<Node>();
+        let pointer_lock_element = self
+            .window
+            .script_thread()
+            .get_pointer_lock_element(self.window.webview_id());
+        let node = match &pointer_lock_element {
+            Some(element) => element.upcast::<Node>(),
+            None => el.upcast::<Node>(),
+        };
         debug!(
             "wheel: on {:?} at {:?}",
             node.debug_str(),
@@ -2843,6 +2877,8 @@ impl DocumentEventHandler {
             is_primary,
             &[],
             &[],
+            0.,
+            0.,
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target);
@@ -2893,6 +2929,8 @@ impl DocumentEventHandler {
             is_primary,
             &[],
             &[],
+            0.,
+            0.,
         );
         pointer_event.upcast::<Event>().set_composed(true);
         pointer_event.upcast::<Event>().fire(cx, target.upcast());

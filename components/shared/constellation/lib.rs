@@ -129,6 +129,10 @@ pub enum EmbedderToConstellationMessage {
     SetNetworkOnlineState(bool),
     /// Stores the http cache to disk and sends a message back when it is done.
     StoreCacheToDisk(GenericSender<()>),
+    /// Request Pointer Lock result (success/fail)
+    RequestPointerLockResult(WebViewId, bool),
+    /// Exit Pointer Lock result (success/fail)
+    ExitPointerLockResult(WebViewId, bool),
 }
 
 pub enum UserContentManagerAction {

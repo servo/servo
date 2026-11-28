@@ -79,6 +79,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{
     Castable, CharacterDataTypeId, EventTargetTypeId, NodeTypeId,
 };
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
 };
@@ -672,6 +673,8 @@ impl Node {
             false,                              // is_primary
             &[],                                // coalesced_events
             &[],                                // predicted_events
+            0.,
+            0.,
         );
 
         // Step 4. Set event's composed flag.
@@ -3311,6 +3314,20 @@ impl Node {
 
         // Step 7. Remove node from its parent's children.
         // Step 11-14. Run removing steps and enqueue disconnected custom element reactions for the subtree.
+
+        // If node was a pointer lock element, exit pointer lock
+        let global = node.global();
+        let window = global.as_window();
+        if node
+            .global()
+            .as_window()
+            .script_thread()
+            .get_pointer_lock_element(window.webview_id())
+            .is_some_and(|element| node.downcast::<Element>().is_some_and(|el| el == &*element))
+        {
+            window.Document().ExitPointerLock();
+        }
+
         parent.remove_child(cx, node);
 
         // Step 8. If node is assigned, then run assign slottables for node’s assigned slot.

@@ -188,6 +188,8 @@ impl WheelEvent {
             buttons,
             related_target,
             point_in_target,
+            0.,
+            0.,
         );
         self.delta_x.set(delta_x);
         self.delta_y.set(delta_y);

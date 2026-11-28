@@ -49,3 +49,15 @@ partial interface MouseEvent {
                          boolean shiftKeyArg, boolean metaKeyArg,
                          short buttonArg, EventTarget? relatedTargetArg);
 };
+
+// https://w3c.github.io/pointerlock/#extensions-to-the-mouseevent-interface
+partial interface MouseEvent {
+  readonly attribute double movementX;
+  readonly attribute double movementY;
+};
+
+// https://w3c.github.io/pointerlock/#extensions-to-the-mouseeventinit-dictionary
+partial dictionary MouseEventInit {
+  double movementX = 0;
+  double movementY = 0;
+};

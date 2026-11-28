@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use dpi::PhysicalSize;
 use embedder_traits::RefreshDriver;
+use euclid::Vector2D;
 use euclid::default::Size2D as UntypedSize2D;
 use image::RgbaImage;
 use servo::{InputEvent, JSValue, MouseMoveEvent, RenderingContext, WebView, WebViewBuilder};
@@ -229,6 +230,7 @@ fn test_input_does_not_speed_up_animations() {
             .webview
             .notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
                 DevicePoint::new(x, 10.).into(),
+                Vector2D::zero(),
             )));
         animating_webview.webview.paint();
         servo_test.servo().spin_event_loop();

@@ -38,6 +38,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
@@ -638,6 +639,15 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
             self.upcast::<Node>(),
             self.document.overlay_handler().fullscreen_element(),
         )
+    }
+
+    fn GetPointerLockElement(&self) -> Option<DomRoot<Element>> {
+        let global = self.global();
+        let window = global.as_window();
+        let target = window
+            .script_thread()
+            .get_pointer_lock_element(window.webview_id());
+        DocumentOrShadowRoot::retarget_element_in_same_tree(self.upcast::<Node>(), target)
     }
 }
 

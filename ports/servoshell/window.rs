@@ -13,8 +13,8 @@ use servo::{
     AuthenticationRequest, BluetoothDeviceSelectionRequest, ConsoleLogLevel,
     CreateNewWebViewRequest, Cursor, DeviceIndependentIntRect, DeviceIndependentPixel,
     DeviceIntPoint, DeviceIntSize, DevicePixel, EmbedderControl, EmbedderControlId, InputEventId,
-    InputEventResult, PermissionRequest, RenderingContext, ScreenGeometry, WebView, WebViewBuilder,
-    WebViewId,
+    InputEventResult, MouseMovementSource, PermissionRequest, RenderingContext, ScreenGeometry,
+    WebView, WebViewBuilder, WebViewId,
 };
 use url::Url;
 
@@ -510,4 +510,24 @@ pub(crate) trait PlatformWindow {
     }
 
     fn notify_accessibility_tree_update(&self, _: WebView, _: accesskit::TreeUpdate) {}
+
+    fn lock_pointer(&self, _unadjusted_movement: bool) -> bool {
+        true
+    }
+
+    fn unlock_pointer(&self) -> bool {
+        true
+    }
+
+    fn pointer_lock_active(&self) -> bool {
+        false
+    }
+
+    fn set_pointer_lock_active(&self, _state: bool) {}
+
+    fn mouse_movement_source(&self) -> MouseMovementSource {
+        MouseMovementSource::WindowEvent
+    }
+
+    fn set_mouse_movement_source(&self, _value: MouseMovementSource) {}
 }

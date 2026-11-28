@@ -11,7 +11,7 @@ use embedder_traits::{
     TouchEventType, TouchId, TouchPointerType, WebDriverCommandMsg, WebDriverScriptCommand,
     WebViewPoint, WheelDelta, WheelEvent, WheelMode,
 };
-use euclid::Point2D;
+use euclid::{Point2D, Vector2D};
 use keyboard_types::Modifiers;
 use keyboard_types::webdriver::KeyInputState;
 use log::info;
@@ -714,7 +714,8 @@ impl Handler {
             // this will always produce events including at least a pointerMove event.
             match subtype {
                 PointerType::Mouse => {
-                    let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point));
+                    let movement = Vector2D::new((x - current_x) as f32, (y - current_y) as f32);
+                    let input_event = InputEvent::MouseMove(MouseMoveEvent::new(point, movement));
                     self.send_blocking_input_event_to_embedder(input_event);
                 },
                 // In the case where the pointerType is "pen" or "touch", and buttons is empty,

@@ -113,7 +113,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFram
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::IntersectionObserverMethods;
 #[cfg(any(feature = "webxr", feature = "gamepad"))]
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::Navigator_Binding::NavigatorMethods;
-use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
@@ -835,6 +835,10 @@ pub(crate) struct Document {
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
     #[ignore_malloc_size_of = "mozjs"]
     module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
+
+    /// A flag set the first time a pointer lock is released via exitPointerLock.
+    /// Used for transient activation check in requestPointerLock.
+    has_exited_pointer_lock_once: Cell<bool>,
 }
 
 impl Document {
@@ -4204,6 +4208,14 @@ impl Document {
     pub(crate) fn refresh_focus_rendering(&self) {
         self.window().layout().set_needs_new_display_list();
     }
+
+    pub(crate) fn get_has_exited_pointer_lock_once(&self) -> bool {
+        self.has_exited_pointer_lock_once.get()
+    }
+
+    pub(crate) fn set_has_exited_pointer_lock_once(&self, value: bool) {
+        self.has_exited_pointer_lock_once.set(value);
+    }
 }
 
 /// Holds DOM object memory sizes for fine-grained memory reports.
@@ -4538,6 +4550,7 @@ impl Document {
             window_detached: Default::default(),
             live_ranges: Default::default(),
             module_map: Default::default(),
+            has_exited_pointer_lock_once: Default::default(),
         }
     }
 
@@ -7645,6 +7658,49 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
     fn Timeline(&self) -> DomRoot<DocumentTimeline> {
         self.timeline.as_rooted()
+    }
+
+    fn GetPointerLockElement(&self) -> Option<DomRoot<Element>> {
+        let global = self.global();
+        let window = global.as_window();
+        let target = window
+            .script_thread()
+            .get_pointer_lock_element(window.webview_id());
+        DocumentOrShadowRoot::retarget_element_in_same_tree(&self.node, target)
+    }
+
+    // <https://w3c.github.io/pointerlock/#dom-document-onpointerlockchange>
+    event_handler!(
+        pointerlockchange,
+        GetOnpointerlockchange,
+        SetOnpointerlockchange
+    );
+
+    // <https://w3c.github.io/pointerlock/#dom-document-onpointerlockerror>
+    event_handler!(
+        pointerlockerror,
+        GetOnpointerlockerror,
+        SetOnpointerlockerror
+    );
+
+    /// <https://w3c.github.io/pointerlock/#dom-document-exitpointerlock>
+    fn ExitPointerLock(&self) {
+        // > 1. If the user agent's pointer-lock target is null, then return.
+        let window = self.owner_window();
+        let webview_id = window.webview_id();
+        let Some(pointer_lock_target) = window.script_thread().get_pointer_lock_element(webview_id)
+        else {
+            return;
+        };
+        // > 2. If pointer-lock target's shadow-including root is not equal to this's node document, return.
+        let root = pointer_lock_target
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions { composed: true });
+        if root.downcast::<Document>().is_none_or(|doc| doc != self) {
+            return;
+        }
+        // > 3. Exit pointer lock with the user agent's pointer-lock target.
+        window.send_to_embedder(EmbedderMsg::UnlockPointer(webview_id));
     }
 }
 

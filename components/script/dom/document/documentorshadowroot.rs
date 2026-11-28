@@ -489,4 +489,25 @@ impl DocumentOrShadowRoot {
         // Step 4. Return null.
         None
     }
+
+    /// Retargets `element` against `this` and returns it only if the result
+    /// is in the same tree as `this`.
+    /// Used for DocumentOrShadowRoot.pointerLockElement getters to report
+    /// elements inside nested shadow trees as the nearest visible host.
+    pub(crate) fn retarget_element_in_same_tree(
+        this: &Node,
+        element: Option<DomRoot<Element>>,
+    ) -> Option<DomRoot<Element>> {
+        let retargeted = element?.upcast::<EventTarget>().retarget(this.upcast());
+        let candidate = DomRoot::downcast::<Element>(retargeted)?;
+        if *candidate
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions::empty()) ==
+            *this
+        {
+            Some(candidate)
+        } else {
+            None
+        }
+    }
 }

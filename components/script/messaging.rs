@@ -117,6 +117,8 @@ impl MixedMessage {
                 ScriptThreadMessage::ForwardAccessibilityAction(id, _) => Some(*id),
                 ScriptThreadMessage::TriggerGarbageCollection => None,
                 ScriptThreadMessage::SetNetworkOnlineState(_) => None,
+                ScriptThreadMessage::RequestPointerLockResult(..) => None,
+                ScriptThreadMessage::ExitPointerLockResult(..) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

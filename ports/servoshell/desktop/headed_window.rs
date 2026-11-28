@@ -11,30 +11,34 @@ use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
+use euclid::{
+    Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector2D, Vector3D,
+};
 use keyboard_types::ShortcutMatcher;
-use log::{debug, info};
+use log::{debug, info, warn};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle, RawWindowHandle};
 use servo::{
     AuthenticationRequest, BluetoothDeviceSelectionRequest, Cursor, DeviceIndependentIntRect,
     DeviceIndependentPixel, DeviceIntPoint, DeviceIntRect, DeviceIntSize, DevicePixel, DevicePoint,
     EmbedderControl, EmbedderControlId, ImeEvent, InputEvent, InputEventId, InputEventResult,
     InputMethodControl, Key, KeyState, KeyboardEvent, Modifiers, MouseButton as ServoMouseButton,
-    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent, NamedKey,
-    OffscreenRenderingContext, PermissionRequest, RenderingContext, ScreenGeometry, Theme,
-    TouchEvent, TouchEventType, TouchId, TouchPointerType, WebRenderDebugOption, WebView,
-    WebViewId, WheelDelta, WheelEvent, WheelMode, WindowRenderingContext,
-    convert_rect_to_css_pixel,
+    MouseButtonAction, MouseButtonEvent, MouseLeftViewportEvent, MouseMoveEvent,
+    MouseMovementSource, NamedKey, OffscreenRenderingContext, PermissionRequest, RenderingContext,
+    ScreenGeometry, Theme, TouchEvent, TouchEventType, TouchId, TouchPointerType,
+    WebRenderDebugOption, WebView, WebViewId, WheelDelta, WheelEvent, WheelMode,
+    WindowRenderingContext, convert_rect_to_css_pixel,
 };
 use url::Url;
 use winit::dpi::{LogicalSize, PhysicalPosition, PhysicalSize};
 use winit::event::{
-    ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase, WindowEvent,
+    DeviceEvent, ElementState, Ime, KeyEvent, MouseButton, MouseScrollDelta, TouchPhase,
+    WindowEvent,
 };
 use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::keyboard::{Key as LogicalKey, ModifiersState, NamedKey as WinitNamedKey};
 #[cfg(target_os = "linux")]
 use winit::platform::wayland::WindowAttributesExtWayland;
+use winit::window::CursorGrabMode;
 #[cfg(any(target_os = "linux", target_os = "windows"))]
 use winit::window::Icon;
 #[cfg(target_os = "macos")]
@@ -103,6 +107,11 @@ pub struct HeadedWindow {
     visible_input_method: Cell<Option<EmbedderControlId>>,
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
+    /// Whether pointer lock is currently active
+    pointer_lock_active: Cell<bool>,
+    /// Whether to use DeviceMotion or CursorMove as the mouse movement source
+    /// while under pointer lock.
+    mouse_movement_source: Cell<MouseMovementSource>,
 }
 
 impl HeadedWindow {
@@ -218,6 +227,8 @@ impl HeadedWindow {
             dialogs: Default::default(),
             visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
+            pointer_lock_active: Cell::new(false),
+            mouse_movement_source: Cell::new(MouseMovementSource::WindowEvent),
         })
     }
 
@@ -332,7 +343,11 @@ impl HeadedWindow {
             return;
         }
 
-        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point.into())));
+        let movement = Vector2D::new(point.x - previous_point.x, point.y - previous_point.y);
+        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+            point.into(),
+            movement,
+        )));
     }
 
     /// Handle key events before sending them to Servo.
@@ -390,6 +405,12 @@ impl HeadedWindow {
                 Modifiers::empty(),
                 Key::Named(NamedKey::Escape),
                 || active_webview.exit_fullscreen(),
+            )
+            .optional_shortcut(
+                self.pointer_lock_active(),
+                Modifiers::empty(),
+                Key::Named(NamedKey::Escape),
+                || active_webview.request_pointer_unlock(),
             )
             // Select the first 8 tabs via shortcuts
             .shortcut(CMD_OR_CONTROL, '1', || window.activate_webview_by_index(0))
@@ -651,7 +672,9 @@ impl HeadedWindow {
                     self.handle_mouse_button_event(&webview, button, state);
                 },
                 WindowEvent::CursorMoved { position, .. } => {
-                    self.handle_mouse_move_event(&webview, position);
+                    if self.mouse_movement_source() == MouseMovementSource::WindowEvent {
+                        self.handle_mouse_move_event(&webview, position);
+                    }
                 },
                 WindowEvent::CursorLeft { .. } => {
                     let webview_rect: Rect<_, _> = webview.size().into();
@@ -794,6 +817,27 @@ impl HeadedWindow {
             {
                 self.winit_window.request_redraw();
             }
+        }
+    }
+
+    pub(crate) fn handle_winit_device_event(
+        &self,
+        state: Rc<RunningAppState>,
+        device_event: DeviceEvent,
+    ) {
+        let Some(window) = state.focused_window() else {
+            return;
+        };
+        if let DeviceEvent::MouseMotion { delta } = device_event &&
+            let Some(webview) = window.active_webview() &&
+            self.pointer_lock_active() &&
+            self.mouse_movement_source() == MouseMovementSource::DeviceMotion
+        {
+            webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent {
+                point: self.webview_relative_mouse_point.get().into(),
+                movement: Vector2D::new(delta.0 as f32, delta.1 as f32),
+                is_compatibility_event_for_touch: false,
+            }));
         }
     }
 
@@ -950,6 +994,22 @@ impl PlatformWindow for HeadedWindow {
         self.fullscreen.get()
     }
 
+    fn set_pointer_lock_active(&self, state: bool) {
+        self.pointer_lock_active.set(state);
+    }
+
+    fn pointer_lock_active(&self) -> bool {
+        self.pointer_lock_active.get()
+    }
+
+    fn set_mouse_movement_source(&self, value: MouseMovementSource) {
+        self.mouse_movement_source.set(value);
+    }
+
+    fn mouse_movement_source(&self) -> MouseMovementSource {
+        self.mouse_movement_source.get()
+    }
+
     fn set_cursor(&self, cursor: Cursor) {
         use winit::window::CursorIcon;
 
@@ -994,7 +1054,9 @@ impl PlatformWindow for HeadedWindow {
             },
         };
         self.winit_window.set_cursor(winit_cursor);
-        self.winit_window.set_cursor_visible(true);
+        if !self.pointer_lock_active() {
+            self.winit_window.set_cursor_visible(true);
+        }
     }
 
     fn id(&self) -> ServoShellWindowId {
@@ -1155,6 +1217,47 @@ impl PlatformWindow for HeadedWindow {
         self.gui
             .borrow_mut()
             .notify_accessibility_tree_update(tree_update);
+    }
+
+    fn lock_pointer(&self, _use_unadjusted: bool) -> bool {
+        // TODO: Properly distinguish adjusted vs unadjusted mouse movement across platforms.
+        // The current setup will unconditionally grab the cursor however it can,
+        // then set a flag to read mouse movement deltas from DeviceEvent::MouseMotion.
+        // On macOS, that event returns OS-adjusted movement values,
+        // but on all other platforms it returns unadjusted movement values.
+        let locked = self
+            .winit_window
+            .set_cursor_grab(CursorGrabMode::Locked)
+            .or_else(|_| self.winit_window.set_cursor_grab(CursorGrabMode::Confined));
+        match locked {
+            Ok(_) => {
+                self.winit_window.set_cursor_visible(false);
+                self.set_pointer_lock_active(true);
+                self.set_mouse_movement_source(MouseMovementSource::DeviceMotion);
+
+                true
+            },
+            Err(e) => {
+                warn!("Failed to lock pointer: {:?}", e);
+                false
+            },
+        }
+    }
+
+    fn unlock_pointer(&self) -> bool {
+        if let Err(e) = self
+            .winit_window
+            .set_cursor_grab(winit::window::CursorGrabMode::None)
+        {
+            warn!("Failed to unlock pointer: {:?}", e);
+            return false;
+        }
+        self.winit_window.set_cursor_visible(true);
+
+        self.set_pointer_lock_active(false);
+        self.set_mouse_movement_source(MouseMovementSource::WindowEvent);
+
+        true
     }
 }
 

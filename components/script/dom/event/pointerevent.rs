@@ -116,6 +116,8 @@ impl PointerEvent {
         is_primary: bool,
         coalesced_events: &[&PointerEvent],
         predicted_events: &[&PointerEvent],
+        movement_x: f64,
+        movement_y: f64,
     ) -> DomRoot<PointerEvent> {
         Self::new_with_proto(
             cx,
@@ -148,6 +150,8 @@ impl PointerEvent {
             is_primary,
             coalesced_events,
             predicted_events,
+            movement_x,
+            movement_y,
         )
     }
 
@@ -183,6 +187,8 @@ impl PointerEvent {
         is_primary: bool,
         coalesced_events: &[&PointerEvent],
         predicted_events: &[&PointerEvent],
+        movement_x: f64,
+        movement_y: f64,
     ) -> DomRoot<PointerEvent> {
         let ev = PointerEvent::new_uninitialized_with_proto(cx, window, proto);
         ev.mouseevent.initialize_mouse_event(
@@ -199,6 +205,8 @@ impl PointerEvent {
             buttons,
             related_target,
             point_in_target,
+            movement_x,
+            movement_y,
         );
         ev.pointer_id.set(pointer_id);
         ev.width.set(width);
@@ -271,6 +279,8 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
             init.isPrimary,
             init.coalescedEvents.as_ref_slice(),
             init.predictedEvents.as_ref_slice(),
+            *init.parent.movementX,
+            *init.parent.movementY,
         )
     }
 

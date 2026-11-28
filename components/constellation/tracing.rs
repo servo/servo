@@ -85,6 +85,8 @@ mod from_embedder {
                 Self::ClearSessionHistory(..) => target!("ClearHistory"),
                 Self::SetNetworkOnlineState(..) => target!("SetNetworkOnlineState"),
                 Self::StoreCacheToDisk(..) => target!("StoreCacheToDisk"),
+                Self::RequestPointerLockResult(..) => target!("RequestPointerLockResult"),
+                Self::ExitPointerLockResult(..) => target!("ExitPointerLockResult"),
             }
         }
     }

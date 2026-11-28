@@ -1090,6 +1090,18 @@ pub trait WebViewDelegate {
         _tree_update: accesskit::TreeUpdate,
     ) {
     }
+
+    /// Attempt to perform embedder-specific functionality to lock the pointer.
+    /// Returns `true` on success.
+    fn try_lock_pointer(&self, _webview: WebView, _use_unadjusted: bool) -> bool {
+        false
+    }
+
+    /// Attempt to perform embedder-specific functionality to unlock the pointer.
+    /// Returns `true` on success.
+    fn try_unlock_pointer(&self, _webview: WebView) -> bool {
+        false
+    }
 }
 
 pub(crate) struct DefaultWebViewDelegate;

@@ -27,3 +27,8 @@ partial interface mixin DocumentOrShadowRoot {
 partial interface mixin DocumentOrShadowRoot {
   [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
 };
+
+// https://w3c.github.io/pointerlock/#extensions-to-the-documentorshadowroot-mixin
+partial interface mixin DocumentOrShadowRoot {
+  readonly attribute Element? pointerLockElement;
+};

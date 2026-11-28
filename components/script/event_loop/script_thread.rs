@@ -81,6 +81,9 @@ use rand::TryRng;
 use rand::rngs::SysRng;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::ElementBinding::PointerLockOptions;
+use script_bindings::codegen::GenericBindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
+use script_bindings::error::Error;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ScriptThreadMessage, UpdatePipelineIdReason, WebViewState,
@@ -131,7 +134,8 @@ use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::{LivePromiseReferences, Trusted};
+use crate::dom::bindings::refcounted::{LivePromiseReferences, Trusted, TrustedPromise};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
@@ -141,10 +145,12 @@ use crate::dom::customelementregistry::{
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::{AbortReason, Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::element::Element;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::pointerlock::{PointerLockRequest, PointerLockState};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
@@ -436,6 +442,10 @@ pub struct ScriptThread {
 
     /// Whether the network is considered to be online as reported by the embedder.
     online: Cell<bool>,
+
+    /// Tracks pointer lock states per-webview
+    #[no_trace]
+    pointer_lock_states: DomRefCell<FxHashMap<WebViewId, PointerLockState>>,
 }
 
 struct BHMExitSignal {
@@ -1024,6 +1034,7 @@ impl ScriptThread {
                     #[cfg(feature = "devtools")]
                     devtools_state: Default::default(),
                     online: state.online.into(),
+                    pointer_lock_states: Default::default(),
                 }
             }),
             cx,
@@ -2015,6 +2026,12 @@ impl ScriptThread {
             },
             ScriptThreadMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
+            },
+            ScriptThreadMessage::RequestPointerLockResult(webview_id, succeeded) => {
+                self.handle_request_pointer_lock_response(webview_id, succeeded);
+            },
+            ScriptThreadMessage::ExitPointerLockResult(webview_id, succeeded) => {
+                self.handle_exit_pointer_lock_response(webview_id, succeeded);
             },
         }
     }
@@ -4742,6 +4759,156 @@ impl ScriptThread {
 
     pub(crate) fn online() -> bool {
         with_script_thread(|script_thread| script_thread.online.get())
+    }
+
+    pub(crate) fn get_pointer_lock_element(&self, id: WebViewId) -> Option<DomRoot<Element>> {
+        self.pointer_lock_states
+            .borrow()
+            .get(&id)
+            .and_then(|state| state.target.get())
+    }
+
+    pub(crate) fn queue_pointer_lock_request(&self, request: PointerLockRequest, id: WebViewId) {
+        // We are in steps 6.1-6.3 of requestPointerLock
+        let request_element = request.element.root();
+        let global = request_element.global();
+        let mut states = self.pointer_lock_states.borrow_mut();
+        let state = states.entry(id).or_default();
+        let request_root = request_element
+            .upcast::<Node>()
+            .GetRootNode(&GetRootNodeOptions { composed: true });
+        let target_in_same_root = state.target.get().map(|target| {
+            *target
+                .upcast::<Node>()
+                .GetRootNode(&GetRootNodeOptions { composed: true }) ==
+                *request_root
+        });
+        let options_equal = state.options.get_mut().as_ref().is_some_and(|options| {
+            options.unadjustedMovement == request.options.unadjustedMovement
+        });
+        match target_in_same_root {
+            // > 6.1 If the user agent's pointer-lock target is an element whose shadow-including root is not equal to this's shadow-including root, then:
+            Some(false) => {
+                // > 6.1.1 Queue an element task on the user interaction task source, given this, to perform the following steps:
+                let trusted_document = Trusted::new(&*request_element.owner_document());
+                let trusted_promise = TrustedPromise::from(&*request.promise.borrow());
+                global
+                    .task_manager()
+                    .user_interaction_task_source()
+                    .queue(task!(pointer_lock_error: move |cx| {
+                        // > 6.1.1.1 Fire an event named pointerlockerror at this's node document.
+                        trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
+                        // > 6.1.1.2 Reject promise with a "InvalidStateError" DOMException.
+                        trusted_promise.root(cx).reject_error(cx, Error::InvalidState(Some("Current lock target and requested target have different documents.".to_string())));
+                    }));
+            },
+            // > 6.2 If the user agent's pointer-lock target's shadow-including root is equal to this's shadow-including root
+            //       and options are equivalent to the current pointer-lock options, then:
+            Some(true) if options_equal => {
+                // > 6.2.1 Set pointer-lock target to this.
+                state.target.set(Some(&*request.element.root()));
+                // > 6.2.2 Queue an element task on the user interaction task source, given this, to perform the following steps:
+                let trusted_document = Trusted::new(&*request_element.owner_document());
+                let trusted_promise = TrustedPromise::from(&*request.promise.borrow());
+                global
+                    .task_manager()
+                    .user_interaction_task_source()
+                    .queue(task!(pointer_lock_change: move |cx| {
+                        // > 6.2.2.1 Fire an event named pointerlockchange at this's node document.
+                        trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockchange"));
+                        // > 6.2.2.2 Resolve the promise.
+                        trusted_promise.root(cx).resolve_native(cx, &());
+                    }));
+            },
+            // > 6.3 If pointer-lock target is null, or options is not equivalent to the current pointer-lock options,
+            //       process the lock request and handle response upon fulfillment:
+            _ => {
+                let use_unadjusted = request.options.unadjustedMovement;
+                state.requests.push_back(request);
+                global
+                    .as_window()
+                    .send_to_embedder(EmbedderMsg::LockPointer(
+                        global.as_window().webview_id(),
+                        use_unadjusted,
+                    ));
+            },
+        }
+    }
+
+    fn handle_request_pointer_lock_response(&self, id: WebViewId, succeeded: bool) {
+        // We are in the substeps of step 6.3 of requestPointerLock
+        let mut states = self.pointer_lock_states.borrow_mut();
+        let Some(state) = states.get_mut(&id) else {
+            return;
+        };
+        let Some(current_request) = state.requests.pop_front() else {
+            return;
+        };
+
+        let global = current_request.element.root().global();
+        let trusted_document = Trusted::new(&*global.as_window().Document());
+        let trusted_promise = TrustedPromise::from(&*current_request.promise.borrow());
+
+        // > 6.3.1 If the lock request failed:
+        if !succeeded {
+            // > 6.3.1.1 Queue an element task on the user interaction task source, given this, to perform the following steps:
+            global
+                .task_manager()
+                .user_interaction_task_source()
+                .queue(task!(pointer_lock_error: move |cx| {
+                    // > 6.3.1.1.1 Fire an event named pointerlockerror at this's node document.
+                    trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockerror"));
+                    // > 6.3.1.1.2 Reject promise with a "NotSupportedError" DOMException.
+                    trusted_promise.root(cx).reject_error(cx, Error::NotSupported(Some("Failed to acquire pointer lock from embedder".to_string())));
+                }));
+        // > 6.3.2 If the lock request succeed:
+        // > 6.3.2.1 Enter pointer lock state by performing the following:
+        } else {
+            // > 6.3.2.1.1 Set the user agent's pointer-lock target to this.
+            state.target.set(Some(&*current_request.element.root()));
+            // > 6.3.2.1.2 Set the user agent's cursor position to the current system mouse location.
+            // Cursor position is currently owned by the embedder and should be frozen when pointer lock is active.
+
+            // > 6.3.2.1.3 Set the pointer-lock options to options.
+            *state.options.get_mut() = Some(PointerLockOptions {
+                unadjustedMovement: current_request.options.unadjustedMovement,
+            });
+            // > 6.3.2.2 Queue an element task on the user interaction task source, given this, to perform the following steps:
+            global
+                .task_manager()
+                .user_interaction_task_source()
+                .queue(task!(pointer_lock_change: move |cx| {
+                    // > 6.3.2.2.1 Fire an event named pointerlockchange at this's node document.
+                    trusted_document.root().upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockchange"));
+                    // > 6.3.2.2.2 Resolve the promise.
+                    trusted_promise.root(cx).resolve_native(cx, &());
+                }));
+        }
+    }
+
+    fn handle_exit_pointer_lock_response(&self, id: WebViewId, succeeded: bool) {
+        if succeeded {
+            let mut states = self.pointer_lock_states.borrow_mut();
+            let Some(state) = states.get_mut(&id) else {
+                return;
+            };
+            let Some(element) = state.target.get() else {
+                return;
+            };
+            let global = element.global();
+            let trusted_document = Trusted::new(&*global.as_window().Document());
+            global.task_manager().user_interaction_task_source().queue(
+                task!(pointer_lock_change: move |cx| {
+                    let doc = trusted_document.root();
+                    doc.upcast::<EventTarget>().fire_event(cx, Atom::from("pointerlockchange"));
+                    doc.set_has_exited_pointer_lock_once(true);
+                }),
+            );
+            state.target.clear();
+            state.options.replace(None);
+        } else {
+            warn!("Failed to exit pointer lock from embedder");
+        }
     }
 }
 

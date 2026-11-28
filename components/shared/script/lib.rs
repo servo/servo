@@ -359,6 +359,10 @@ pub enum ScriptThreadMessage {
     /// Inform the `ScriptThread` that the embedder has indicated that the network has gone
     /// online or offline.
     SetNetworkOnlineState(bool),
+    /// Pointer lock request result
+    RequestPointerLockResult(WebViewId, bool),
+    /// Pointer lock exit result
+    ExitPointerLockResult(WebViewId, bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
