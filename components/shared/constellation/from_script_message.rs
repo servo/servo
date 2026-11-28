@@ -47,6 +47,8 @@ use storage_traits::webstorage_thread::WebStorageType;
 use strum::IntoStaticStr;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPUAdapterResponse};
+#[cfg(feature = "webmidi")]
+use webmidi_traits::MIDIRequest;
 
 use crate::structured_data::{BroadcastChannelMsg, StructuredSerializedData};
 use crate::{
@@ -889,6 +891,9 @@ pub enum ScriptToConstellationMessage {
     ReleaseWakeLock(WakeLockType),
     /// Add tuple to upgrade insecure navigations set to keep in sync with global scope.
     AddTupleToUpgradeInsecureNavigationsSet(UpgradeInsecureNavigations),
+    #[cfg(feature = "webmidi")]
+    /// Request data from the MIDI thread
+    MIDIRequest(MIDIRequest),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {
