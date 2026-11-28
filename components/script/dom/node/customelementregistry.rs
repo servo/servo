@@ -1108,14 +1108,12 @@ pub(crate) fn upgrade_element(
         // `FormControl` for HTMLElement, which makes that assumption.
         // Step 9.1: Reset the form owner of element
         html_element.reset_form_owner(cx);
-        if let Some(form) = html_element.form_owner() {
-            // Even though the tree hasn't structurally mutated,
-            // HTMLCollections need to be invalidated.
-            form.upcast::<Node>().rev_version(cx.no_gc());
-            // The spec tells us specifically to enqueue a formAssociated reaction
-            // here, but it also says to do that for resetting form owner in general,
-            // and we don't need two reactions.
-        }
+        // Even though the tree hasn't structurally mutated,
+        // HTMLCollections need to be invalidated.
+        element.upcast::<Node>().rev_version(cx.no_gc());
+        // The spec tells us specifically to enqueue a formAssociated reaction
+        // here, but it also says to do that for resetting form owner in general,
+        // and we don't need two reactions.
 
         element.update_read_write_state_from_readonly_attribute(cx.no_gc());
 

@@ -224,6 +224,7 @@ pub struct Element {
     style_attribute: DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>>,
     attr_list: MutNullableDom<NamedNodeMap>,
     class_list: MutNullableDom<DOMTokenList>,
+    children: MutNullableDom<HTMLCollection>,
     #[no_trace]
     state: Cell<ElementState>,
     /// These flags are set by the style system to indicate the that certain
@@ -342,6 +343,7 @@ impl Element {
             style_attribute: DomRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
+            children: Default::default(),
             state: Cell::new(state),
             selector_flags: Default::default(),
             rare_data: Default::default(),
@@ -4286,8 +4288,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, cx: &mut JSContext) -> DomRoot<HTMLCollection> {
-        let window = self.owner_window();
-        HTMLCollection::children(cx, &window, self.upcast())
+        self.children.or_init(|| {
+            let window = self.owner_window();
+            HTMLCollection::children(cx, &window, self.upcast())
+        })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-firstelementchild>

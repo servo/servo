@@ -33,6 +33,7 @@ pub(crate) struct DocumentFragment {
     id_map: TreeOrderedIndexMap,
     /// <https://dom.spec.whatwg.org/#concept-documentfragment-host>
     host: MutNullableDom<Element>,
+    children: MutNullableDom<HTMLCollection>,
 }
 
 impl DocumentFragment {
@@ -42,6 +43,7 @@ impl DocumentFragment {
             node: Node::new_inherited(document),
             id_map: TreeOrderedIndexMap::id(),
             host: MutNullableDom::new(host),
+            children: Default::default(),
         }
     }
 
@@ -111,8 +113,10 @@ impl DocumentFragmentMethods<crate::DomTypeHolder> for DocumentFragment {
 
     /// <https://dom.spec.whatwg.org/#dom-parentnode-children>
     fn Children(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
-        let window = self.owner_window();
-        HTMLCollection::children(cx, &window, self.upcast())
+        self.children.or_init(|| {
+            let window = self.owner_window();
+            HTMLCollection::children(cx, &window, self.upcast())
+        })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-nonelementparentnode-getelementbyid>

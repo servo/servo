@@ -10,7 +10,7 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLDataListElementBinding::HTMLDataListElementMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document::Document;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -20,6 +20,7 @@ use crate::dom::node::{Node, NodeTraits};
 #[dom_struct]
 pub(crate) struct HTMLDataListElement {
     htmlelement: HTMLElement,
+    options: MutNullableDom<HTMLCollection>,
 }
 
 impl HTMLDataListElement {
@@ -30,6 +31,7 @@ impl HTMLDataListElement {
     ) -> HTMLDataListElement {
         HTMLDataListElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            options: Default::default(),
         }
     }
 
@@ -54,8 +56,13 @@ impl HTMLDataListElement {
 impl HTMLDataListElementMethods<crate::DomTypeHolder> for HTMLDataListElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-datalist-options>
     fn Options(&self, cx: &mut js::context::JSContext) -> DomRoot<HTMLCollection> {
-        HTMLCollection::new_with_filter_fn(cx, &self.owner_window(), self.upcast(), |element, _| {
-            element.is::<HTMLOptionElement>()
+        self.options.or_init(|| {
+            HTMLCollection::new_with_filter_fn(
+                cx,
+                &self.owner_window(),
+                self.upcast(),
+                |element, _| element.is::<HTMLOptionElement>(),
+            )
         })
     }
 }
