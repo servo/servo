@@ -17,9 +17,9 @@ use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
 use read_fonts::TableProvider;
 use read_fonts::types::Tag;
-use skrifa::font::Blob;
+use skrifa::font::{Blob, Variation};
 use style::Zero;
-use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions, FontVariation};
+use webrender_api::{FontInstanceFlags, FontInstancePlatformOptions};
 
 use super::library_handle::FreeTypeLibraryHandle;
 use crate::FontData;
@@ -55,7 +55,6 @@ pub struct PlatformFont {
     face: ReentrantMutex<FreeTypeFace>,
     requested_face_size: Au,
     actual_face_size: Au,
-    variations: Vec<FontVariation>,
     synthetic_bold: bool,
     /// A member that allows using `skrifa` to read values from this font.
     /// Eventually, this should be eliminated in favor of reading the shared
@@ -82,7 +81,6 @@ impl PlatformFontMethods for PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            variations: vec![],
             synthetic_bold: false,
             data_and_index: FontDataAndIndex {
                 data: font_data.clone(),
@@ -120,7 +118,6 @@ impl PlatformFontMethods for PlatformFont {
             face: ReentrantMutex::new(face),
             requested_face_size,
             actual_face_size,
-            variations: vec![],
             synthetic_bold: false,
             data_and_index: FontDataAndIndex {
                 data: FontData::MemoryMapped(memory_mapped_font_data),
@@ -136,10 +133,9 @@ impl PlatformFontMethods for PlatformFont {
         )
     }
 
-    fn copy_with_variations(mut self, variations: &[FontVariation]) -> Result<Self, &'static str> {
+    fn copy_with_variations(self, variations: &[Variation]) -> Result<Self, &'static str> {
         let library = FreeTypeLibraryHandle::get().lock();
-        self.variations = self
-            .face
+        self.face
             .lock()
             .set_variations_for_font(variations, &library)?;
         Ok(self)
@@ -379,10 +375,6 @@ impl PlatformFontMethods for PlatformFont {
             hinting: FALLBACK_HINTING_STYLE,
             ..Default::default()
         }
-    }
-
-    fn variations(&self) -> &[FontVariation] {
-        &self.variations
     }
 }
 

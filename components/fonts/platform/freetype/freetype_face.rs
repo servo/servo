@@ -17,7 +17,9 @@ use freetype_sys::{
     FT_Select_Size, FT_Set_Char_Size, FT_Set_Var_Design_Coordinates, FTErrorMethods,
 };
 use memmap2::Mmap;
-use webrender_api::{FontHinting, FontVariation};
+use read_fonts::collections::int_set::Domain;
+use skrifa::font::Variation;
+use webrender_api::FontHinting;
 
 use crate::platform::freetype::library_handle::FreeTypeLibraryHandle;
 
@@ -204,22 +206,15 @@ impl FreeTypeFace {
         load_flags as FT_Int32
     }
 
-    /// Applies to provided variations to the font face.
-    ///
-    /// Returns the normalized font variations, which are clamped
-    /// to fit within the range of their respective axis. Variation
-    /// values for nonexistent axes are not included.
+    /// Applies the provided variations to the font face.
     pub(crate) fn set_variations_for_font(
         &self,
-        variations: &[FontVariation],
+        variations: &[Variation],
         library: &FreeTypeLibraryHandle,
-    ) -> Result<Vec<FontVariation>, &'static str> {
-        if !unsafe { FT_HAS_MULTIPLE_MASTERS(self.as_ptr()) } ||
-            variations.is_empty() ||
-            !servo_config::pref!(layout_css_font_variations_enabled)
-        {
+    ) -> Result<(), &'static str> {
+        if !unsafe { FT_HAS_MULTIPLE_MASTERS(self.as_ptr()) } {
             // Nothing to do
-            return Ok(vec![]);
+            return Ok(());
         }
 
         // Query variation axis of font
@@ -232,28 +227,19 @@ impl FreeTypeFace {
         // Prepare values for each axis. These are either the provided values (if any) or the default
         // ones for the axis.
         let num_axis = unsafe { (*mm_var).num_axis } as usize;
-        let mut normalized_axis_values = Vec::with_capacity(variations.len());
         let mut coords = vec![0; num_axis];
         for (index, coord) in coords.iter_mut().enumerate() {
             let axis_data = unsafe { &*(*mm_var).axis.add(index) };
             let Some(variation) = variations
                 .iter()
-                .find(|variation| variation.tag == axis_data.tag as u32)
+                .find(|variation| variation.tag.to_u32() == axis_data.tag as u32)
             else {
                 *coord = axis_data.def;
                 continue;
             };
 
             // Freetype uses a 16.16 fixed point format for variation values
-            let shift_factor = 16.0_f32.exp2();
-            let min_value = axis_data.minimum as f32 / shift_factor;
-            let max_value = axis_data.maximum as f32 / shift_factor;
-            normalized_axis_values.push(FontVariation {
-                tag: variation.tag,
-                value: variation.value.min(max_value).max(min_value),
-            });
-
-            *coord = (variation.value * shift_factor) as FT_Fixed;
+            *coord = (variation.value * 16.0_f32.exp2()) as FT_Fixed;
         }
 
         // Free the MM_Var structure
@@ -269,7 +255,7 @@ impl FreeTypeFace {
             return Err("Could not set variations for font face");
         }
 
-        Ok(normalized_axis_values)
+        Ok(())
     }
 }
 

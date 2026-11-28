@@ -26,6 +26,7 @@ use harfbuzz_sys::{
     hb_shape, hb_tag_t, hb_variation_t,
 };
 use num_traits::Zero;
+use read_fonts::collections::int_set::Domain;
 use read_fonts::types::Tag;
 
 use super::{GlyphShapingResult, ShapedGlyph, unicode_script_to_iso15924_tag};
@@ -205,20 +206,17 @@ impl Shaper {
                 Shaper::float_to_fixed(pt_size) as c_int,
             );
 
-            if servo_config::pref!(layout_css_font_variations_enabled) {
-                let variations = &font.variations();
-                if !variations.is_empty() {
-                    let variations: Vec<_> = variations
-                        .iter()
-                        .map(|variation| hb_variation_t {
-                            tag: variation.tag,
+            let variations = font.variations();
+            if !variations.is_empty() {
+                let variations: Vec<_> = variations
+                    .iter()
+                    .map(|variation| hb_variation_t {
+                        tag: variation.tag.to_u32(),
+                        value: variation.value,
+                    })
+                    .collect();
 
-                            value: variation.value,
-                        })
-                        .collect();
-
-                    hb_font_set_variations(hb_font, variations.as_ptr(), variations.len() as u32);
-                }
+                hb_font_set_variations(hb_font, variations.as_ptr(), variations.len() as u32);
             }
 
             // Create a subfont before setting font-funcs so that we can

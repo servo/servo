@@ -480,7 +480,7 @@ impl FontContext {
                 font.descriptor.pt_size,
                 font.webrender_font_instance_flags(),
                 font.webrender_font_instance_platform_options(),
-                font.variations().to_owned(),
+                font.webrender_variations(),
                 painter_id,
             ),
             FontIdentifier::Web(_) | FontIdentifier::ArrayBuffer(_) => self
@@ -489,7 +489,7 @@ impl FontContext {
                     font.descriptor.pt_size,
                     font.webrender_font_instance_flags(),
                     font.webrender_font_instance_platform_options(),
-                    font.variations().to_owned(),
+                    font.webrender_variations(),
                     painter_id,
                 ),
         }
