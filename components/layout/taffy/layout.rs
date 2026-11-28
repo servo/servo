@@ -193,6 +193,42 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 // TODO: pass min- and max- size
                 let tentative_block_size = content_box_known_dimensions
                     .height
+                    .filter(|_| {
+                        // Even if Taffy provides a known dimension, it's not necessarily definite.
+                        // We can't trust `inputs.known_dimensions_are_definite.height`, it's wrong.
+                        // Instead, check whether the preferred block size is extrinsic.
+                        let preferred_size = match content_box_sizes.block.preferred {
+                            // The automatic size depends on `align-self`. Use the same logic as Taffy:
+                            // <https://github.com/DioxusLabs/taffy/blob/0064bd54cbe38bf1d8bcd6ec6ab0704d45fb048a/src/compute/grid/types/grid_item.rs#L317-L323>
+                            // However, note it should also check the preferred aspect ratio and the
+                            // natural sizes: <https://www.w3.org/TR/css-grid-1/#grid-item-sizing>
+                            Size::Initial => {
+                                let align_self = match style.get_align_self().0.value() {
+                                    AlignFlags::AUTO => self.style.get_align_items().0,
+                                    align_self => align_self,
+                                };
+                                match align_self {
+                                    AlignFlags::NORMAL if !independent_context.is_replaced() => {
+                                        Size::Stretch
+                                    },
+                                    AlignFlags::STRETCH => Size::Stretch,
+                                    _ => Size::FitContent,
+                                }
+                            },
+                            size => size,
+                        };
+                        let stretch_size =
+                            inputs
+                                .available_space
+                                .height
+                                .into_option()
+                                .map(|available_space| {
+                                    Au::from_f32_px((available_space - pb_sum.inline).max(0.0))
+                                });
+                        preferred_size
+                            .maybe_resolve_extrinsic(stretch_size)
+                            .is_some()
+                    })
                     .map(Au::from_f32_px)
                     .map_or_else(SizeConstraint::default, SizeConstraint::Definite);
 
