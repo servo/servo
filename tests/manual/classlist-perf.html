@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>classList benchmark</title>
+<script>
+// Benchmark for the read-only classList accessors.
+const tokens = [];
+for (let i = 0; i < 20; i++) {
+  tokens.push('classtoken' + i);
+}
+
+const element = document.createElement('div');
+element.className = tokens.join(' ');
+document.body.appendChild(element);
+
+// Call `op` N times and return total time, in milliseconds.
+function measure(name, op) {
+  const WARMUP_CALLS = 100000;
+  const N = 5000000;
+
+  for (let i = 0; i < WARMUP_CALLS; i++) {
+    op();
+  }
+
+  const start = performance.now();
+  for (let i = 0; i < N; i++) {
+    op();
+  }
+  const totalMs = performance.now() - start;
+
+  return name + ': ' + totalMs.toFixed(1) + ' ms';
+}
+
+const report = [
+  measure('classList.length', () => element.classList.length),
+  measure('classList.contains', () => element.classList.contains(tokens[7]) ? 1 : 0),
+].join('\n');
+
+document.getElementById('out').textContent = report;
+console.log(report);
+</script>
