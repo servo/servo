@@ -20,6 +20,7 @@ use embedder_traits::{
     GamepadEvent as EmbedderGamepadEvent, GamepadSupportedHapticEffects, GamepadUpdateType,
 };
 use euclid::{Point2D, Vector2D};
+use html5ever::local_name;
 use js::context::{JSContext, NoGC};
 use keyboard_types::{
     Code, CompositionState, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
@@ -79,7 +80,8 @@ use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLAreaElement,
-    HTMLElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
+    HTMLElement, HTMLImageElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList,
+    WheelEvent, Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::dom::window::windowproxy::WindowOpenType;
@@ -259,6 +261,8 @@ pub(crate) struct DocumentEventHandler {
     /// The current drag gesture, if one exists. Events that affect this drag
     /// gesture will be forwarded to it.
     drag_gesture: DomRefCell<Option<DragGesture>>,
+
+    last_tooltip: DomRefCell<Option<String>>,
 }
 
 impl DocumentEventHandler {
@@ -286,6 +290,7 @@ impl DocumentEventHandler {
             pending_pointer_capture: Default::default(),
             pointer_capture_target: Default::default(),
             drag_gesture: Default::default(),
+            last_tooltip: Default::default(),
         }
     }
 
@@ -567,10 +572,13 @@ impl DocumentEventHandler {
             // then clear it.
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
+
             self.set_cursor(None);
         } else {
             self.current_cursor.set(None);
         }
+
+        self.hide_alt_image_tooltip();
 
         self.current_hover_target.set(None);
         self.most_recent_mousemove_point.set(None);
@@ -865,10 +873,14 @@ impl DocumentEventHandler {
         // Send mousemove event. Routed to the capture target when capture is active.
         mouse_event.upcast::<Event>().fire(cx, &pointer_target);
 
-        self.update_current_hover_target_and_status(Some(new_target));
+        self.update_current_hover_target_and_status(cx, Some(new_target));
     }
 
-    fn update_current_hover_target_and_status(&self, new_hover_target: Option<DomRoot<Element>>) {
+    fn update_current_hover_target_and_status(
+        &self,
+        cx: &mut JSContext,
+        new_hover_target: Option<DomRoot<Element>>,
+    ) {
         let current_hover_target = self.current_hover_target.get();
         if current_hover_target == new_hover_target {
             return;
@@ -876,6 +888,8 @@ impl DocumentEventHandler {
 
         let previous_hover_target = self.current_hover_target.get();
         self.current_hover_target.set(new_hover_target.as_deref());
+
+        self.update_image_alt_text(cx, new_hover_target.as_deref());
 
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
@@ -906,6 +920,49 @@ impl DocumentEventHandler {
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), None));
         }
+    }
+
+    /// Notify the embedder about the current image alt text, if found.
+    fn update_image_alt_text(&self, cx: &mut JSContext, current: Option<&Element>) {
+        let alt_text_of = |element: Option<&Element>| {
+            element
+                .filter(|element| element.is::<HTMLImageElement>())
+                .and_then(|image| image.get_attribute_string_ref(&local_name!("alt")))
+                .filter(|alt| !alt.is_empty())
+                .map(|alt| alt.value().to_string())
+        };
+
+        let new_alt_text = alt_text_of(current);
+        let mut last_tooltip = self.last_tooltip.borrow_mut();
+        if last_tooltip.as_deref() == new_alt_text.as_deref() {
+            return;
+        }
+
+        let document = self.window.Document();
+        let embedder_controls = document.embedder_controls();
+
+        let (Some(alt_text), Some(image_element), Some(point)) = (
+            new_alt_text,
+            current.and_then(|element| element.downcast::<HTMLImageElement>()),
+            self.most_recent_mousemove_point.get(),
+        ) else {
+            *last_tooltip = None;
+            embedder_controls.hide_tooltip();
+            return;
+        };
+
+        *last_tooltip = Some(alt_text.clone());
+        embedder_controls.show_tooltip(
+            cx,
+            alt_text,
+            image_element.upcast::<HTMLElement>(),
+            point.cast_unit(),
+        );
+    }
+
+    fn hide_alt_image_tooltip(&self) {
+        *self.last_tooltip.borrow_mut() = None;
+        self.window.Document().embedder_controls().hide_tooltip();
     }
 
     pub(crate) fn handle_refresh_cursor(&self, cx: &mut JSContext) {
@@ -1060,6 +1117,7 @@ impl DocumentEventHandler {
 
         let mouse_button = mouse_button_event.button;
         if mouse_button_event.action == MouseButtonAction::Down {
+            self.hide_alt_image_tooltip();
             self.button_click_state
                 .safe_borrow_mut(cx.no_gc())
                 .on_mouse_down(mouse_button, hit_test_result.point_in_frame);

@@ -10,7 +10,10 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::thread::{self, JoinHandle};
+use std::time::{Duration, Instant};
 
+use crossbeam_channel::{RecvTimeoutError, Sender};
 use euclid::{Angle, Length, Point2D, Rect, Rotation3D, Scale, Size2D, UnknownUnit, Vector3D};
 use keyboard_types::ShortcutMatcher;
 use log::{debug, info};
@@ -59,6 +62,68 @@ use crate::window::{
 
 pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
 
+pub(crate) const TOOLTIP_DELAY: Duration = Duration::from_millis(500);
+
+pub(crate) struct TooltipTimer {
+    sender: Option<Sender<Option<Instant>>>,
+    join_handle: Option<JoinHandle<()>>,
+}
+
+impl TooltipTimer {
+    fn new(proxy: EventLoopProxy<AppEvent>, window_id: ServoShellWindowId) -> Self {
+        let (sender, receiver) = crossbeam_channel::unbounded::<Option<Instant>>();
+        let join_handle = thread::Builder::new()
+            .name(String::from("TooltipTimerThread"))
+            .spawn(move || {
+                let mut deadline: Option<Instant> = None;
+                loop {
+                    let msg = match deadline {
+                        Some(at) => receiver.recv_deadline(at),
+                        None => receiver.recv().map_err(|_| RecvTimeoutError::Disconnected),
+                    };
+
+                    match msg {
+                        Ok(new_deadline) => deadline = new_deadline,
+                        Err(RecvTimeoutError::Timeout) => {
+                            deadline = None;
+                            let _ = proxy.send_event(AppEvent::RequestRepaint(window_id));
+                        },
+                        Err(RecvTimeoutError::Disconnected) => return,
+                    }
+                }
+            })
+            .expect("Could not create tooltip timer");
+
+        Self {
+            sender: Some(sender),
+            join_handle: Some(join_handle),
+        }
+    }
+
+    fn schedule(&self, delay: Duration) {
+        let Some(ref sender) = self.sender else {
+            return;
+        };
+        let _ = sender.send(Some(Instant::now() + delay));
+    }
+
+    fn cancel(&self) {
+        let Some(ref sender) = self.sender else {
+            return;
+        };
+        let _ = sender.send(None);
+    }
+}
+
+impl Drop for TooltipTimer {
+    fn drop(&mut self) {
+        let _ = self.sender.take();
+        if let Some(join_handle) = self.join_handle.take() {
+            let _ = join_handle.join();
+        }
+    }
+}
+
 pub struct HeadedWindow {
     /// The [`EventLoopProxy`] for this [`HeadedWindow`].
     event_loop_proxy: EventLoopProxy<AppEvent>,
@@ -103,6 +168,8 @@ pub struct HeadedWindow {
     visible_input_method: Cell<Option<EmbedderControlId>>,
     /// The position of the mouse cursor after the most recent `MouseMove` event.
     last_mouse_position: Cell<Option<Point2D<f32, DeviceIndependentPixel>>>,
+
+    tooltip_timer: TooltipTimer,
 }
 
 impl HeadedWindow {
@@ -195,6 +262,11 @@ impl HeadedWindow {
             servoshell_preferences.device_pixel_ratio_override,
         ));
 
+        let tooltip_timer = TooltipTimer::new(
+            event_loop_proxy.clone(),
+            ServoShellWindowId::from(u64::from(winit_window.id())),
+        );
+
         debug!("Created window {:?}", winit_window.id());
         Rc::new(HeadedWindow {
             event_loop_proxy,
@@ -218,6 +290,7 @@ impl HeadedWindow {
             dialogs: Default::default(),
             visible_input_method: Default::default(),
             last_mouse_position: Default::default(),
+            tooltip_timer,
         })
     }
 
@@ -652,6 +725,9 @@ impl HeadedWindow {
                 },
                 WindowEvent::CursorMoved { position, .. } => {
                     self.handle_mouse_move_event(&webview, position);
+                    if self.gui.borrow_mut().restart_pending_tooltip_delay() {
+                        self.tooltip_timer.schedule(TOOLTIP_DELAY);
+                    }
                 },
                 WindowEvent::CursorLeft { .. } => {
                     let webview_rect: Rect<_, _> = webview.size().into();
@@ -1100,10 +1176,19 @@ impl PlatformWindow for HeadedWindow {
             EmbedderControl::ContextMenu(prompt) => {
                 self.add_dialog(webview_id, Dialog::new_context_menu(prompt));
             },
+            EmbedderControl::Tooltip(tooltip_control) => {
+                self.gui
+                    .borrow_mut()
+                    .show_tooltip(webview_id, &tooltip_control);
+                self.tooltip_timer.schedule(TOOLTIP_DELAY);
+            },
         }
     }
 
     fn hide_embedder_control(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
+        if self.gui.borrow_mut().hide_tooltip(embedder_control_id) {
+            self.tooltip_timer.cancel();
+        }
         if self.visible_input_method.get() == Some(embedder_control_id) {
             self.visible_input_method.set(None);
             self.winit_window.set_ime_allowed(false);
@@ -1140,6 +1225,13 @@ impl PlatformWindow for HeadedWindow {
 
     fn dismiss_embedder_controls_for_webview(&self, webview_id: WebViewId) {
         self.dialogs.borrow_mut().remove(&webview_id);
+        if self
+            .gui
+            .borrow_mut()
+            .dismiss_tooltips_for_webview(webview_id)
+        {
+            self.tooltip_timer.cancel();
+        }
     }
 
     fn show_console_message(&self, level: servo::ConsoleLogLevel, message: &str) {

@@ -10,7 +10,7 @@ use app_units::Au;
 use embedder_traits::{
     ClipboardAction, ContextMenuAction, ContextMenuElementInformation,
     ContextMenuElementInformationFlags, ContextMenuItem, ContextMenuRequest, EmbedderControlId,
-    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg, PipelineRect,
+    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg, PipelineRect, TooltipRequest,
 };
 use euclid::{Point2D, Rect, Size2D};
 use js::context::JSContext;
@@ -49,6 +49,7 @@ pub(crate) enum ControlElement {
     FileInput(Dom<HTMLInputElement>),
     Ime(Dom<HTMLElement>),
     ContextMenu(ContextMenuNodes),
+    Tooltip(Dom<HTMLElement>),
 }
 
 impl ControlElement {
@@ -59,6 +60,7 @@ impl ControlElement {
             ControlElement::FileInput(element) => element.upcast::<Node>(),
             ControlElement::Ime(element) => element.upcast::<Node>(),
             ControlElement::ContextMenu(context_menu_nodes) => &context_menu_nodes.node,
+            ControlElement::Tooltip(element) => element.upcast::<Node>(),
         }
     }
 }
@@ -107,6 +109,10 @@ impl DocumentEmbedderControls {
         request: EmbedderControlRequest,
         point: Option<Point2D<Au, CSSPixel>>,
     ) -> EmbedderControlId {
+        if !matches!(element, ControlElement::Tooltip(..)) {
+            self.hide_tooltip();
+        }
+
         let id = self.next_control_id();
         let rect = point
             .map(|point| Rect::new(point, Size2D::zero()))
@@ -140,6 +146,7 @@ impl DocumentEmbedderControls {
             EmbedderControlRequest::SelectElement(..) |
             EmbedderControlRequest::ColorPicker(..) |
             EmbedderControlRequest::InputMethod(..) |
+            EmbedderControlRequest::Tooltip(..) |
             EmbedderControlRequest::ContextMenu(..) => self
                 .window
                 .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
@@ -246,6 +253,7 @@ impl DocumentEmbedderControls {
                 ControlElement::ContextMenu(context_menu_nodes),
                 EmbedderControlResponse::ContextMenu(action),
             ) => {
+                self.hide_tooltip();
                 context_menu_nodes.handle_context_menu_action(action, cx);
             },
             (_, _) => unreachable!(
@@ -407,6 +415,42 @@ impl DocumentEmbedderControls {
                 items,
             }),
             Some(hit_test_result.point_in_frame.map(Au::from_f32_px)),
+        );
+    }
+
+    pub(crate) fn hide_tooltip(&self) {
+        self.visible_elements
+            .borrow_mut()
+            .retain(|index, control_element| {
+                if matches!(control_element, ControlElement::Tooltip(..)) {
+                    let id = EmbedderControlId {
+                        webview_id: self.window.webview_id(),
+                        pipeline_id: self.window.pipeline_id(),
+                        index: index.0,
+                    };
+                    self.window
+                        .send_to_embedder(EmbedderMsg::HideEmbedderControl(id));
+                    false
+                } else {
+                    true
+                }
+            })
+    }
+
+    pub(crate) fn show_tooltip(
+        &self,
+        cx: &mut JSContext,
+        text: String,
+        element: &HTMLElement,
+        point_in_frame: Point2D<f32, CSSPixel>,
+    ) {
+        self.hide_tooltip();
+
+        self.show_embedder_control(
+            cx,
+            ControlElement::Tooltip(Dom::from_ref(element)),
+            EmbedderControlRequest::Tooltip(TooltipRequest { text }),
+            Some(point_in_frame.map(Au::from_f32_px)),
         );
     }
 }

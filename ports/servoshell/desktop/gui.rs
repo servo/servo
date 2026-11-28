@@ -19,6 +19,7 @@ use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
@@ -46,8 +47,8 @@ use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use log::info;
 use log::warn;
 use servo::{
-    DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
-    RenderingContext, WebView, WebViewId,
+    DeviceIndependentPixel, DevicePixel, EmbedderControlId, Image, LoadStatus,
+    OffscreenRenderingContext, PixelFormat, RenderingContext, TooltipControl, WebView, WebViewId,
 };
 use url::Url;
 use winit::event::WindowEvent;
@@ -55,10 +56,17 @@ use winit::event_loop::{ActiveEventLoop, EventLoopProxy};
 use winit::window::Window;
 
 use crate::desktop::event_loop::AppEvent;
-use crate::desktop::headed_window;
+use crate::desktop::headed_window::{self, TOOLTIP_DELAY};
 use crate::desktop::webview_widget::WebViewWidget;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
 use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
+
+pub struct ActiveTooltip {
+    id: EmbedderControlId,
+    webview_id: WebViewId,
+    text: String,
+    shown_at: Instant,
+}
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -77,6 +85,8 @@ pub struct Gui {
 
     /// The text to display in the status bar on the bottom of the window.
     status_text: Option<String>,
+
+    pub tooltip: Option<ActiveTooltip>,
 
     /// Whether or not the current `WebView` can navigate backward.
     can_go_back: bool,
@@ -274,6 +284,7 @@ impl Gui {
             location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
+            tooltip: None,
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
@@ -694,6 +705,19 @@ impl Gui {
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
             }
 
+            if let Some(tooltip) = &self.tooltip &&
+                tooltip.shown_at.elapsed() >= TOOLTIP_DELAY
+            {
+                egui::Tooltip::always_open(
+                    ctx.clone(),
+                    LayerId::new(Order::Tooltip, Id::new("embedder_tooltip")),
+                    "embedder tooltip layer".into(),
+                    webview_rect.right_bottom(),
+                )
+                .at_pointer()
+                .show(|ui| ui.add(Label::new(tooltip.text.clone()).extend()));
+            }
+
             window.repaint_webviews();
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
@@ -793,6 +817,52 @@ impl Gui {
             .and_then(|webview| webview.status_text());
         let old_status = std::mem::replace(&mut self.status_text, state_status);
         old_status != self.status_text
+    }
+
+    pub(crate) fn show_tooltip(&mut self, webview_id: WebViewId, control: &TooltipControl) {
+        self.tooltip = Some(ActiveTooltip {
+            id: control.id,
+            webview_id,
+            text: control.text.clone(),
+            shown_at: Instant::now(),
+        });
+    }
+
+    /// Clears the tooltip only if it is still the one identified by `id`, so a late hide
+    /// for an old tooltip doesn't remove a newer one.
+    pub(crate) fn hide_tooltip(&mut self, id: EmbedderControlId) -> bool {
+        if self
+            .tooltip
+            .as_ref()
+            .is_some_and(|tooltip| tooltip.id == id)
+        {
+            self.tooltip = None;
+            return true;
+        }
+        false
+    }
+
+    /// restart the delay if a tooltip is waiting to be shown. Return true if this did.
+    pub(crate) fn restart_pending_tooltip_delay(&mut self) -> bool {
+        match self.tooltip {
+            Some(ref mut tooltip) if tooltip.shown_at.elapsed() != Duration::from_millis(0) => {
+                tooltip.shown_at = Instant::now();
+                true
+            },
+            _ => false,
+        }
+    }
+
+    pub(crate) fn dismiss_tooltips_for_webview(&mut self, webview_id: WebViewId) -> bool {
+        if self
+            .tooltip
+            .as_ref()
+            .is_some_and(|tooltip| tooltip.webview_id == webview_id)
+        {
+            self.tooltip = None;
+            return true;
+        }
+        false
     }
 
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {

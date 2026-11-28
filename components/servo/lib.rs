@@ -124,7 +124,7 @@ pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,
     ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, EmbedderControl, FilePicker,
     InputMethodControl, NavigationRequest, PermissionRequest, PromptDialog, SelectElement,
-    SimpleDialog, WebResourceLoad, WebViewDelegate,
+    SimpleDialog, TooltipControl, WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webxr")]

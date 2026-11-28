@@ -356,6 +356,8 @@ pub enum EmbedderControl {
     /// The menu that is actually shown the user may be customized, but custom menu entries
     /// must be handled by the embedder.
     ContextMenu(ContextMenu),
+    /// HTML elements' attributes that are represented as tooltips.
+    Tooltip(TooltipControl),
 }
 
 impl EmbedderControl {
@@ -368,8 +370,14 @@ impl EmbedderControl {
             EmbedderControl::InputMethod(input_method) => input_method.id,
             EmbedderControl::SimpleDialog(simple_dialog) => simple_dialog.id(),
             EmbedderControl::ContextMenu(context_menu) => context_menu.id,
+            EmbedderControl::Tooltip(tooltip) => tooltip.id,
         }
     }
+}
+
+pub struct TooltipControl {
+    pub id: EmbedderControlId,
+    pub text: String,
 }
 
 /// Represents a context menu opened on web content.
