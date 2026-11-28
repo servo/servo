@@ -376,7 +376,7 @@ impl Selection {
                     node.is::<HTMLTableCellElement>()) &&
                 node_list
                     .last()
-                    .is_none_or(|last: &DomRootNode| !last.is_ancestor_of(&node))
+                    .is_none_or(|last: &DomRootNode| !last.is_ancestor_of(cx.no_gc(), &node))
             {
                 node_list.push(node);
             }
@@ -405,7 +405,7 @@ impl Selection {
             // while parent is an editable inline node with length 0, let grandparent be the parent of parent,
             // then remove parent from grandparent, then set parent to grandparent.
             if strip_wrappers == SelectionDeletionStripWrappers::Strip ||
-                !parent.is_inclusive_ancestor_of(&start_node)
+                !parent.is_inclusive_ancestor_of(cx.no_gc(), &start_node)
             {
                 let mut parent = parent;
                 loop {
@@ -487,7 +487,7 @@ impl Selection {
         }
 
         // Step 32. If start block is an ancestor of end block:
-        let values = if start_block.is_ancestor_of(&end_block) {
+        let values = if start_block.is_ancestor_of(cx.no_gc(), &end_block) {
             // Step 32.1. Let reference node be end block.
             let mut reference_node = end_block.clone();
             // Step 32.2. While reference node is not a child of start block, set reference node to its parent.
@@ -627,7 +627,7 @@ impl Selection {
 
             values
         // Step 33. Otherwise, if start block is a descendant of end block:
-        } else if end_block.is_ancestor_of(&start_block) {
+        } else if end_block.is_ancestor_of(cx.no_gc(), &start_block) {
             // Step 33.1. Call collapse() on the context object's selection,
             // with first argument start block and second argument start block's length.
             let _ = self.Collapse(cx, Some(&start_block), start_block.len());
