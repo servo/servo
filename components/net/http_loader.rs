@@ -13,7 +13,7 @@ use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent
 #[cfg(feature = "devtools")]
 use devtools_traits::HttpResponseBody as DevtoolsHttpResponseBody;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
-use futures::{TryFutureExt, TryStreamExt, future};
+use futures::{StreamExt, TryFutureExt, future};
 use headers::authorization::Basic;
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
@@ -39,6 +39,7 @@ use ipc_channel::router::ROUTER;
 use log::{debug, error, info, log_enabled, warn};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use net_traits::blob_url_store::UrlWithBlobClaim;
+use net_traits::extract_filename_from_content_disposition;
 use net_traits::fetch::headers::get_value_from_header_list;
 use net_traits::http_status::HttpStatus;
 use net_traits::policy_container::{EmbedderPolicyValue, RequestPolicyContainer};
@@ -92,11 +93,14 @@ use crate::devtools::{
 use crate::devtools::{
     send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
 };
-use crate::embedder::NetToEmbedderMsg;
+use crate::embedder::{DownloadCancellation, DownloadDecision, NetToEmbedderMsg};
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
-use crate::fetch::methods::{Data, DoneChannel, FetchContext, Target, fetch, main_fetch};
+use crate::fetch::methods::{
+    CancellationListener, Data, DataReceiver, DoneChannel, FetchContext, Target, fetch, main_fetch,
+    should_offer_download,
+};
 use crate::hsts::HstsList;
 use crate::http_cache::{
     CacheKey, CachedResourcesOrGuard, HttpCache, ValidationStatus, construct_response,
@@ -183,6 +187,62 @@ impl HttpState {
                 sender,
             ));
         receiver.await.ok()?
+    }
+
+    pub(crate) async fn offer_unsupported_response(
+        &self,
+        request: &Request,
+        response: &Response,
+        cancellation: &StdArc<CancellationListener>,
+    ) -> Option<DownloadDecision> {
+        let url = response.url()?;
+        let attachment = net_traits::is_content_disposition_attachment(&response.headers);
+        let trusted_name = crate::fetch::methods::explicit_download_applies(request, url);
+        let header_name = extract_filename_from_content_disposition(&response.headers);
+        let page_name = trusted_name
+            .then_some(request.download_filename.as_deref())
+            .flatten();
+        let default_filename = if attachment {
+            header_name.as_deref().or(page_name)
+        } else {
+            page_name.or(header_name.as_deref())
+        }
+        .unwrap_or_default()
+        .to_owned();
+        let content_length = if response.headers.contains_key(header::CONTENT_ENCODING) {
+            None
+        } else {
+            response
+                .headers
+                .typed_get::<headers::ContentLength>()
+                .map(|length| length.0)
+        };
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.embedder_proxy
+            .send(NetToEmbedderMsg::OfferUnsupportedResponse {
+                webview_id: request.target_webview_id?,
+                request_id: request.id,
+                url: url.clone(),
+                content_type: response
+                    .metadata()
+                    .ok()?
+                    .metadata()
+                    .content_type
+                    .as_ref()
+                    .map(|mime| mime::Mime::from(mime.0.clone())),
+                default_filename,
+                content_length,
+                can_retry: request.method == Method::GET &&
+                    request.body.is_none() &&
+                    matches!(url.scheme(), "http" | "https"),
+                cancellation: DownloadCancellation(cancellation.clone()),
+                responder: sender,
+            });
+        tokio::select! {
+            biased;
+            decision = receiver => decision.ok(),
+            () = cancellation.wait_cancelled() => Some(DownloadDecision::Decline),
+        }
     }
 }
 
@@ -1692,7 +1752,9 @@ async fn http_network_or_cache_fetch(
 
                 // Per https://httpwg.org/specs/rfc9111.html#response.cacheability we must not cache responses
                 // if the No-Store directive is present
-                if http_request.cache_mode != CacheMode::NoStore {
+                if http_request.cache_mode != CacheMode::NoStore
+                    && !should_offer_download(http_request, forward_response)
+                {
                     // Step 10.5.2 Store httpRequest and forwardResponse in httpCache, as per the
                     //             "Storing Responses in Caches" chapter of HTTP Caching.
                     cache_guard.insert(http_request, forward_response);
@@ -2014,7 +2076,7 @@ async fn wait_for_inflight_requests(done_chan: &mut DoneChannel, response: &mut 
         assert!(response.is_some());
 
         loop {
-            match ch.1.recv().await {
+            match ch.recv().await {
                 Some(Data::ContentLength(_)) | Some(Data::Payload(_)) | Some(Data::Error(_)) => {},
                 Some(Data::Done) => break, // Return the full response as if it was initially cached as such.
                 Some(Data::Cancelled) => {
@@ -2359,10 +2421,12 @@ async fn http_network_fetch(
     response.referrer_policy = request.referrer_policy;
 
     let response_body = response.body.clone();
+    let response_aborted = response.aborted.clone();
 
     // We're about to spawn a future to be waited on here
-    let (done_sender, done_receiver) = unbounded_channel();
-    *done_chan = Some((done_sender.clone(), done_receiver));
+    let download_candidate = should_offer_download(request, &response);
+    let (done_sender, done_receiver) = channel(8);
+    *done_chan = Some(DataReceiver::Bounded(done_receiver));
 
     let cancellation_listener = context.cancellation_listener.clone();
     if cancellation_listener.cancelled() {
@@ -2384,12 +2448,7 @@ async fn http_network_fetch(
         )
     };
 
-    let done_sender2 = done_sender.clone();
-    let done_sender3 = done_sender.clone();
-    let timing_ptr2 = fetch_params.timing_info.clone();
-    let timing_ptr3 = fetch_params.timing_info.clone();
-    let url1 = request.url();
-    let url2 = url1.clone();
+    let timing = fetch_params.timing_info.clone();
 
     let prealloc_size: usize = if let Some(possible_length) = response_stream
         .headers()
@@ -2411,83 +2470,93 @@ async fn http_network_fetch(
         4096
     }
     .min(pref!(network_max_content_length) as usize);
-    let _ = done_sender.send(Data::ContentLength(prealloc_size));
+    let prealloc_size = if download_candidate {
+        prealloc_size.min(4096)
+    } else {
+        prealloc_size
+    };
+    let _ = done_sender.try_send(Data::ContentLength(prealloc_size));
     *response_body.lock() = ResponseBody::Receiving(Vec::with_capacity(prealloc_size));
-    let response_body2 = response_body.clone();
-
-    spawn_task(
-        response_stream
-            .into_body()
-            .try_fold(response_body, move |response_body_accumulator, chunk| {
-                if cancellation_listener.cancelled() {
-                    *response_body_accumulator.lock() = ResponseBody::Done(vec![]);
-                    let _ = done_sender.send(Data::Cancelled);
-                    return future::ready(Err(std::io::Error::new(
-                        std::io::ErrorKind::Interrupted,
-                        "Fetch aborted",
-                    )));
-                }
-                if let ResponseBody::Receiving(ref mut body) = *response_body_accumulator.lock() {
+    spawn_task(async move {
+        let mut body_stream = std::pin::pin!(response_stream.into_body());
+        let terminal = loop {
+            let item = tokio::select! {
+                biased;
+                () = cancellation_listener.wait_cancelled() => break Data::Cancelled,
+                () = done_sender.closed(), if download_candidate => break Data::Cancelled,
+                item = body_stream.next() => item,
+            };
+            let chunk = match item {
+                Some(Ok(chunk)) => chunk,
+                Some(Err(error)) if error.kind() == std::io::ErrorKind::InvalidData => {
+                    break Data::Error(NetworkError::DecompressionError);
+                },
+                Some(Err(error)) => break Data::Error(NetworkError::HttpError(error.to_string())),
+                None => break Data::Done,
+            };
+            let send_chunk = match *response_body.lock() {
+                ResponseBody::Receiving(ref mut body) => {
                     body.extend_from_slice(&chunk);
-                    let _ = done_sender.send(Data::Payload(chunk));
+                    true
+                },
+                ResponseBody::Empty => download_candidate,
+                ResponseBody::Done(_) => false,
+            };
+            if send_chunk {
+                tokio::select! {
+                    biased;
+                    () = cancellation_listener.wait_cancelled() => break Data::Cancelled,
+                    result = done_sender.send(Data::Payload(chunk)) => {
+                        if result.is_err() && download_candidate {
+                            break Data::Cancelled;
+                        }
+                    },
                 }
-                future::ready(Ok(response_body_accumulator))
-            })
-            .and_then(move |complete_response_body| {
-                debug!("successfully finished response for {:?}", url1);
-                let mut body = complete_response_body.lock();
-                let mut completed_body = match *body {
-                    ResponseBody::Receiving(ref mut body) => std::mem::take(body),
-                    _ => vec![],
-                };
-                // This allocation may be retained by the http-cache.
-                completed_body.shrink_to_fit();
-                // If devtools is disabled avoid cloning, since the result would
-                // be unused anyway.
-                #[cfg(feature = "devtools")]
-                let devtools_response_body = if devtools_chan.is_some() {
-                    let (data, truncated, content_size) = body_for_devtools(&completed_body);
+            }
+        };
+
+        let succeeded = matches!(terminal, Data::Done);
+        if !succeeded {
+            response_aborted.store(true, Ordering::Release);
+        }
+        #[cfg(feature = "devtools")]
+        let devtools_response_body = {
+            let body = response_body.lock();
+            match &*body {
+                ResponseBody::Receiving(bytes) if succeeded && devtools_chan.is_some() => {
+                    let (data, truncated, content_size) = body_for_devtools(bytes);
                     Some(DevtoolsHttpResponseBody {
                         data: data.into(),
                         truncated,
                         content_size,
                     })
-                } else {
-                    None
-                };
-                *body = ResponseBody::Done(completed_body);
-                #[cfg(feature = "devtools")]
-                send_response_values_to_devtools(
-                    Some(headers),
-                    status,
-                    devtools_response_body,
-                    CacheState::None,
-                    &devtools_request,
-                    devtools_chan,
-                );
-                timing_ptr2.set_attribute(ResourceAttribute::ResponseEnd);
-                let _ = done_sender2.send(Data::Done);
-                future::ready(Ok(()))
-            })
-            .map_err(move |error| {
-                if let std::io::ErrorKind::InvalidData = error.kind() {
-                    debug!("Content decompression error for {:?}", url2);
-                    let _ = done_sender3.send(Data::Error(NetworkError::DecompressionError));
-                    let mut body = response_body2.lock();
-
-                    *body = ResponseBody::Done(vec![]);
-                }
-                debug!("finished response for {:?}", url2);
-                let mut body = response_body2.lock();
-                let completed_body = match *body {
-                    ResponseBody::Receiving(ref mut body) => std::mem::take(body),
-                    _ => vec![],
-                };
-                *body = ResponseBody::Done(completed_body);
-                timing_ptr3.set_attribute(ResourceAttribute::ResponseEnd);
-                let _ = done_sender3.send(Data::Done);
-            }),
-    );
+                },
+                _ => None,
+            }
+        };
+        {
+            let mut body = response_body.lock();
+            let mut bytes = match *body {
+                ResponseBody::Receiving(ref mut bytes) if succeeded => std::mem::take(bytes),
+                _ => Vec::new(),
+            };
+            bytes.shrink_to_fit();
+            *body = ResponseBody::Done(bytes);
+        }
+        #[cfg(feature = "devtools")]
+        if succeeded {
+            send_response_values_to_devtools(
+                Some(headers),
+                status,
+                devtools_response_body,
+                CacheState::None,
+                &devtools_request,
+                devtools_chan,
+            );
+        }
+        timing.set_attribute(ResourceAttribute::ResponseEnd);
+        let _ = done_sender.send(terminal).await;
+    });
 
     // TODO these substeps aren't possible yet
     // Substep 1

@@ -175,6 +175,12 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     make_setter!(SetHreflang, "hreflang");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-type
+    // https://html.spec.whatwg.org/multipage/#dom-a-download
+    make_getter!(Download, "download");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-download
+    make_setter!(SetDownload, "download");
+
     make_getter!(Type, "type");
 
     // https://html.spec.whatwg.org/multipage/#dom-a-type

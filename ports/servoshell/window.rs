@@ -485,6 +485,7 @@ pub(crate) trait PlatformWindow {
     }
     fn show_permission_dialog(&self, _: WebViewId, _: PermissionRequest) {}
     fn show_http_authentication_dialog(&self, _: WebViewId, _: AuthenticationRequest) {}
+    fn show_download_dialog(&self, _: servo::UnsupportedResponse) {}
 
     fn notify_input_event_handled(
         &self,

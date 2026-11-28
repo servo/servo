@@ -230,15 +230,17 @@ impl WebView {
                 let _ = responder.send(Some(new_webview_details));
             },
             None => {
-                let url = builder.url.unwrap_or(
-                    Url::parse("about:blank")
-                        .expect("Should always be able to parse 'about:blank'."),
-                );
+                let request = builder.initial_request.unwrap_or_else(|| {
+                    UrlRequest::new(
+                        Url::parse("about:blank")
+                            .expect("Should always be able to parse 'about:blank'."),
+                    )
+                });
 
                 servo
                     .constellation_proxy()
                     .send(EmbedderToConstellationMessage::NewWebView(
-                        url.into(),
+                        request,
                         new_webview_details,
                     ));
             },
@@ -1125,7 +1127,7 @@ pub struct WebViewBuilder {
     servo: Servo,
     rendering_context: Rc<dyn RenderingContext>,
     delegate: Rc<dyn WebViewDelegate>,
-    url: Option<Url>,
+    initial_request: Option<UrlRequest>,
     hidpi_scale_factor: Scale<f32, DeviceIndependentPixel, DevicePixel>,
     create_new_webview_responder: Option<AutomaticResponder<Option<NewWebViewDetails>>>,
     user_content_manager: Option<Rc<UserContentManager>>,
@@ -1144,7 +1146,7 @@ impl WebViewBuilder {
         Self {
             servo: servo.clone(),
             rendering_context,
-            url: None,
+            initial_request: None,
             hidpi_scale_factor: Scale::new(1.0),
             delegate: Rc::new(DefaultWebViewDelegate),
             create_new_webview_responder: None,
@@ -1174,8 +1176,13 @@ impl WebViewBuilder {
     }
 
     /// Set the initial URL to load in the [`WebView`] being created.
-    pub fn url(mut self, url: Url) -> Self {
-        self.url = Some(url);
+    pub fn url(self, url: Url) -> Self {
+        self.url_request(UrlRequest::new(url))
+    }
+
+    /// Set the initial request to load in the new webview.
+    pub fn url_request(mut self, request: UrlRequest) -> Self {
+        self.initial_request = Some(request);
         self
     }
 

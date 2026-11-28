@@ -18,8 +18,8 @@ use js::context::JSContext;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{
-    CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
-    RequestBuilder, RequestClient, RequestMode,
+    CredentialsMode, DownloadHandling, InsecureRequestsPolicy, Origin, PreloadedResources,
+    RedirectMode, RequestBuilder, RequestClient, RequestMode,
 };
 use net_traits::response::ResponseInit;
 use net_traits::{
@@ -247,6 +247,20 @@ impl InProgressLoad {
             network_partition_key: None,
         };
 
+        let download_handling = if self
+            .load_data
+            .creation_sandboxing_flag_set
+            .contains(SandboxingFlagSet::SANDBOXED_DOWNLOADS_BROWSING_CONTEXT_FLAG)
+        {
+            None
+        } else {
+            Some(match (&self.load_data.download, &self.load_data.load_origin) {
+                (None, _) => DownloadHandling::WhenUnrenderable,
+                (Some(_), LoadOrigin::Constellation) => DownloadHandling::FromEmbedder,
+                (Some(_), _) => DownloadHandling::FromLink,
+            })
+        };
+
         let mut request_builder = RequestBuilder::new(
             Some(webview_id),
             UrlWithBlobClaim::from_url_without_having_claimed_blob(self.load_data.url.clone()),
@@ -266,7 +280,14 @@ impl InProgressLoad {
         .crash(self.load_data.crash.clone())
         .client(request_client)
         .user_activation(self.load_data.has_transient_activation)
-        .url_list(self.url_list.clone());
+        .url_list(self.url_list.clone())
+        .download_handling(download_handling)
+        .download_filename(
+            self.load_data
+                .download
+                .clone()
+                .filter(|filename| !filename.is_empty()),
+        );
 
         request_builder.reload_navigation = self.load_data.reload_navigation;
         request_builder.history_navigation = self.load_data.history_navigation;

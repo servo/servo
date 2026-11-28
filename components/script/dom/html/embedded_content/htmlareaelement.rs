@@ -379,6 +379,12 @@ impl VirtualMethods for HTMLAreaElement {
 }
 
 impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
+    // https://html.spec.whatwg.org/multipage/#dom-a-download
+    make_getter!(Download, "download");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-download
+    make_setter!(SetDownload, "download");
+
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_getter!(Target, "target");
 

@@ -1198,6 +1198,8 @@ pub struct UrlRequest {
         serialize_with = "hyper_serde::serialize"
     )]
     pub headers: HeaderMap,
+    /// An embedder-initiated download with an optional suggested filename.
+    pub download: Option<String>,
 }
 
 impl UrlRequest {
@@ -1205,7 +1207,14 @@ impl UrlRequest {
         UrlRequest {
             url: url.into(),
             headers: HeaderMap::new(),
+            download: None,
         }
+    }
+
+    /// Request a download. Pass an empty string to use the response's filename.
+    pub fn download(mut self, suggested_filename: String) -> Self {
+        self.download = Some(suggested_filename);
+        self
     }
 
     /// Set headers that will be added to the Headers

@@ -8247,6 +8247,7 @@ dependencies = [
  "itertools 0.15.0",
  "keyboard-types",
  "log",
+ "mime",
  "mozangle",
  "ohos-pasteboard",
  "parking_lot",
@@ -10017,6 +10018,7 @@ dependencies = [
  "ohos-vsync",
  "ohos-window-manager-sys",
  "ohos-window-sys",
+ "percent-encoding",
  "raw-window-handle",
  "rfd",
  "rustls",
@@ -10027,6 +10029,7 @@ dependencies = [
  "servo-webdriver-server",
  "signal-hook-registry",
  "surfman",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-perfetto",
@@ -10035,6 +10038,7 @@ dependencies = [
  "windows-sys 0.61.2",
  "winit",
  "winresource",
+ "xattr",
  "xcomponent-sys",
 ]
 

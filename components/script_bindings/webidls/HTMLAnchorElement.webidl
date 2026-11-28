@@ -17,8 +17,8 @@ interface HTMLAnchorElement : HTMLElement {
 
   [CEReactions]
   attribute DOMString target;
-  // [CEReactions]
-  //       attribute DOMString download;
+  [CEReactions]
+  attribute DOMString download;
   // [CEReactions]
   //       attribute USVString ping;
   [CEReactions]

@@ -36,7 +36,7 @@ use tokio::sync::mpsc::{UnboundedSender as TokioSender, unbounded_channel as unb
 use tokio::sync::{OwnedRwLockWriteGuard, RwLock as TokioRwLock};
 
 use crate::disk_cache::DiskCache;
-use crate::fetch::methods::{Data, DoneChannel};
+use crate::fetch::methods::{Data, DataReceiver, DoneChannel};
 
 /// A duration in seconds.
 ///
@@ -639,7 +639,7 @@ fn create_cached_response(
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock() {
         debug!("existing body is in progress");
         let (done_sender, done_receiver) = unbounded();
-        *done_chan = Some((done_sender.clone(), done_receiver));
+        *done_chan = Some(DataReceiver::Unbounded(done_receiver));
         cached_resource.awaiting_body.lock().push(done_sender);
     }
     response
@@ -959,7 +959,7 @@ pub fn refresh(
         };
         match in_progress_channel {
             Some((done_sender, done_receiver)) => {
-                *done_chan = Some((done_sender.clone(), done_receiver));
+                *done_chan = Some(DataReceiver::Unbounded(done_receiver));
                 cached_resource.awaiting_body.lock().push(done_sender);
             },
             None => *done_chan = None,

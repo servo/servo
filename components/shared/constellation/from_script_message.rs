@@ -185,6 +185,13 @@ pub struct LoadData {
     pub is_initial_about_blank: bool,
     /// <https://html.spec.whatwg.org/multipage/#source-snapshot-params-activation>
     pub has_transient_activation: bool,
+
+    /// Set when this navigation came from a hyperlink with a `download`
+    /// attribute (or an explicit "Save Link As"): the response is handed to
+    /// the embedder to save rather than rendered. The `String` is the
+    /// filename the page suggested, empty when it gave none.
+    /// <https://html.spec.whatwg.org/multipage/#downloading-hyperlinks>
+    pub download: Option<String>,
 }
 
 impl LoadData {
@@ -228,6 +235,7 @@ impl LoadData {
             container_document_encoding: None,
             is_initial_about_blank: false,
             has_transient_activation: false,
+            download: None,
         }
     }
 

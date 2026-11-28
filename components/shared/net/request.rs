@@ -439,6 +439,19 @@ impl RequestHeadersSize for HeaderMap {
     }
 }
 
+/// How a response should be handled when the renderer cannot display it.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum DownloadHandling {
+    /// Offer the response to the embedder when it is marked as an attachment
+    /// or is of a type the parser cannot render — the behaviour of an
+    /// ordinary navigation.
+    WhenUnrenderable,
+    /// Apply the download attribute of an HTML hyperlink.
+    FromLink,
+    /// The embedder explicitly requested a download of the final response.
+    FromEmbedder,
+}
+
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBuilder {
     pub id: RequestId,
@@ -534,6 +547,13 @@ pub struct RequestBuilder {
     pub crash: Option<String>,
     /// Servo internal: whether this request originates from Servo internal implementation
     pub is_internal_request: InternalRequest,
+    /// Set for navigations, so a response this engine cannot render is handed
+    /// to the embedder (typically to be saved) instead of rendering an
+    /// "Unknown content type" page. `None` for subresources, which are never
+    /// offered to the embedder.
+    pub download_handling: Option<DownloadHandling>,
+    /// Filename proposed by the page, i.e. the value of `<a download="...">`.
+    pub download_filename: Option<String>,
 }
 
 impl RequestBuilder {
@@ -578,7 +598,19 @@ impl RequestBuilder {
             response_tainting: ResponseTainting::Basic,
             is_internal_request: Default::default(),
             crash: None,
+            download_handling: None,
+            download_filename: None,
         }
+    }
+
+    pub fn download_handling(mut self, handling: Option<DownloadHandling>) -> RequestBuilder {
+        self.download_handling = handling;
+        self
+    }
+
+    pub fn download_filename(mut self, filename: Option<String>) -> RequestBuilder {
+        self.download_filename = filename;
+        self
     }
 
     pub fn preload_id(mut self, preload_id: PreloadId) -> RequestBuilder {
@@ -793,6 +825,8 @@ impl RequestBuilder {
         request.user_activation = self.user_activation;
         request.policy_container = self.policy_container;
         request.is_internal_request = self.is_internal_request;
+        request.download_handling = self.download_handling;
+        request.download_filename = self.download_filename.clone();
         request
     }
 
@@ -883,6 +917,13 @@ pub struct Request {
     pub crash: Option<String>,
     /// Servo internal: whether this request originates from Servo internal implementation
     pub is_internal_request: InternalRequest,
+    /// Set for navigations, so a response this engine cannot render is handed
+    /// to the embedder (typically to be saved) instead of rendering an
+    /// "Unknown content type" page. `None` for subresources, which are never
+    /// offered to the embedder.
+    pub download_handling: Option<DownloadHandling>,
+    /// Filename proposed by the page, i.e. the value of `<a download="...">`.
+    pub download_filename: Option<String>,
 }
 
 impl Request {
@@ -932,6 +973,8 @@ impl Request {
             policy_container: RequestPolicyContainer::Client,
             is_internal_request: Default::default(),
             crash: None,
+            download_handling: None,
+            download_filename: None,
         }
     }
 
