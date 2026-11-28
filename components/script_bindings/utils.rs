@@ -70,6 +70,13 @@ pub struct DOMClass {
 
     /// The `Globals` flag for this global interface, if any.
     pub global: Globals,
+
+    /// Creates a type-erased weak reference to an instance of this interface,
+    /// or `None` if the interface is not weak referenceable.
+    ///
+    /// The pointer must point to a live instance of this interface, which
+    /// is owned by an `Rc` of this interface (see `downgrade_erased`).
+    pub downgrade_weak: Option<unsafe fn(*const c_void) -> std::rc::Weak<dyn std::any::Any>>,
 }
 unsafe impl Sync for DOMClass {}
 

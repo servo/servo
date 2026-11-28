@@ -2660,7 +2660,11 @@ def DOMClass(descriptor: Descriptor) -> str:
     if descriptor.isGlobal():
         globals_ = camel_to_upper_snake(descriptor.name)
     else:
-        globals_ = "EMPTY"
+        globals_ = 'EMPTY'
+    if descriptor.weakReferenceable:
+        downgradeWeak = f"Some(crate::weakref::downgrade_erased::<{descriptor.concreteType}> as unsafe fn(_) -> _)"
+    else:
+        downgradeWeak = "None"
     return f"""
 DOMClass {{
     interface_chain: [ {prototypeChainString} ],
@@ -2668,6 +2672,7 @@ DOMClass {{
     type_id: {DOMClassTypeId(descriptor)},
     malloc_size_of: {mallocSizeOf} as unsafe fn(&mut _, _) -> _,
     global: Globals::{globals_},
+    downgrade_weak: {downgradeWeak},
 }}"""
 
 
