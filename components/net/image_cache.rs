@@ -17,9 +17,10 @@ use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf as MallocSizeOfTrait,
 use malloc_size_of_derive::MallocSizeOf;
 use mime::Mime;
 use net_traits::image_cache::{
-    FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
+    EncodedImage, FontResolver, Image, ImageCache, ImageCacheFactory, ImageCacheResponseCallback,
     ImageCacheResponseMessage, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, RasterizationCompleteResponse, RasterizationResult, VectorImage,
+    ImageResponse, PendingImageId, RasterDecodeDemandStatus, RasterDecodeRequestCounter,
+    RasterizationCompleteResponse, RasterizationResult, VectorImage,
 };
 use net_traits::request::CorsSettings;
 use net_traits::{FetchResponseMsg, Metadata, NetworkError};
@@ -34,6 +35,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
 use webrender_api::ImageKey as WebRenderImageKey;
@@ -42,6 +44,9 @@ use webrender_api::units::DeviceIntSize;
 use crate::image_cache::KeyCacheState::PipelineClosed;
 
 const MAX_SVG_DEPTH: u32 = 500;
+
+#[cfg(feature = "test-util")]
+pub mod test_util;
 
 thread_local! {
     pub static SUPPRESS_ABORT_IN_PANIC_HOOK: Cell<bool> = const { Cell::new(false) };
@@ -102,6 +107,7 @@ fn decode_bytes_sync(
     cors: CorsStatus,
     content_type: Option<Mime>,
     usvg_options: Arc<usvg::Options>,
+    cache_clear_count: u64,
 ) -> DecoderMsg {
     let is_svg_document = content_type.is_some_and(|content_type| {
         (
@@ -124,7 +130,11 @@ fn decode_bytes_sync(
         load_from_memory(bytes, cors).map(DecodedImage::Raster)
     };
 
-    DecoderMsg { key, image }
+    DecoderMsg {
+        key,
+        image,
+        cache_clear_count,
+    }
 }
 
 fn set_webrender_image_key(
@@ -179,6 +189,10 @@ impl AllPendingLoads {
     // get a PendingLoad from its LoadKey.
     fn get_by_key_mut(&mut self, key: &LoadKey) -> Option<&mut PendingLoad> {
         self.loads.get_mut(key)
+    }
+
+    fn get_by_key(&self, key: &LoadKey) -> Option<&PendingLoad> {
+        self.loads.get(key)
     }
 
     fn remove(&mut self, key: &LoadKey) -> Option<PendingLoad> {
@@ -268,6 +282,8 @@ enum DecodedImage {
 
 /// Message that the decoder worker threads send to the image cache.
 struct DecoderMsg {
+    // The value used by handle_decoder to check if cache got cleared while decode was working
+    cache_clear_count: u64,
     key: LoadKey,
     image: Option<DecodedImage>,
 }
@@ -336,6 +352,7 @@ impl LoadKeyGenerator {
 #[derive(Debug)]
 enum LoadResult {
     LoadedRasterImage(RasterImage),
+    LoadedEncodedRaster(Arc<EncodedImage>),
     LoadedVectorImage(VectorImageData),
     FailedToLoadOrDecode,
 }
@@ -418,6 +435,7 @@ struct RasterizationTask {
 enum PendingKey {
     RasterImage((LoadKey, RasterImage)),
     Svg((LoadKey, RasterImage, DeviceIntSize)),
+    DemandDecodedRaster((LoadKey, RasterDecodeRequestCounter, RasterImage)),
 }
 
 /// The state of the `WebRenderImageKey`` cache
@@ -493,6 +511,120 @@ impl SvgRasterizationTaskStore {
     }
 }
 
+/// Demand-driven decode state shared by every use of a non-animated raster
+/// source in this pipeline.
+#[derive(MallocSizeOf)]
+struct DemandDrivenRasterEntry {
+    #[conditional_malloc_size_of]
+    encoded_image_source: Arc<EncodedImage>,
+    current_decoded_scaled_image: Option<RasterImage>,
+    target_image_metadata: Option<ImageMetadata>,
+    current_counter: RasterDecodeRequestCounter,
+    completed: Option<RasterDecodeRequestCounter>,
+    // Running and key-waiting results remain useful across size-only changes.
+    pending: Option<ImageMetadata>,
+    decoding: Option<ImageMetadata>,
+    // Unlike current_counter, this changes only when demand is withdrawn.
+    demand_epoch: RasterDecodeRequestCounter,
+    failed_target: Option<ImageMetadata>,
+}
+
+impl DemandDrivenRasterEntry {
+    /// uses previously defined hysteresis check to return target
+    /// but the current already decoded and scaled image might be on any state
+    /// so we check whether the dimentions of image in question that can be
+    /// - not decoded yet,
+    /// - being decoded and or registered to webrender,
+    /// - already has webrender key
+    fn decode_target(&self, required: ImageMetadata) -> ImageMetadata {
+        determine_demand_decode_target(
+            self.encoded_image_source.metadata,
+            self.decoding.or(self.pending).or_else(|| {
+                self.current_decoded_scaled_image
+                    .as_ref()
+                    .map(|image| image.decoded_resolution)
+            }),
+            required,
+        )
+    }
+
+    /// propmts the decode_target in case we need change
+    /// if target is different and is not None, update private fields.
+    /// the counter only goes up if target passes hysterisys check
+    fn update_target(&mut self, required: Option<ImageMetadata>) {
+        let target = required.map(|required| self.decode_target(required));
+        if self.target_image_metadata == target {
+            return;
+        }
+        self.target_image_metadata = target;
+        self.current_counter.increment();
+        if target.is_none() {
+            self.demand_epoch.increment();
+            self.pending = None;
+        }
+    }
+
+    /// A check that is common when prunning, decode finish, and key available
+    /// can be called several times on same image during stages.
+    fn accepts_result(&self, epoch: RasterDecodeRequestCounter, size: ImageMetadata) -> bool {
+        let Some(target) = self.target_image_metadata else {
+            return false;
+        };
+        self.demand_epoch == epoch &&
+            (self.current_decoded_scaled_image.is_none() ||
+                determine_demand_decode_target(
+                    self.encoded_image_source.metadata,
+                    Some(size),
+                    target,
+                ) == size)
+    }
+}
+
+/// Select a decode target for the current display demand. Compare only the
+/// source's dominant dimension to avoid aspect-ratio rounding noise: shrink
+/// below half size, grow above 120%, and otherwise reuse the installed or
+/// in-flight decode.
+/// For new targets at least half the natural pixel area, skip CPU resampling
+/// and decode at natural size.
+/// All candidate sizes have already been fitted to the source aspect ratio.
+/// This hysteresis design may not be optimal.
+fn determine_demand_decode_target(
+    natural: ImageMetadata,
+    current: Option<ImageMetadata>,
+    required: ImageMetadata,
+) -> ImageMetadata {
+    let candidate = if let Some(current) = current {
+        let dimension = |size: ImageMetadata| {
+            u64::from(if natural.width >= natural.height {
+                size.width
+            } else {
+                size.height
+            })
+        };
+        let have = dimension(current);
+        let need = dimension(required);
+        if need * 2 < have {
+            required
+        } else if need * 5 > have * 6 {
+            natural.fit_decode_size(ImageMetadata {
+                width: required.width.max(current.width.saturating_mul(2)),
+                height: required.height.max(current.height.saturating_mul(2)),
+            })
+        } else {
+            return current;
+        }
+    } else {
+        required
+    };
+
+    let area = |size: ImageMetadata| u64::from(size.width) * u64::from(size.height);
+    if area(candidate) >= area(natural).div_ceil(2) {
+        natural
+    } else {
+        candidate
+    }
+}
+
 /// ## Image cache implementation.
 #[derive(MallocSizeOf)]
 struct ImageCacheStore {
@@ -501,6 +633,14 @@ struct ImageCacheStore {
 
     /// Images that have finished loading (successful or not)
     completed_loads: HashMap<ImageKey, CompletedLoad>,
+
+    encoded_raster_images: FxHashMap<PendingImageId, DemandDrivenRasterEntry>,
+
+    /// We need this in case we invoke initial decode work and then do `clear()`.
+    /// Could happen if the page was navigated out of, but there was an initial decode right before
+    cache_clear_count: u64,
+    #[ignore_malloc_size_of = "Callbacks cannot be measured"]
+    raster_decode_callback: Option<ImageCacheResponseCallback>,
 
     /// Vector (e.g. SVG) images that have been sucessfully loaded and parsed
     /// but are yet to be rasterized. Since the same SVG data can be used for
@@ -534,14 +674,122 @@ struct ImageCacheStore {
 }
 
 impl ImageCacheStore {
+    fn finish_demand_decode(
+        &mut self,
+        id: PendingImageId,
+        cache_clear_count: u64,
+        epoch: RasterDecodeRequestCounter,
+        target: ImageMetadata,
+        decoded: Option<RasterImage>,
+    ) {
+        // Load ids can be reused after clear(). Do not touch a new entry with
+        // the same id, even if its demand epoch happens to match.
+        if self.cache_clear_count != cache_clear_count {
+            return;
+        }
+        let Some(entry) = self.encoded_raster_images.get_mut(&id) else {
+            return;
+        };
+        entry.decoding = None;
+        if entry.demand_epoch != epoch || entry.target_image_metadata.is_none() {
+            return;
+        }
+        if let Some(image) = decoded {
+            if !entry.accepts_result(epoch, image.decoded_resolution) {
+                return;
+            }
+            entry.pending = Some(image.decoded_resolution);
+            // Updates reuse the existing key and do not consume a new key.
+            if let Some(key) = entry
+                .current_decoded_scaled_image
+                .as_ref()
+                .and_then(|image| image.id)
+            {
+                self.set_key_and_finish_load(
+                    PendingKey::DemandDecodedRaster((id, epoch, image)),
+                    key,
+                );
+            } else {
+                self.load_image_with_keycache(PendingKey::DemandDecodedRaster((id, epoch, image)));
+            }
+        } else {
+            entry.failed_target = Some(target);
+            if entry.target_image_metadata == Some(target) &&
+                let Some(callback) = &self.raster_decode_callback
+            {
+                callback(ImageCacheResponseMessage::RasterDecodeReady(
+                    self.pipeline_id,
+                    id,
+                    entry.current_counter,
+                ));
+            }
+        }
+    }
+
     #[cfg(feature = "test-util")]
     fn number_of_rasterize_tasks(&self) -> usize {
         self.svg_rasterization_task_store.0.len()
     }
 
+    fn prune_stale_demand_decode_pending_keys(&mut self) {
+        let entries = &mut self.encoded_raster_images;
+        self.key_cache
+            .images_pending_keys
+            .retain(|pending| match pending {
+                PendingKey::DemandDecodedRaster((id, epoch, image)) => {
+                    entries.get_mut(id).is_some_and(|entry| {
+                        let keep = entry.accepts_result(*epoch, image.decoded_resolution);
+                        if !keep && entry.demand_epoch == *epoch {
+                            entry.pending = None;
+                        }
+                        keep
+                    })
+                },
+                _ => true,
+            });
+    }
+
     /// Finishes loading the image by setting the WebRenderImageKey and calling `compete_load` or `complete_load_svg`.
     fn set_key_and_finish_load(&mut self, pending_image: PendingKey, image_key: WebRenderImageKey) {
         match pending_image {
+            PendingKey::DemandDecodedRaster((id, epoch, mut image)) => {
+                let Some(entry) = self.encoded_raster_images.get_mut(&id) else {
+                    return;
+                };
+                if entry.demand_epoch == epoch {
+                    entry.pending = None;
+                }
+                if !entry.accepts_result(epoch, image.decoded_resolution) {
+                    return;
+                }
+                if let Some(key) = entry
+                    .current_decoded_scaled_image
+                    .as_ref()
+                    .and_then(|image| image.id)
+                {
+                    let (descriptor, bytes, _) =
+                        image.webrender_image_descriptor_and_data_for_frame(0);
+                    self.paint_api.update_image(
+                        key,
+                        descriptor,
+                        SerializableImageData::Raw(bytes),
+                        None,
+                    );
+                    image.id = Some(key);
+                } else {
+                    set_webrender_image_key(&self.paint_api, &mut image, image_key);
+                }
+                entry.completed = (Some(image.decoded_resolution) == entry.target_image_metadata)
+                    .then_some(entry.current_counter);
+                entry.current_decoded_scaled_image = Some(image);
+                if let Some(callback) = &self.raster_decode_callback {
+                    callback(ImageCacheResponseMessage::RasterDecodeReady(
+                        self.pipeline_id,
+                        id,
+                        entry.current_counter,
+                    ));
+                }
+            },
             PendingKey::RasterImage((pending_id, mut raster_image)) => {
                 // We can have concurrent sync and async loads for the same image, so if it's
                 // not pending anymore we early return since the async result will be ignored in that case.
@@ -674,7 +922,7 @@ impl ImageCacheStore {
         }
     }
 
-    /// The rest of complete load. This requires that images have a valid `WebRenderImageKey`.
+    /// The rest of complete load. This requires that images have a valid WebRender key.
     fn complete_load(&mut self, key: LoadKey, load_result: LoadResult) {
         debug!("Completed decoding for {:?}", load_result);
         let pending_load = match self.pending_loads.remove(&key) {
@@ -683,6 +931,23 @@ impl ImageCacheStore {
         };
         let url = pending_load.final_url;
         let image_response = match load_result {
+            LoadResult::LoadedEncodedRaster(source) => {
+                self.encoded_raster_images.insert(
+                    key,
+                    DemandDrivenRasterEntry {
+                        encoded_image_source: source.clone(),
+                        current_decoded_scaled_image: None,
+                        target_image_metadata: None,
+                        current_counter: RasterDecodeRequestCounter::default(),
+                        completed: None,
+                        pending: None,
+                        decoding: None,
+                        demand_epoch: RasterDecodeRequestCounter::default(),
+                        failed_target: None,
+                    },
+                );
+                ImageResponse::Loaded(Image::Encoded(source), url.unwrap())
+            },
             LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
                 raster_image.load_time = pending_load.response_end;
@@ -729,17 +994,25 @@ impl ImageCacheStore {
         origin: &ImmutableOrigin,
         cors_setting: &Option<CorsSettings>,
     ) {
-        if let Some(loaded_image) =
+        let Some(loaded_image) =
             self.completed_loads
-                .remove(&(url.clone(), origin.clone(), *cors_setting)) &&
-            let ImageResponse::Loaded(Image::Raster(image), _) = loaded_image.image_response &&
-            let Some(id) = image.id
-        {
-            self.paint_api.update_images(
-                self.webview_id.into(),
-                vec![ImageUpdate::DeleteImage(id)].into(),
-            );
+                .remove(&(url.clone(), origin.clone(), *cors_setting))
+        else {
+            return;
+        };
+        let key = match loaded_image.image_response {
+            ImageResponse::Loaded(Image::Raster(image), _) => image.id,
+            ImageResponse::Loaded(Image::Encoded(source), _) => self
+                .encoded_raster_images
+                .remove(&source.id)
+                .and_then(|entry| entry.current_decoded_scaled_image)
+                .and_then(|image| image.id),
+            _ => None,
+        };
+        if let Some(key) = key {
+            self.paint_api.delete_image(key);
         }
+        self.prune_stale_demand_decode_pending_keys();
     }
 
     fn remove_rasterized_vector_image(
@@ -796,8 +1069,36 @@ impl ImageCacheStore {
         let image = match msg.image {
             None => LoadResult::FailedToLoadOrDecode,
             Some(DecodedImage::Raster(raster_image)) => {
-                self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
-                return;
+                // If the image an animation or the decode_downscale is not enabled -> use full decodes
+                if raster_image.loop_count.is_some() ||
+                    !pref!(image_layout_driven_decode_downscaling_enabled)
+                {
+                    self.load_image_with_keycache(PendingKey::RasterImage((msg.key, raster_image)));
+                    return;
+                }
+                // If the layout change spawned more events, drop current.
+                if msg.cache_clear_count != self.cache_clear_count {
+                    self.pending_loads.remove(&msg.key);
+                    return;
+                }
+                // Check if the image is in pending
+                // if not, then most likely its dropped
+                // Pending means the image has not reached WebRender key yet, but
+                let Some(pending) = self.pending_loads.get_by_key(&msg.key) else {
+                    return;
+                };
+                // Check if the bytes are still downloading (ImageBytes::InProgress)
+                let ImageBytes::Complete(bytes) = &pending.bytes else {
+                    return;
+                };
+                // This stores an Arc copy of a full encoded image for future on demand decodes
+                LoadResult::LoadedEncodedRaster(Arc::new(EncodedImage::new(
+                    msg.key,
+                    raster_image.metadata,
+                    raster_image.cors_status,
+                    pending.response_end,
+                    bytes.clone(),
+                )))
             },
             Some(DecodedImage::Vector(vector_image_data)) => {
                 LoadResult::LoadedVectorImage(vector_image_data)
@@ -861,6 +1162,9 @@ impl ImageCacheFactory for ImageCacheFactoryImpl {
             store: Arc::new(Mutex::new(ImageCacheStore {
                 pending_loads: AllPendingLoads::new(),
                 completed_loads: HashMap::new(),
+                encoded_raster_images: FxHashMap::default(),
+                cache_clear_count: 0,
+                raster_decode_callback: None,
                 vector_images: FxHashMap::default(),
                 rasterized_vector_images: FxHashMap::default(),
                 broken_image_icon_image: OnceCell::new(),
@@ -1020,6 +1324,88 @@ impl ImageCache for ImageCacheImpl {
         }
     }
 
+    fn demand_driven_raster_image_key(
+        &self,
+        image_id: PendingImageId,
+    ) -> Option<WebRenderImageKey> {
+        self.store
+            .lock()
+            .encoded_raster_images
+            .get(&image_id)?
+            .current_decoded_scaled_image
+            .as_ref()?
+            .id
+    }
+
+    fn set_raster_decode_demands(
+        &self,
+        demands: Vec<(PendingImageId, DeviceIntSize)>,
+        callback: ImageCacheResponseCallback,
+    ) -> Vec<RasterDecodeDemandStatus> {
+        let mut store = self.store.lock();
+        store.raster_decode_callback = Some(callback);
+        let mut requirements: FxHashMap<PendingImageId, ImageMetadata> = FxHashMap::default();
+        for (id, size) in demands {
+            if size.width <= 0 || size.height <= 0 {
+                continue;
+            }
+            let Some(entry) = store.encoded_raster_images.get(&id) else {
+                continue;
+            };
+            let required = entry
+                .encoded_image_source
+                .metadata
+                .fit_decode_size(ImageMetadata {
+                    width: size.width as u32,
+                    height: size.height as u32,
+                });
+            requirements
+                .entry(id)
+                .and_modify(|size| {
+                    size.width = size.width.max(required.width);
+                    size.height = size.height.max(required.height);
+                })
+                .or_insert(required);
+        }
+        let paint_api = store.paint_api.clone();
+        let mut jobs = vec![];
+        let mut statuses = vec![];
+        for (&id, decode_state) in &mut store.encoded_raster_images {
+            decode_state.update_target(requirements.get(&id).copied());
+            let target = decode_state.target_image_metadata;
+            if target.is_none() &&
+                let Some(key) = decode_state
+                    .current_decoded_scaled_image
+                    .take()
+                    .and_then(|image| image.id)
+            {
+                paint_api.delete_image(key);
+            }
+            if let Some(target) = target {
+                if decode_state
+                    .current_decoded_scaled_image
+                    .as_ref()
+                    .is_some_and(|image| image.decoded_resolution == target)
+                {
+                    decode_state.completed = Some(decode_state.current_counter);
+                }
+                statuses.push(RasterDecodeDemandStatus {
+                    id,
+                    counter: decode_state.current_counter,
+                    pending: decode_state.completed != Some(decode_state.current_counter) &&
+                        decode_state.failed_target != Some(target),
+                });
+            }
+            jobs.push(id);
+        }
+        store.prune_stale_demand_decode_pending_keys();
+        drop(store);
+        for id in jobs {
+            start_demand_decode(self.store.clone(), self.thread_pool.clone(), id);
+        }
+        statuses
+    }
+
     fn add_rasterization_complete_listener(
         &self,
         pipeline_id: PipelineId,
@@ -1173,6 +1559,10 @@ impl ImageCache for ImageCacheImpl {
                         width: tinyskia_requested_size.width(),
                         height: tinyskia_requested_size.height(),
                     },
+                    decoded_resolution: ImageMetadata {
+                        width: tinyskia_requested_size.width(),
+                        height: tinyskia_requested_size.height(),
+                    },
                     format: PixelFormat::RGBA8,
                     frames: vec![frame],
                     bytes: Arc::new(bytes),
@@ -1309,8 +1699,9 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
-                        let (bytes, cors_status, content_type) = {
+                        let (bytes, cors_status, content_type, cache_clear_count) = {
                             let mut store = self.store.lock();
+                            let cache_clear_count = store.cache_clear_count;
                             if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
                                 pending_load.result = Some(Ok(()));
                                 pending_load.response_end = Some(
@@ -1321,6 +1712,7 @@ impl ImageCache for ImageCacheImpl {
                                     pending_load.bytes.mark_complete(),
                                     pending_load.cors_status,
                                     pending_load.content_type.clone(),
+                                    cache_clear_count,
                                 )
                             } else {
                                 debug!("Pending load for id {:?} already evicted from cache", id);
@@ -1337,6 +1729,7 @@ impl ImageCache for ImageCacheImpl {
                                 cors_status,
                                 content_type,
                                 usvg_options,
+                                cache_clear_count,
                             );
                             local_store.lock().handle_decoder(msg);
                         });
@@ -1367,8 +1760,20 @@ impl ImageCache for ImageCacheImpl {
         self.store.lock().key_cache.cache = KeyCacheState::Processing;
 
         let store = self.store.clone();
+        let pool = self.thread_pool.clone();
         self.thread_pool.spawn(move || {
-            store.lock().insert_keys_and_load_images(image_keys);
+            let ids = {
+                let mut cache = store.lock();
+                cache.insert_keys_and_load_images(image_keys);
+                cache
+                    .encoded_raster_images
+                    .keys()
+                    .copied()
+                    .collect::<Vec<_>>()
+            };
+            for id in ids {
+                start_demand_decode(store.clone(), pool.clone(), id);
+            }
         });
     }
 
@@ -1411,6 +1816,13 @@ impl ImageCacheStore {
                 },
                 _ => None,
             })
+            .chain(self.encoded_raster_images.values().filter_map(|entry| {
+                entry
+                    .current_decoded_scaled_image
+                    .as_ref()?
+                    .id
+                    .map(ImageUpdate::DeleteImage)
+            }))
             .chain(
                 self.rasterized_vector_images
                     .values()
@@ -1433,6 +1845,10 @@ impl ImageCacheStore {
         // since we could forget to explicitly clear).
         self.completed_loads = Default::default();
         self.vector_images = Default::default();
+        self.encoded_raster_images = Default::default();
+        self.prune_stale_demand_decode_pending_keys();
+        self.raster_decode_callback = None;
+        self.cache_clear_count += 1;
         self.rasterized_vector_images = Default::default();
         self.svg_rasterization_task_store = Default::default();
         self.pending_loads = Default::default();
@@ -1465,4 +1881,58 @@ impl ImageCacheImpl {
         }
         warn!("Couldn't find cached entry for listener {:?}", id);
     }
+}
+
+/// At most one decoder runs per source. A changed demand is picked up after the
+/// current job finishes. Preserve a useful first result while refining its size.
+fn start_demand_decode(
+    store: Arc<Mutex<ImageCacheStore>>,
+    pool: Arc<ThreadPool>,
+    id: PendingImageId,
+) {
+    let (encoded_image_source, target, epoch, cache_clear_count) = {
+        let mut cache = store.lock();
+        let cache_clear_count = cache.cache_clear_count;
+        let Some(decode_state) = cache.encoded_raster_images.get_mut(&id) else {
+            return;
+        };
+        let Some(target) = decode_state.target_image_metadata else {
+            return;
+        };
+        if decode_state.decoding.is_some() ||
+            decode_state.pending.is_some() ||
+            decode_state.completed == Some(decode_state.current_counter) ||
+            decode_state.failed_target == Some(target)
+        {
+            return;
+        }
+        // A demand can return to the existing size while an obsolete job runs.
+        if decode_state
+            .current_decoded_scaled_image
+            .as_ref()
+            .is_some_and(|image| image.decoded_resolution == target)
+        {
+            decode_state.completed = Some(decode_state.current_counter);
+            return;
+        }
+        decode_state.decoding = Some(target);
+        (
+            decode_state.encoded_image_source.clone(),
+            target,
+            decode_state.demand_epoch,
+            cache_clear_count,
+        )
+    };
+    let next_pool = pool.clone();
+    pool.spawn(move || {
+        let decoded = pixels::load_from_memory_at_size(
+            &encoded_image_source.bytes,
+            encoded_image_source.cors_status,
+            target,
+        );
+        store
+            .lock()
+            .finish_demand_decode(id, cache_clear_count, epoch, target, decoded);
+        start_demand_decode(store, next_pool, id);
+    });
 }

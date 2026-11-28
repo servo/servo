@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -43,13 +43,81 @@ pub trait FontResolver: Sync + Send + MallocSizeOf {
 
 pub type VectorImageId = PendingImageId;
 
-// Represents either a raster image for which the pixel data is available
-// or a vector image for which only the natural dimensions are available
-// and thus requires a further rasterization step to render.
+// Images with available pixels, or validated sources that require a display
+// decode/rasterization at the size selected by layout.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub enum Image {
     Raster(#[conditional_malloc_size_of] Arc<RasterImage>),
     Vector(VectorImage),
+    Encoded(#[conditional_malloc_size_of] Arc<EncodedImage>),
+}
+
+/// A validated static raster source. Display pixels are owned by the cache, not
+/// by DOM/layout references, so replacing a decode releases its old buffer.
+/// Original-size pixels requested by script consumers are cached separately for
+/// the lifetime of this source.
+#[derive(MallocSizeOf)]
+pub struct EncodedImage {
+    pub id: PendingImageId,
+    pub metadata: ImageMetadata,
+    pub cors_status: CorsStatus,
+    pub load_time: Option<CrossProcessInstant>,
+    #[conditional_malloc_size_of]
+    pub bytes: Arc<Vec<u8>>,
+    #[conditional_malloc_size_of]
+    original_image: OnceLock<Option<Arc<RasterImage>>>,
+}
+
+impl std::fmt::Debug for EncodedImage {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("EncodedImage")
+            .field("id", &self.id)
+            .field("metadata", &self.metadata)
+            .finish_non_exhaustive()
+    }
+}
+
+impl EncodedImage {
+    pub fn new(
+        id: PendingImageId,
+        metadata: ImageMetadata,
+        cors_status: CorsStatus,
+        load_time: Option<CrossProcessInstant>,
+        bytes: Arc<Vec<u8>>,
+    ) -> Self {
+        Self {
+            id,
+            metadata,
+            cors_status,
+            load_time,
+            bytes,
+            original_image: OnceLock::new(),
+        }
+    }
+
+    /// Obtain original pixels for consumers such as canvas. Do not use for layout.
+    /// The first access decodes synchronously; subsequent accesses share the result,
+    /// including failures. These pixels are retained until the source is dropped.
+    pub fn decode_to_original_size(&self) -> Option<Arc<RasterImage>> {
+        self.original_image
+            .get_or_init(|| {
+                pixels::load_from_memory(&self.bytes, self.cors_status).map(|mut image| {
+                    image.load_time = self.load_time;
+                    Arc::new(image)
+                })
+            })
+            .clone()
+    }
+
+    #[cfg(feature = "test-util")]
+    /// There is currently no clear destinction between None that mean decode failed once
+    /// and None that mean OnceLock is cached to None.
+    /// TODO: have a proper way to recover from fail
+    /// but now, I just expose this to have a test.
+    pub fn original_decode_failed(&self) -> bool {
+        matches!(self.original_image.get(), Some(None))
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -66,6 +134,7 @@ impl Image {
         match self {
             Image::Vector(image, ..) => image.metadata,
             Image::Raster(image) => image.metadata,
+            Image::Encoded(image) => image.metadata,
         }
     }
 
@@ -73,12 +142,16 @@ impl Image {
         match self {
             Image::Vector(image) => image.cors_status,
             Image::Raster(image) => image.cors_status,
+            Image::Encoded(image) => image.cors_status,
         }
     }
 
+    /// Get original pixels, decoding static sources synchronously if necessary.
+    /// Layout must use display-cache lookup instead.
     pub fn as_raster_image(&self) -> Option<Arc<RasterImage>> {
         match self {
             Image::Raster(image) => Some(image.clone()),
+            Image::Encoded(image) => image.decode_to_original_size(),
             Image::Vector(..) => None,
         }
     }
@@ -87,6 +160,7 @@ impl Image {
         match self {
             Image::Raster(image) => image.load_time,
             Image::Vector(image) => image.load_time,
+            Image::Encoded(image) => image.load_time,
         }
     }
 }
@@ -177,10 +251,19 @@ pub struct RasterizationCompleteResponse {
     pub requested_size: DeviceIntSize,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, MallocSizeOf, PartialEq)] // Todo: do we need all of them?
+pub struct RasterDecodeRequestCounter(u64);
+impl RasterDecodeRequestCounter {
+    pub fn increment(&mut self) {
+        self.0 += 1;
+    }
+}
+
 #[derive(Clone, Debug)]
 pub enum ImageCacheResponseMessage {
     NotifyPendingImageLoadStatus(PendingImageResponse),
     VectorImageRasterizationComplete(RasterizationCompleteResponse),
+    RasterDecodeReady(PipelineId, PendingImageId, RasterDecodeRequestCounter),
 }
 
 // ======================================================================
@@ -192,6 +275,14 @@ pub enum ImageCacheResult {
     FailedToLoadOrDecode,
     Pending(PendingImageId),
     ReadyForRequest(PendingImageId),
+}
+
+/// Status of an active display demand. The generation distinguishes callbacks
+/// already queued for an obsolete resize from the current request.
+pub struct RasterDecodeDemandStatus {
+    pub id: PendingImageId,
+    pub counter: RasterDecodeRequestCounter,
+    pub pending: bool,
 }
 
 /// A shared [`ImageCacheFactory`] is a per-process data structure used to create an [`ImageCache`]
@@ -236,6 +327,19 @@ pub trait ImageCache: Sync + Send {
         origin: &ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> ImageCacheResult;
+
+    /// Current display pixels, if available. This never decodes synchronously.
+    fn demand_driven_raster_image_key(&self, image_id: PendingImageId) -> Option<ImageKey>;
+
+    /// Replace the complete set of encoded raster demands after building a display
+    /// list. Duplicate ids are combined by their largest aspect-preserving scale.
+    /// Completion notifications request another paint, without repeating load events.
+    /// Returns each active generation and whether its completion is still pending.
+    fn set_raster_decode_demands(
+        &self,
+        demands: Vec<(PendingImageId, DeviceIntSize)>,
+        callback: ImageCacheResponseCallback,
+    ) -> Vec<RasterDecodeDemandStatus>;
 
     /// Returns `RasterizationResult::Image` if the given `image_id` has already been rasterized at the given `size`.
     /// Returns `RasterizationResult::PendingRasterization` if a new job was triggered to perform the rasterization.

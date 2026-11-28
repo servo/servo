@@ -331,6 +331,7 @@ pub enum Repeat {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct SharedRasterImage {
     pub metadata: ImageMetadata,
+    pub decoded_resolution: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -344,6 +345,8 @@ pub struct SharedRasterImage {
 #[derive(Clone, MallocSizeOf)]
 pub struct RasterImage {
     pub metadata: ImageMetadata,
+    /// The dimensions of the decoded pixel data, which may be smaller than the natural size.
+    pub decoded_resolution: ImageMetadata,
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
@@ -426,7 +429,10 @@ impl RasterImage {
     }
 
     pub fn as_snapshot(&self) -> Snapshot {
-        let size = Size2D::new(self.metadata.width, self.metadata.height);
+        let size = Size2D::new(
+            self.decoded_resolution.width,
+            self.decoded_resolution.height,
+        );
         let format = match self.format {
             PixelFormat::BGRA8 => SnapshotPixelFormat::BGRA,
             PixelFormat::RGBA8 => SnapshotPixelFormat::RGBA,
@@ -498,7 +504,10 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.decoded_resolution.width as i32,
+            self.decoded_resolution.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -530,7 +539,10 @@ impl RasterImage {
         let mut flags = ImageDescriptorFlags::ALLOW_MIPMAPS;
         flags.set(ImageDescriptorFlags::IS_OPAQUE, self.is_opaque);
 
-        let size = DeviceIntSize::new(self.metadata.width as i32, self.metadata.height as i32);
+        let size = DeviceIntSize::new(
+            self.decoded_resolution.width as i32,
+            self.decoded_resolution.height as i32,
+        );
         let descriptor = ImageDescriptor {
             size,
             stride: None,
@@ -544,6 +556,7 @@ impl RasterImage {
     pub fn to_shared(&self) -> Arc<SharedRasterImage> {
         Arc::new(SharedRasterImage {
             metadata: self.metadata,
+            decoded_resolution: self.decoded_resolution,
             format: self.format,
             id: self.id,
             cors_status: self.cors_status,
@@ -570,10 +583,81 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
+impl ImageMetadata {
+    /// Calculate new dimensions so that the smallest axis matched required aspect ratio
+    /// also checks to not exceed source dimensions of the image
+    /// Small sources retain their original resolution to avoid resampling artifacts
+    /// when the potential decoded-memory savings are small.
+    pub fn fit_decode_size(self, target: Self) -> Self {
+        if self.width == 0 || self.height == 0 {
+            return self;
+        }
+        // At most 40,000 bytes of RGBA8 pixels: preserve small textures rather
+        // than introducing a separate CPU-resampled version of their edges.
+        const SMALL_IMAGE_MAX_DIMENSION: u32 = 100;
+        if self.width <= SMALL_IMAGE_MAX_DIMENSION && self.height <= SMALL_IMAGE_MAX_DIMENSION {
+            return self;
+        }
+        if target.width >= self.width || target.height >= self.height {
+            return self;
+        }
+        if u64::from(target.width) * u64::from(self.height) >=
+            u64::from(target.height) * u64::from(self.width)
+        {
+            let width = target.width.max(1);
+            Self {
+                width,
+                height: (u64::from(self.height) * u64::from(width)).div_ceil(u64::from(self.width))
+                    as u32,
+            }
+        } else {
+            let height = target.height.max(1);
+            Self {
+                width: (u64::from(self.width) * u64::from(height)).div_ceil(u64::from(self.height))
+                    as u32,
+                height,
+            }
+        }
+    }
+}
+
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
 pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<RasterImage> {
+    load_from_memory_with_target(buffer, cors_status, None)
+}
+
+/// Decode static images at an aspect-preserving display resolution. Animated images
+/// retain their original resolution. Full-resolution decode memory is temporary.
+pub fn load_from_memory_with_target(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    target: Option<ImageMetadata>,
+) -> Option<RasterImage> {
+    decode_from_memory(buffer, cors_status, target.map(DecodeTarget::Fit))
+}
+
+/// Decode a static image at a size already fitted to its oriented dimensions.
+/// Do not fit the size again: rounding can change one of its dimensions.
+pub fn load_from_memory_at_size(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    size: ImageMetadata,
+) -> Option<RasterImage> {
+    decode_from_memory(buffer, cors_status, Some(DecodeTarget::Exact(size)))
+}
+
+enum DecodeTarget {
+    Fit(ImageMetadata),
+    Exact(ImageMetadata),
+}
+
+fn decode_from_memory(
+    buffer: &[u8],
+    cors_status: CorsStatus,
+    target: Option<DecodeTarget>,
+) -> Option<RasterImage> {
     if buffer.is_empty() {
         return None;
     }
@@ -593,7 +677,7 @@ pub fn load_from_memory(buffer: &[u8], cors_status: CorsStatus) -> Option<Raster
             if image_decoder.is_animated() {
                 decoding::decode_animated_image(cors_status, image_decoder.animated_decoder())
             } else {
-                decoding::decode_static_image(cors_status, image_decoder.decoder())
+                decoding::decode_static_image(cors_status, image_decoder.decoder(), target)
             }
         },
     }
@@ -741,7 +825,321 @@ fn is_webp(buffer: &[u8]) -> bool {
 
 #[cfg(test)]
 mod test {
-    use super::detect_image_format;
+    use super::{ImageMetadata, detect_image_format};
+
+    #[test]
+    fn test_fit_decode_size_preserves_small_sources() {
+        let target = ImageMetadata {
+            width: 45,
+            height: 45,
+        };
+        for (width, height) in [(81, 81), (99, 99), (100, 100), (100, 50), (50, 100)] {
+            let source = ImageMetadata { width, height };
+            assert_eq!(source.fit_decode_size(target), source);
+        }
+    }
+
+    #[test]
+    fn test_fit_decode_size_downscales_larger_sources() {
+        for (width, height) in [
+            (101, 101),
+            (101, 100),
+            (100, 101),
+            (10, 10_000),
+            (10_000, 10),
+        ] {
+            let source = ImageMetadata { width, height };
+            let target = ImageMetadata {
+                width: 1,
+                height: 1,
+            };
+            assert_ne!(source.fit_decode_size(target), source);
+        }
+
+        // A small display target must not exempt a large source.
+        assert_eq!(
+            ImageMetadata {
+                width: 4000,
+                height: 3000,
+            }
+            .fit_decode_size(ImageMetadata {
+                width: 100,
+                height: 75,
+            }),
+            ImageMetadata {
+                width: 100,
+                height: 75,
+            }
+        );
+    }
+
+    fn png_bytes(width: u32, height: u32, pixel: [u8; 4]) -> Vec<u8> {
+        use image::ImageEncoder;
+        let mut bytes = vec![];
+        let data = pixel.repeat((width * height) as usize);
+        image::codecs::png::PngEncoder::new(&mut bytes)
+            .write_image(&data, width, height, image::ExtendedColorType::Rgba8)
+            .unwrap();
+        bytes
+    }
+
+    #[test]
+    fn static_decode_preserves_natural_size_and_original_access() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory, load_from_memory_with_target};
+        let bytes = png_bytes(1200, 800, [255, 0, 0, 255]);
+        let target = ImageMetadata {
+            width: 150,
+            height: 100,
+        };
+        let display = load_from_memory_with_target(&bytes, CorsStatus::Safe, Some(target)).unwrap();
+        assert_eq!(
+            display.metadata,
+            ImageMetadata {
+                width: 1200,
+                height: 800
+            }
+        );
+        assert_eq!(display.decoded_resolution, target);
+        assert_eq!(display.bytes.len(), 150 * 100 * 4);
+        assert_eq!(display.frames[0].width, 150);
+        assert_eq!(display.frames[0].height, 100);
+        assert_eq!(
+            display
+                .webrender_image_descriptor_and_data_for_frame(0)
+                .0
+                .size,
+            webrender_api::units::DeviceIntSize::new(150, 100)
+        );
+        let original = load_from_memory(&bytes, CorsStatus::Safe).unwrap();
+        assert_eq!(original.decoded_resolution, original.metadata);
+        assert_eq!(original.bytes.len(), 1200 * 800 * 4);
+    }
+
+    #[test]
+    fn static_decode_filters_premultiplied_pixels() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
+        let bytes = png_bytes(8, 8, [255, 0, 0, 128]);
+        let image = load_from_memory_with_target(
+            &bytes,
+            CorsStatus::Unsafe,
+            Some(ImageMetadata {
+                width: 2,
+                height: 2,
+            }),
+        )
+        .unwrap();
+        assert!(!image.is_opaque);
+        assert_eq!(image.cors_status, CorsStatus::Unsafe);
+        assert!(
+            image
+                .bytes
+                .chunks_exact(4)
+                .all(|pixel| pixel == [128, 0, 0, 128])
+        );
+    }
+
+    #[test]
+    /// Test to check if we address lanczos's ringing that non valid "pre-multiplied alpha" images
+    fn static_decode_preserves_exact_fitted_size() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory_at_size};
+
+        let natural = ImageMetadata {
+            width: 2496,
+            height: 1508,
+        };
+        let target = natural.fit_decode_size(ImageMetadata {
+            width: 320,
+            height: 194,
+        });
+        assert_eq!(
+            target,
+            ImageMetadata {
+                width: 322,
+                height: 194
+            }
+        );
+        let bytes = png_bytes(natural.width, natural.height, [0, 128, 0, 255]);
+        let decoded = load_from_memory_at_size(&bytes, CorsStatus::Safe, target).unwrap();
+        assert_eq!(decoded.metadata, natural);
+        assert_eq!(decoded.decoded_resolution, target);
+        assert_eq!(
+            (decoded.frames[0].width, decoded.frames[0].height),
+            (322, 194)
+        );
+    }
+
+    #[test]
+    fn static_decode_clamps_lanczos_ringing_to_alpha() {
+        use image::ImageEncoder;
+
+        use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
+
+        // A stripy test that forces Lanczos's ringing
+        let source = image::RgbaImage::from_fn(999, 999, |x, _| match (x / 2) % 4 {
+            0 => image::Rgba([255, 255, 255, 255]),
+            2 => image::Rgba([0, 0, 0, 255]),
+            _ => image::Rgba([0, 0, 0, 0]),
+        });
+        let mut bytes = vec![];
+        image::codecs::png::PngEncoder::new(&mut bytes)
+            .write_image(&source, 999, 999, image::ExtendedColorType::Rgba8)
+            .unwrap();
+        let target = ImageMetadata {
+            width: 400,
+            height: 400,
+        };
+        let decoded = load_from_memory_with_target(&bytes, CorsStatus::Safe, Some(target)).unwrap();
+        assert_eq!(decoded.decoded_resolution, target);
+        assert!(!decoded.is_opaque);
+        assert!(
+            decoded
+                .bytes
+                .chunks_exact(4)
+                .all(|pixel| pixel[..3].iter().all(|&channel| channel <= pixel[3])),
+            "resized premultiplied colour channels must not exceed alpha"
+        );
+    }
+
+    #[test]
+    fn target_size_preserves_ratio_and_caps_at_natural_size() {
+        use super::ImageMetadata;
+        let natural = ImageMetadata {
+            width: 4096,
+            height: 2048,
+        };
+        assert_eq!(
+            natural.fit_decode_size(ImageMetadata {
+                width: 300,
+                height: 300
+            }),
+            ImageMetadata {
+                width: 600,
+                height: 300
+            }
+        );
+        assert_eq!(
+            natural.fit_decode_size(ImageMetadata {
+                width: 9000,
+                height: 9000
+            }),
+            natural
+        );
+        assert_eq!(
+            ImageMetadata {
+                width: 1,
+                height: 4096
+            }
+            .fit_decode_size(ImageMetadata {
+                width: 0,
+                height: 300
+            }),
+            ImageMetadata {
+                width: 1,
+                height: 300
+            }
+        );
+    }
+
+    #[test]
+    fn four_k_thumbnail_retains_only_target_pixels() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
+        let bytes = png_bytes(4096, 4096, [0, 128, 0, 255]);
+        let image = load_from_memory_with_target(
+            &bytes,
+            CorsStatus::Safe,
+            Some(ImageMetadata {
+                width: 300,
+                height: 300,
+            }),
+        )
+        .unwrap();
+        assert_eq!(
+            image.metadata,
+            ImageMetadata {
+                width: 4096,
+                height: 4096
+            }
+        );
+        assert_eq!(image.bytes.len(), 360_000);
+    }
+
+    #[test]
+    fn static_decode_applies_orientation_before_sizing() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
+        let mut jpeg = vec![];
+        // Keep the source above the small-image bypass threshold to exercise downscaling.
+        image::codecs::jpeg::JpegEncoder::new(&mut jpeg)
+            .encode(
+                &[255, 0, 0].repeat(800 * 400),
+                800,
+                400,
+                image::ExtendedColorType::Rgb8,
+            )
+            .unwrap();
+        // EXIF little-endian IFD with a single orientation tag, rotate 90 CW.
+        let exif = b"Exif\0\0II\x2a\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0\x06\0\0\0\0\0\0\0";
+        let mut oriented = jpeg[..2].to_vec();
+        oriented.extend_from_slice(&[0xff, 0xe1]);
+        oriented.extend_from_slice(&((exif.len() + 2) as u16).to_be_bytes());
+        oriented.extend_from_slice(exif);
+        oriented.extend_from_slice(&jpeg[2..]);
+        let image = load_from_memory_with_target(
+            &oriented,
+            CorsStatus::Safe,
+            Some(ImageMetadata {
+                width: 10,
+                height: 20,
+            }),
+        )
+        .unwrap();
+        assert_eq!(
+            image.metadata,
+            ImageMetadata {
+                width: 400,
+                height: 800
+            }
+        );
+        assert_eq!(
+            image.decoded_resolution,
+            ImageMetadata {
+                width: 10,
+                height: 20
+            }
+        );
+    }
+
+    #[test]
+    fn animated_decode_ignores_display_target() {
+        use super::{CorsStatus, ImageMetadata, load_from_memory_with_target};
+        let mut bytes = vec![];
+        {
+            let mut encoder = image::codecs::gif::GifEncoder::new(&mut bytes);
+            encoder
+                .encode_frame(image::Frame::new(image::RgbaImage::from_pixel(
+                    20,
+                    10,
+                    image::Rgba([255, 0, 0, 255]),
+                )))
+                .unwrap();
+        }
+        let image = load_from_memory_with_target(
+            &bytes,
+            CorsStatus::Safe,
+            Some(ImageMetadata {
+                width: 2,
+                height: 1,
+            }),
+        )
+        .unwrap();
+        assert_eq!(
+            image.decoded_resolution,
+            ImageMetadata {
+                width: 20,
+                height: 10
+            }
+        );
+        assert!(image.loop_count.is_some());
+    }
 
     #[test]
     fn test_supported_images() {

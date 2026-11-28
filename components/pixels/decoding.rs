@@ -9,6 +9,7 @@ use std::{cmp, fmt, vec};
 
 use image::codecs::{bmp, gif, ico, jpeg, png, webp};
 use image::error::ImageFormatHint;
+use image::imageops::{self, FilterType};
 use image::metadata::LoopCount;
 use image::{
     AnimationDecoder, DynamicImage, ImageDecoder, ImageError, ImageFormat, ImageResult, Limits,
@@ -256,6 +257,7 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
 pub(crate) fn decode_static_image(
     cors_status: CorsStatus,
     mut image_decoder: impl ImageDecoder,
+    target: Option<crate::DecodeTarget>,
 ) -> Option<RasterImage> {
     let orientation = image_decoder.orientation();
 
@@ -270,12 +272,48 @@ pub(crate) fn decode_static_image(
 
     // Without an alpha channel every pixel is opaque, so premultiplying would change nothing.
     let has_alpha = dynamic_image.color().has_alpha();
+    let metadata = ImageMetadata {
+        width: dynamic_image.width(),
+        height: dynamic_image.height(),
+    };
+    let decoded_resolution = match target {
+        None => metadata,
+        Some(crate::DecodeTarget::Fit(size)) => metadata.fit_decode_size(size),
+        Some(crate::DecodeTarget::Exact(size)) => {
+            if size.width == 0 ||
+                size.height == 0 ||
+                size.width > metadata.width ||
+                size.height > metadata.height
+            {
+                return None;
+            }
+            size
+        },
+    };
     let mut rgba = dynamic_image.into_rgba8();
-
-    // Store pre-multiplied data as that prevents having to do conversions of the data at later
-    // times. This does cause an issue with some canvas APIs. See:
+    // Store pre-multiplied data to avoid conversions later. Premultiplying before
+    // resizing also prevents colors in transparent texels from bleeding into edges.
+    // This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
+
     let is_opaque = !has_alpha || rgba8_premultiply_inplace(&mut rgba);
+    if decoded_resolution != metadata {
+        rgba = imageops::resize(
+            &rgba,
+            decoded_resolution.width,
+            decoded_resolution.height,
+            FilterType::Lanczos3,
+        );
+        // Lanczos can produce RGBA values that are not valid as "pre-multiplied" due to ringing
+        // This hacky "clipping" makes values valid
+        // can cause micro visual differences in color, but seem to pass all WPT
+        for pixel in rgba.pixels_mut() {
+            let alpha = pixel[3];
+            for channel in &mut pixel.0[..3] {
+                *channel = (*channel).min(alpha);
+            }
+        }
+    }
 
     let frame = ImageFrame {
         delay: None,
@@ -284,10 +322,8 @@ pub(crate) fn decode_static_image(
         height: rgba.height(),
     };
     Some(RasterImage {
-        metadata: ImageMetadata {
-            width: rgba.width(),
-            height: rgba.height(),
-        },
+        metadata,
+        decoded_resolution,
         format: PixelFormat::RGBA8,
         frames: vec![frame],
         bytes: Arc::new(rgba.into_vec()),
@@ -363,13 +399,16 @@ where
     }
 
     // Coalesce the frame data into one single shared memory region.
+    let metadata = ImageMetadata { width, height };
+    let decoded_resolution = metadata;
     let mut bytes = Vec::with_capacity(total_number_of_bytes);
     for frame in frame_data {
         bytes.extend_from_slice(frame.buffer());
     }
 
     Some(RasterImage {
-        metadata: ImageMetadata { width, height },
+        metadata,
+        decoded_resolution,
         cors_status,
         load_time: None,
         frames,
