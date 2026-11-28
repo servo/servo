@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{OnceCell, RefCell};
+use std::marker::PhantomData;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, LazyLock};
 
@@ -86,6 +87,20 @@ pub(crate) use paint_timing_handler::{
 };
 pub(crate) use stacking_context::*;
 
+/// This should never be constructed outside of [`DisplayListBuilder`]. This allows us to remove the borrow checking for styles [`AtomicRefCells`], hence,
+/// should never be used in conjunction with mutation of styles.
+pub(crate) struct DisplayListBuilderToken<'a> {
+    phantom: PhantomData<&'a mut ()>,
+}
+
+impl<'a> DisplayListBuilderToken<'a> {
+    fn new() -> DisplayListBuilderToken<'a> {
+        DisplayListBuilderToken {
+            phantom: PhantomData,
+        }
+    }
+}
+
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
 
 /// A color to use for the selection rectangle when the document isn't focused (does not
@@ -154,6 +169,9 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// Glyphs of the text fragment being built, reused across fragments to avoid
     /// an allocation per fragment.
     glyph_buffer: Vec<GlyphInstance>,
+
+    /// Token to prove that we are in the DisplayListBuilder. This should never leave this struct.
+    token: DisplayListBuilderToken<'a>,
 }
 
 struct InspectorHighlight {
@@ -252,6 +270,7 @@ impl DisplayListBuilder<'_> {
             shell_background_color,
             frame_focused,
             glyph_buffer: Vec::new(),
+            token: DisplayListBuilderToken::new(),
         };
 
         // Clear any caret color from previous display list constructions.
@@ -445,7 +464,7 @@ impl DisplayListBuilder<'_> {
             return false;
         };
 
-        let style = fragment.style();
+        let style = fragment.style_unsafe(&self.token);
         let transform_style = style
             .used_transform_style(fragment.base.flags)
             .to_webrender();
@@ -492,7 +511,8 @@ impl DisplayListBuilder<'_> {
 
         let mut is_blend_container = stacking_context.children.iter().any(|child| {
             child.fragment().is_some_and(|fragment| {
-                fragment.style().get_mix_blend_mode() != &ComputedMixBlendMode::Normal
+                fragment.style_unsafe(&self.token).get_mix_blend_mode() !=
+                    &ComputedMixBlendMode::Normal
             })
         });
 
@@ -501,7 +521,7 @@ impl DisplayListBuilder<'_> {
         let mut stacking_context_flags = StackingContextFlags::empty();
         match &stacking_context.fragment {
             StackingContextFragments::Fragment(fragment) => {
-                let style = fragment.style();
+                let style = fragment.style_unsafe(&self.token);
                 let effects = style.get_effects();
 
                 mix_blend_mode = effects.mix_blend_mode.to_webrender();
@@ -873,7 +893,12 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             self.inspector_highlight = Some(inspector_highlight);
         }
 
-        if fragment.style().get_inherited_box().visibility != Visibility::Visible {
+        if fragment
+            .style_unsafe(&self.token)
+            .get_inherited_box()
+            .visibility !=
+            Visibility::Visible
+        {
             return;
         };
 
@@ -883,7 +908,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     fn visit_iframe(&mut self, state: &TraversalState, fragment: &Arc<IFrameFragment>) {
         fragment.base.visit_fragment(self);
 
-        let style = fragment.style.borrow();
+        let style = unsafe { fragment.style.as_ptr().as_ref().unwrap() };
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
@@ -938,7 +963,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     ) {
         fragment.base.visit_fragment(self);
 
-        let style = fragment.style.borrow();
+        let style = unsafe { fragment.style.as_ptr().as_ref().unwrap() };
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
@@ -1010,7 +1035,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         if fragment.selected.load(Ordering::Relaxed) {
             // If there is no selected style, just fall back to using the unfocused selection color,
             // which is strictly better than not drawing a selection highlight.
-            let selected_style = fragment.selected_style.borrow();
+            let selected_style = unsafe { fragment.selected_style.as_ptr().as_ref().unwrap() };
             let mut background_color =
                 if self.frame_focused && !ServoArc::ptr_eq(&*selected_style, &*style) {
                     selected_style.resolve_color(&selected_style.get_background().background_color)
@@ -1037,7 +1062,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     ) {
         fragment.base.visit_fragment(self);
 
-        let style = fragment.style();
+        let style = fragment.style_unsafe(&self.token);
         if style.get_inherited_box().visibility != Visibility::Visible {
             return;
         }
@@ -1065,13 +1090,13 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             // > background-color is transparent, user agents must instead propagate the computed
             // > values of the background properties from that element’s first HTML BODY or XHTML body
             // > child element.
-            let root_fragment_style = fragment.style();
+            let root_fragment_style = fragment.style_unsafe(&self.token);
             if root_fragment_style.background_is_transparent() {
                 let body_fragment = self.fragment_tree.body_fragment();
                 self.paint_body_background = body_fragment.is_none();
                 body_fragment
-                    .map(|body_fragment| body_fragment.style().clone())
-                    .unwrap_or(fragment.style().clone())
+                    .map(|body_fragment| body_fragment.style_unsafe(&self.token).clone())
+                    .unwrap_or(fragment.style_unsafe(&self.token).clone())
             } else {
                 root_fragment_style.clone()
             }
@@ -1124,7 +1149,12 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
     fn visit_box_for_outline(&mut self, state: &TraversalState, fragment: &Arc<BoxFragment>) {
         let fragment = fragment.with_style();
-        if fragment.style().get_inherited_box().visibility != Visibility::Visible {
+        if fragment
+            .style_unsafe(&self.token)
+            .get_inherited_box()
+            .visibility !=
+            Visibility::Visible
+        {
             return;
         };
         BuilderForBoxFragment::new(&fragment, state.origin).build_outline(self, state)
@@ -1135,7 +1165,12 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         state: &TraversalState,
         fragment: &BoxFragmentWithStyle<'_>,
     ) {
-        if fragment.style().get_inherited_box().visibility != Visibility::Visible {
+        if fragment
+            .style_unsafe(&self.token)
+            .get_inherited_box()
+            .visibility !=
+            Visibility::Visible
+        {
             return;
         };
         BuilderForBoxFragment::new(fragment, state.origin)
@@ -1206,7 +1241,7 @@ impl Fragment {
             return;
         }
 
-        let parent_style = fragment.style();
+        let parent_style = fragment.style_unsafe(&builder.token);
         // Gecko gets the text bounding box based on the ink overflow bounds. Since
         // we don't need to calculate this yet (as we do not implement `contain:
         // paint`), we just need to make sure these boundaries are big enough to
@@ -1499,7 +1534,7 @@ impl Fragment {
         line_box_rect: &PhysicalRect<Au>,
     ) {
         let run_data = &fragment.run_data;
-        let Some(selection) = *run_data.selection.borrow() else {
+        let Some(selection) = *(unsafe { run_data.selection.as_ptr().as_ref().unwrap() }) else {
             return;
         };
 
@@ -1570,7 +1605,7 @@ impl Fragment {
         let fragment_origin =
             (state.origin + fragment_rect.origin.to_vector()) + Vector2D::new(start_x, Au::zero());
 
-        let parent_style = fragment.style();
+        let parent_style = fragment.style_unsafe(&builder.token);
         if !selection_character_range.is_empty() {
             let selection_rect = Rect::new(
                 Point2D::new(fragment_origin.x, line_box_rect.min_y()),
@@ -1655,6 +1690,7 @@ struct BuilderForBoxFragment<'a> {
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    token: DisplayListBuilderToken<'a>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -1676,6 +1712,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
+            token: DisplayListBuilderToken::new(),
         }
     }
 
@@ -1718,7 +1755,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         state: &TraversalState,
         force_clip_creation: bool,
     ) -> Option<ClipChainId> {
-        if let Some(clip) = *self.border_edge_clip_chain_id.borrow() {
+        if let Some(clip) = *unsafe { self.border_edge_clip_chain_id.as_ptr().as_ref().unwrap() } {
             return Some(clip);
         }
 
@@ -1738,7 +1775,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         state: &TraversalState,
         force_clip_creation: bool,
     ) -> Option<ClipChainId> {
-        if let Some(clip) = *self.padding_edge_clip_chain_id.borrow() {
+        if let Some(clip) = *unsafe { self.padding_edge_clip_chain_id.as_ptr().as_ref().unwrap() } {
             return Some(clip);
         }
 
@@ -1755,7 +1792,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         state: &TraversalState,
         force_clip_creation: bool,
     ) -> Option<ClipChainId> {
-        if let Some(clip) = *self.content_edge_clip_chain_id.borrow() {
+        if let Some(clip) = *unsafe { self.content_edge_clip_chain_id.as_ptr().as_ref().unwrap() } {
             return Some(clip);
         }
 
@@ -1788,12 +1825,15 @@ impl<'a> BuilderForBoxFragment<'a> {
 
         let overflow = self
             .fragment
-            .style()
+            .style_unsafe(&builder.token)
             .effective_overflow(self.fragment.base.flags);
         let scrolls_via_user_input =
             |overflow| matches!(overflow, ComputedOverflow::Scroll | ComputedOverflow::Auto);
         if (scrolls_via_user_input(overflow.x) || scrolls_via_user_input(overflow.y)) &&
-            self.fragment.style().get_inherited_ui().pointer_events !=
+            self.fragment
+                .style_unsafe(&builder.token)
+                .get_inherited_ui()
+                .pointer_events !=
                 style::computed_values::pointer_events::T::None
         {
             let mut inner_state = state.clone();
@@ -1824,7 +1864,8 @@ impl<'a> BuilderForBoxFragment<'a> {
             .paint_info
             .external_scroll_id_for_scroll_tree_node(state.spatial_id);
 
-        let common = builder.common_properties(state, rect, self.fragment.style());
+        let common =
+            builder.common_properties(state, rect, self.fragment.style_unsafe(&builder.token));
         builder.wr().push_hit_test(
             common.clip_rect,
             common.clip_chain_id,
@@ -1877,7 +1918,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let style = self.fragment.style();
+        let style = self.fragment.style_unsafe(&builder.token);
         let effects = style.get_effects();
         if effects.backdrop_filter.0.is_empty() {
             return;
@@ -1937,7 +1978,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         let painter = BackgroundPainter {
-            style: self.fragment.style(),
+            style: self.fragment.style_unsafe(&builder.token),
             painting_area_override: None,
             positioning_area_override: None,
         };
@@ -2194,8 +2235,11 @@ impl<'a> BuilderForBoxFragment<'a> {
         else {
             return;
         };
-        let mut common =
-            builder.common_properties(state, units::LayoutRect::default(), self.fragment.style());
+        let mut common = builder.common_properties(
+            state,
+            units::LayoutRect::default(),
+            self.fragment.style_unsafe(&builder.token),
+        );
         let radius = wr::BorderRadius::default();
         let mut column_sum = Au::zero();
         for (x, column_size) in table_info.track_sizes.x.iter().enumerate() {
@@ -2259,7 +2303,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
-        let style = self.fragment.style();
+        let style = self.fragment.style_unsafe(&builder.token);
         let border = style.get_border();
         let border_widths = self.fragment.border().to_webrender();
 
@@ -2295,7 +2339,7 @@ impl<'a> BuilderForBoxFragment<'a> {
         border: &Border,
         border_widths: SideOffsets2D<f32, LayoutPixel>,
     ) -> bool {
-        let style = self.fragment.style();
+        let style = self.fragment.style_unsafe(&builder.token);
         let border_style_struct = style.get_border();
         let border_image_outset =
             resolve_border_image_outset(border_style_struct.border_image_outset, border_widths);
@@ -2405,7 +2449,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_outline(&self, builder: &mut DisplayListBuilder, state: &TraversalState) {
-        let style = self.fragment.style();
+        let style = self.fragment.style_unsafe(&builder.token);
         let outline = style.get_outline();
         if outline.outline_style.none_or_hidden() {
             return;
@@ -2453,7 +2497,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_box_shadow(&self, builder: &mut DisplayListBuilder, state: &TraversalState) {
-        let style = self.fragment.style();
+        let style = self.fragment.style_unsafe(&builder.token);
         let box_shadows = &style.get_effects().box_shadow.0;
         if box_shadows.is_empty() {
             return;
@@ -2716,7 +2760,7 @@ pub(super) fn normalize_radii(rect: &units::LayoutRect, radius: &mut wr::BorderR
 /// > max(border-radius + margin, 0). If the ratio of border-radius/margin is less than 1,
 /// > and margin is positive, then the margin box corner radius is
 /// > border-radius + margin * (1 + (ratio-1)^3).
-pub(super) fn compute_margin_box_radius(
+pub(super) fn compute_margin_box_radius<'a>(
     radius: wr::BorderRadius,
     layout_rect: LayoutSize,
     fragment: &BoxFragment,

@@ -23,7 +23,7 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, CollapsedBlockMargins, Fragment, FragmentFlags};
 use crate::SharedStyle;
-use crate::display_list::{ClipId, ToWebRender};
+use crate::display_list::{ClipId, DisplayListBuilderToken, ToWebRender};
 use crate::formatting_contexts::Baselines;
 use crate::fragment_tree::debug::{PrintableRect, PrintableSides};
 use crate::fragment_tree::{CumulativeContentRectCalculation, FragmentChildren};
@@ -275,6 +275,16 @@ impl BoxFragment {
 
     pub(crate) fn style<'a>(&'a self) -> AtomicRef<'a, ServoArc<ComputedValues>> {
         self.style.borrow()
+    }
+
+    /// This should only be used in [`DisplayListBuilder`] and never in construction.
+    pub(crate) fn style_unsafe(
+        &self,
+        _token: &DisplayListBuilderToken,
+    ) -> &ServoArc<ComputedValues> {
+        debug_assert!(self.style.try_borrow().is_ok());
+        // This is safe as we know that no other value mutates this in [`DisplayListBuilder`] which is enforced by the [`DisplayListBuilderToken`].
+        unsafe { self.style.as_ptr().as_ref().unwrap() }
     }
 
     pub(crate) fn with_style(self: &Arc<Self>) -> BoxFragmentWithStyle<'_> {
