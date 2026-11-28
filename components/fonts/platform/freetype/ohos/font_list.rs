@@ -83,6 +83,7 @@ struct Font {
     // `LocalFontIdentifier` uses `Atom` for string interning and requires a String or str, so we
     // already require a String here, instead of using a PathBuf.
     filepath: String,
+    face_index: u16,
     weight: Option<i32>,
     style: Option<String>,
     width: FontWidth,
@@ -238,18 +239,24 @@ fn get_system_font_families(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
 
         match file_ref {
             OHOS_Font(font) => {
-                if let Some(result) = get_family_name_and_generate_font_struct(&font, font_file) {
+                if let Some(result) = get_family_name_and_generate_font_struct(&font, 0, font_file)
+                {
                     all_families.push(result);
                 }
             },
             Collection(font_collection) => {
                 // Process all the font files within the collection one by one.
-                for f in font_collection.iter() {
-                    if let Some(result) =
-                        get_family_name_and_generate_font_struct(&(f.unwrap()), font_file)
-                    {
-                        all_families.push(result);
-                    };
+                for (index, font_ref) in font_collection.iter().enumerate() {
+                    debug_assert!(index <= u16::MAX as usize);
+                    if let Ok(f) = font_ref {
+                        if let Some(result) =
+                            get_family_name_and_generate_font_struct(&f, index as u16, font_file)
+                        {
+                            all_families.push(result);
+                        };
+                    } else {
+                        warn!("Broken font at index {index} in {:?}", font_file);
+                    }
                 }
             },
         }
@@ -271,6 +278,7 @@ fn get_system_font_families(font_files: Vec<PathBuf>) -> Vec<FontFamily> {
 
 fn get_family_name_and_generate_font_struct(
     font_ref: &FontRef,
+    face_index: u16,
     file_path: &Path,
 ) -> Option<(String, Font)> {
     // Parse the file path to string. If this fails, then skip this font.
@@ -299,6 +307,7 @@ fn get_family_name_and_generate_font_struct(
 
     let font = Font {
         filepath: file_path_str,
+        face_index,
         weight,
         style,
         width,
@@ -438,7 +447,7 @@ where
     let mut produce_font = |font: &Font| {
         let local_font_identifier = LocalFontIdentifier {
             path: Atom::from(font.filepath.clone()),
-            face_index: 0,
+            face_index: font.face_index,
             named_instance_index: 0,
         };
         let width = font.width.into();
@@ -544,9 +553,16 @@ mod test {
         use super::get_system_font_families;
         let fonts_dir = PathBuf::from(super::OHOS_FONTS_DIR);
         let families = get_system_font_families(vec![fonts_dir.join("NotoSansCJK-Regular.ttc")]);
-        assert_eq!(families.len(), 1);
-        let family = families.first().unwrap();
-        assert_eq!(family.name, "Noto Sans CJK".to_string());
+        assert_eq!(families.len(), 10);
+        let sorted_families = families
+            .iter()
+            .sorted_by_key(|family| &family.face_index)
+            .collect();
+        // This is not a great test, since there probably is nothing forcing this order.
+        // But it's useful enough for now to just check that we get the expected differing
+        // family names.
+        assert_eq!(sorted_families[0].name, "Noto Sans CJK JP".to_string());
+        assert_eq!(sorted_families[1].name, "Noto Sans CJK KR".to_string());
 
         let families_paths = [
             "NotoSerifGeorgian[wdth,wght].ttf",
